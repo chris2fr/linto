@@ -1,0 +1,131 @@
+#!/bin/sh
+# linto -- command-line entry point for the local Linux Tools collection.
+
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+
+list_commands() {
+  for tool in "$script_dir"/*.sh; do
+    [ -f "$tool" ] && [ -x "$tool" ] || continue
+    name=${tool##*/}
+    printf '%s\n' "${name%.sh}"
+  done
+}
+
+usage() {
+  cat <<EOF
+Usage: linto [--help] [command [arguments...]]
+
+Linux Tools: bibliography, Quarto, text, and shell utilities.
+
+Commands:
+  help [COMMAND]    Show the full guide or detailed help for a command.
+  completion SHELL  Print completion setup instructions (bash, zsh, fish).
+  COMMAND --help    Show help for a specific tool.
+
+Available commands:
+EOF
+  list_commands | sed 's/^/  /'
+  cat <<EOF
+
+Examples:
+  linto stripaccents --min 4 --max 20 'Été à Paris'
+  linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
+  linto stripaccents --dir 'Documents/Été à Paris'
+  linto render --help
+EOF
+}
+
+if [ "$#" -eq 0 ]; then
+  usage
+  exit 0
+fi
+
+case "$1" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  help)
+    if [ "$#" -eq 1 ]; then
+      cat "$script_dir/linto-guide"
+      exit 0
+    fi
+    if [ "$#" -ne 2 ]; then
+      echo "Usage: linto help [COMMAND]" >&2
+      exit 2
+    fi
+    command=$2
+    case "$command" in
+      slug) command=stripaccents ;;
+    esac
+    tool="$script_dir/$command"
+    if [ ! -x "$tool" ] || [ ! -f "$tool" ]; then
+      tool="$script_dir/$command.sh"
+    fi
+    if [ ! -f "$tool" ]; then
+      echo "linto: unknown command: $command" >&2
+      usage >&2
+      exit 2
+    fi
+    case "$command" in
+      zed)
+        cat <<EOF
+Usage: linto zed
+
+Launch Zed for the current directory using the local .zed user-data directory.
+This command creates .zed if needed and opens the current directory in a new
+Zed window. Requires zeditor to be installed and available on PATH.
+EOF
+        ;;
+      *)
+        if [ ! -x "$tool" ]; then
+          echo "linto: command is not executable: $command" >&2
+          exit 1
+        fi
+        exec "$tool" --help
+        ;;
+    esac
+    exit 0
+    ;;
+  completion)
+    if [ "$#" -ne 2 ]; then
+      echo "Usage: linto completion {bash|zsh|fish}" >&2
+      exit 2
+    fi
+    case "$2" in
+      bash)
+        printf 'source "%s/completions/linto.bash"\n' "$script_dir"
+        ;;
+      zsh)
+        printf 'fpath=("%s/completions" $fpath)\nautoload -Uz compinit && compinit\n' "$script_dir"
+        ;;
+      fish)
+        printf 'source "%s/completions/linto.fish"\n' "$script_dir"
+        ;;
+      *)
+        echo "linto: unsupported completion shell: $2 (choose bash, zsh, or fish)" >&2
+        exit 2
+        ;;
+    esac
+    exit 0
+    ;;
+  *)
+    command=$1
+    shift
+    case "$command" in
+      slug) command=stripaccents ;;
+    esac
+    tool="$script_dir/$command"
+    if [ ! -x "$tool" ] || [ ! -f "$tool" ]; then
+      tool="$script_dir/$command.sh"
+    fi
+    if [ -x "$tool" ] && [ -f "$tool" ]; then
+      exec "$tool" "$@"
+    fi
+    echo "linto: unknown command: $command" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
