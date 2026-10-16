@@ -1,9 +1,26 @@
 #!/usr/bin/env bash
-# Usage : json2bib.sh <entrée.json> <sortie.bib>
 set -euo pipefail
 
-json_in="${1:?Usage: $0 <entrée.json> <sortie.bib>}"
-bib_out="${2:?Usage: $0 <entrée.json> <sortie.bib>}"
+usage() {
+  cat <<EOF
+Usage: $0 [-h|--help] <entrée.json> <sortie.bib>
+
+Reconstruit un fichier BibTeX à partir du champ bibtex du JSON.
+EOF
+}
+
+case "${1-}" in
+  -h|--help) usage; exit 0 ;;
+  --) shift ;;
+  -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
+esac
+if [ "$#" -ne 2 ]; then
+  usage >&2
+  exit 2
+fi
+
+json_in=$1
+bib_out=$2
 
 jq -r 'to_entries[] | select(.value.bibtex == null) | .key' "$json_in" \
   | sed 's/^/Ignorée (pas de champ bibtex) : /' >&2

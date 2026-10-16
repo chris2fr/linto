@@ -15,9 +15,20 @@
 # sur l'entrée standard).
 
 usage() {
-    echo "Usage: $0 [fichier] [debut]" >&2
-    echo "       $0 [debut] < fichier" >&2
+    cat <<EOF
+Usage: $0 [-h|--help] [fichier] [debut]
+       $0 [debut] < fichier
+
+Convertit les citations (une par ligne) en mapping YAML, en conservant leur
+ordre de première apparition. Sans fichier, lit l'entrée standard.
+EOF
 }
+
+case "${1-}" in
+    -h|--help) usage; exit 0 ;;
+    --) shift ;;
+    -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
+esac
 
 # --- Interpréter les arguments ----------------------------------------------
 # Premier argument : soit un nom de fichier, soit le numéro de départ.

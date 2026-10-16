@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
-# Usage : bib2json.sh <fichier.bib> <entrée.json> <sortie.json>
 set -euo pipefail
 
-bib="${1:?Usage: $0 <fichier.bib> <entrée.json> <sortie.json>}"
-json_in="${2:?Usage: $0 <fichier.bib> <entrée.json> <sortie.json>}"
-json_out="${3:?Usage: $0 <fichier.bib> <entrée.json> <sortie.json>}"
+usage() {
+  cat <<EOF
+Usage: $0 [-h|--help] <fichier.bib> <entrée.json> <sortie.json>
+
+Injecte les entrées BibTeX dans le champ bibtex du fichier JSON.
+EOF
+}
+
+case "${1-}" in
+  -h|--help) usage; exit 0 ;;
+  --) shift ;;
+  -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
+esac
+if [ "$#" -ne 3 ]; then
+  usage >&2
+  exit 2
+fi
+
+bib=$1
+json_in=$2
+json_out=$3
 
 # une seule fois
 # python3 -m pip install bibtexparser
