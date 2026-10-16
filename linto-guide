@@ -1,0 +1,80 @@
+# Linux Tools (mainly command-line)
+
+This directory contains shell scripts and utilities for bibliography processing,
+Quarto rendering, text cleanup, and development workflow helpers.
+
+## Add these tools to PATH
+
+Use `addlinto` to add this directory to the current shell's `PATH`:
+
+```sh
+. /path/to/scripts/addlinto
+```
+
+Sourcing is required; executing `addlinto` as a separate process cannot change the
+calling shell's environment. `addlinto` supports Bash, zsh, and ksh93, and avoids
+adding the directory more than once. POSIX `sh`/`dash` cannot portably determine
+the path of a sourced file, so they are not supported by this helper.
+
+## Utilities
+
+### `stripaccents.sh`
+
+Transliterates text into lowercase ASCII slugs. It reads from standard input, or
+accepts text arguments when stdin is a terminal:
+
+```sh
+printf '%s\n' 'Été à Paris' | linto stripaccents
+linto stripaccents 'Été à Paris'
+```
+
+By default, a slug is at most 48 characters and at least 1 character. `--max N`
+sets the maximum length; `--min N` sets the minimum, padding shorter slugs with
+underscores. When truncating, it prefers to stop at a word boundary.
+
+```sh
+linto stripaccents --min 4 --max 20 'Été à Paris'
+```
+
+Rename a file with `-f` or `--file`. Only the part before the final dot is
+slugified; the final dot and suffix are preserved. The file stays in its current
+directory, and an existing destination is never overwritten:
+
+```sh
+linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
+# -> Documents/ete_a_paris_final.PDF
+```
+
+Rename a directory with `-d` or `--dir`. Its basename is slugified and the
+renamed directory stays in the same parent directory. Existing destinations are
+not overwritten:
+
+```sh
+linto stripaccents --dir 'Documents/Été à Paris'
+# -> Documents/ete_a_paris
+```
+
+Use `linto stripaccents --help` for option details. The `--min` and `--max`
+limits apply to the slugified portion of file and directory names; a preserved
+file suffix is not included in those limits.
+
+## Bibliography and Quarto workflow
+
+Most bibliography and Quarto scripts are intended to run from the project root,
+where the `.qmd`, `fr.bib`, and `_pieces-*.yml` files live.
+
+- `build-bib.sh` generates `pieces-*.bib` files from `_pieces-*.yml` files.
+- `render.sh` rebuilds bibliographies, then renders every `.qmd` file; optional
+  file arguments let you render only selected documents.
+- `bib2json.sh` injects bibliography entries into the JSON data.
+- `json2bib.sh` builds a BibTeX bibliography from JSON data.
+- `mkbib.sh` splits a BibTeX file into one file per entry.
+
+Run any script with `-h` or `--help` for its usage where supported. `linto
+COMMAND --help` forwards help requests to supported tools.
+
+## Safety note
+
+Scripts in `loops/` are one-off bibliography migration helpers. They modify
+`fr.bib` or project documents in place; review the script and back up files
+before running them.
