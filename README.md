@@ -1,4 +1,6 @@
-# Scripts
+# linto
+
+Linux Tools (mainly command-line)
 
 Scripts de gestion de la bibliographie (`fr.bib`, `transcriptions.json`, fichiers `_pieces-*.yml`) et de rendu des documents Quarto du projet.
 
