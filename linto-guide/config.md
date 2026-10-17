@@ -5,6 +5,7 @@ groups and generated command stubs. Its `groups` mapping accepts the `default`
 shorthand or a mapping of options, for example:
 
 ```yaml
+markdown-viewer: cat # bat inlyne glow frogmouth mandown mdcat mdfried mdless md-tui
 groups:
   beta: default
   bibtex: default

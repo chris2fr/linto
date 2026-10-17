@@ -9,7 +9,7 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-Usage: $0 [-o|--order FIELD,...]... [-h|--help] [--] <file.bib>
+Usage: $0 [-i[.bak]] [-o|--order FIELD,...]... [-h|--help] [--] <file.bib>
 
 Sort properties in every BibTeX entry. Properties are alphabetical by default.
 Specify preferred properties with repeatable -o/--order options; commas may
@@ -21,16 +21,25 @@ entry syntax (including multiline values, comments or directives inside an
 entry, duplicate fields, or unbalanced delimiters).
 
 Options:
+  -i                            Replace the input file in place.
+  -i.bak                        Replace in place, saving the original as FILE.bak.
   -o, --order FIELD[,FIELD...]  Put these fields first, in the specified order.
   -h, --help                    Show this help and exit.
+
+By default, the sorted result is written to standard output and the input is
+left unchanged.
 EOF
 }
 
 orders=()
+in_place=0
+backup_suffix=
 input=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
+    -i) in_place=1; shift ;;
+    -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--order)
       [ "$#" -ge 2 ] || { echo "error: $1 requires a field list" >&2; exit 2; }
       orders+=("$2")
@@ -60,7 +69,7 @@ if [ ! -f "$input" ] || [ ! -r "$input" ]; then
   echo "$0: input file absent or unreadable: $input" >&2
   exit 1
 fi
-if [ -L "$input" ]; then
+if [ "$in_place" -eq 1 ] && [ -L "$input" ]; then
   echo "$0: refusing to replace a symbolic link: $input" >&2
   exit 1
 fi
@@ -202,6 +211,19 @@ fi
 if [ ! -s "$output_tmp" ]; then
   echo "$0: no output generated for: $input" >&2
   exit 1
+fi
+if [ "$in_place" -eq 0 ]; then
+  cat -- "$output_tmp"
+  exit 0
+fi
+
+if [ -n "$backup_suffix" ]; then
+  backup_path="$input$backup_suffix"
+  [ ! -e "$backup_path" ] && [ ! -L "$backup_path" ] || {
+    echo "$0: refusing to overwrite existing backup: $backup_path" >&2
+    exit 1
+  }
+  cp -p -- "$input" "$backup_path"
 fi
 chmod --reference="$input" "$output_tmp"
 mv -f -- "$output_tmp" "$input"
