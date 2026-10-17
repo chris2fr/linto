@@ -7,13 +7,16 @@ linto-bibtex-bib-order-props
 linto-bibtex-bib2json
 linto-bibtex-build-bib
 linto-bibtex-json2bib
+linto-bibtex-md2json
 linto-bibtex-mkbib
+linto-bibtex-renumberyml
 linto-build-bib
 linto-json2bib
 linto-launch
 linto-launch-zed
 linto-linto
 linto-linto-addman
+linto-md2json
 linto-mkbib
 linto-prettyprint
 linto-quarto
@@ -24,6 +27,7 @@ linto-quarto-render
 linto-quarto-setup
 linto-quarto-setup-document
 linto-quarto-setup-lettre
+linto-renumberyml
 linto-stripaccents
 linto-test
 linto-timezone

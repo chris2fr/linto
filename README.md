@@ -71,10 +71,10 @@ Lit le CSV produit par `bib2csv.awk` et génère les listes d'annexes en Markdow
 
 ## Numérotation et texte
 
-### renumberyml.py
+### renumberyml.sh
 
-python3 renumberyml.py in.yml [out.yml]  
-Renumérote un YAML de lignes `"clé": N` pour que chaque valeur soit égale à son numéro de ligne. Sortie standard si aucun fichier de sortie n'est donné. 
+`linto bibtex renumberyml in.yml [out.yml]`  
+Renumérote un YAML de lignes `"clé": N` pour que chaque valeur soit égale à son numéro de ligne. La sortie est écrite sur stdout si aucun fichier de sortie n'est donné; l'implémentation Python est rangée dans `bibtex/lib/renumberyml.py`. 
 
 ### renumberyml.awk
 
