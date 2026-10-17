@@ -1,0 +1,36 @@
+.TH "LINTO-INSTALL" 1
+
+.SH "Installation and setup"
+.PP
+Add this checkout's \fBbin/\fP directory to your \fBPATH\fP, or run the setup helper to
+configure your current shell:
+.RS
+.PP
+.nf
+linto\-linto\-setup
+.fi
+.RE
+.PP
+The setup helper is safe to run more than once\. It configures supported shell
+startup files for Bash, Zsh, and other detected shells\. To install the \fBlinto(1)\fP
+man page as well:
+.RS
+.PP
+.nf
+linto\-linto\-setup \-\-man
+.fi
+.RE
+.PP
+If \fBman linto\fP is not found, ensure your user man directory is included in
+\fBMANPATH\fP\. Run \fBlinto\-linto\-addman \-\-help\fP for details\.
+.PP
+You can also configure \fBPATH\fP manually:
+.RS
+.PP
+.nf
+export PATH="/path/to/linto/bin:$PATH"
+.fi
+.RE
+.PP
+The path \fB/path/to/linto\fP should be replaced with this checkout's actual
+location\. See Shell completion for optional tab completion\.

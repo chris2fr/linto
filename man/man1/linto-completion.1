@@ -1,0 +1,20 @@
+.TH "LINTO-COMPLETION" 1
+
+.SH "Shell completion"
+.PP
+Linto includes Bash, Zsh, and Fish completion definitions\. Ask the dispatcher
+for the setup instruction for your shell:
+.RS
+.PP
+.nf
+linto completion bash
+linto completion zsh
+linto completion fish
+.fi
+.RE
+.PP
+For Zsh, add the printed \fBfpath\fP setup and \fBcompinit\fP line to your Zsh startup
+configuration (normally \fB~/\.zshrc\fP), or run \fBlinto\-linto\-setup\fP to configure a
+supported shell automatically\. Restart the shell or source the updated
+configuration\. Fish completion is optional; it is not required for Linto or for
+Bash/Zsh completion\.

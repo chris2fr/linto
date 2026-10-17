@@ -1,0 +1,23 @@
+.TH "LINTO-QUARTO" 1
+
+.SH "Quarto workflow"
+.PP
+The \fBquarto\fP group provides citation extraction, rendering helpers, output
+browsing, and setup commands\. Use \fBlinto help quarto\fP for the current command
+list\.
+.PP
+Typical invocations:
+.RS
+.PP
+.nf
+linto quarto citations \-\-help
+linto quarto render \-\-help
+linto quarto setup \-\-help
+linto quarto setup\-document \-\-help
+linto quarto setup\-lettre \-\-help
+.fi
+.RE
+.PP
+Citation extraction can produce YAML or CSV and supports ordering options; see
+\fBlinto quarto citations \-\-help\fP for the supported flags\. Quarto commands may
+invoke the Quarto CLI and may read or write files in the current project\.
