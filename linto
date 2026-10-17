@@ -16,20 +16,19 @@ list_groups() {
   done
 }
 
-list_commands() {
-  for tool in "$script_dir"/*.sh "$script_dir"/*/*.sh; do
-    [ -f "$tool" ] && [ -x "$tool" ] || continue
-    name=${tool##*/}
-    printf '%s\n' "${name%.sh}"
-  done
-}
-
 list_group_commands() {
   group=$1
   for tool in "$script_dir/$group"/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
     printf '%s\n' "${name%.sh}"
+  done
+}
+
+list_groups_and_commands() {
+  for group in $(list_groups); do
+    printf '%s\n' "$group"
+    list_group_commands "$group" | sed 's/^/  /'
   done
 }
 
@@ -69,30 +68,34 @@ find_tool() {
 
 usage() {
   cat <<EOF
-Usage: linto [--help] [command [arguments...]]
+Usage: linto [--help] [COMMAND [arguments...]]
+       linto [--help] GROUP COMMAND [arguments...]
 
 Linux Tools: bibliography, Quarto, text, and shell utilities.
 
 Commands:
-  help [GROUP] [COMMAND] Show the guide or detailed help for a command.
-  completion SHELL  Print completion setup instructions (bash, zsh, fish).
-  GROUP COMMAND     Run a command from a group directory.
+  help [GROUP] [COMMAND]  Show the guide or detailed help for a command.
+  completion SHELL        Print shell completion setup instructions.
+  GROUP [COMMAND...]      Run a command in GROUP; with no command, show its tools.
+  COMMAND [ARGUMENTS...]  Run a tool by its command name.
 
 Groups:
 EOF
   list_groups | sed 's/^/  /'
   cat <<EOF
 
-Commands (also available as GROUP COMMAND):
+Available commands, grouped by folder (also available without the group):
 EOF
-  list_commands | sed 's/^/  /'
+  list_groups_and_commands
   cat <<EOF
 
 Examples:
   linto stripaccents --min 4 --max 20 'Été à Paris'
   linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
   linto stripaccents --dir 'Documents/Été à Paris'
+  linto render --help
   linto quarto render --help
+  linto prettyprint
   linto utils prettyprint
 EOF
 }
@@ -114,8 +117,9 @@ case "$1" in
     elif [ "$#" -eq 2 ]; then
       case "$2" in
         awk|beta|bibtex|internal|quarto|utils)
-          echo "Usage: linto help GROUP COMMAND" >&2
-          exit 2
+          echo "Commands in group '$2':"
+          list_group_commands "$2" | sed 's/^/  /'
+          exit 0
           ;;
         *)
           group=
@@ -171,8 +175,13 @@ case "$1" in
     case "$first" in
       slug) first=stripaccents ;;
     esac
-    if [ "$#" -gt 0 ] && group_exists "$first"; then
+    if group_exists "$first"; then
       group=$first
+      if [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && [ "$1" = --help ]; }; then
+        printf 'Commands in group %s:\n' "$group"
+        list_group_commands "$group" | sed 's/^/  /'
+        exit 0
+      fi
       command=$1
       shift
     else
