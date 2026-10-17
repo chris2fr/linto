@@ -36,9 +36,10 @@ def load(path: Path) -> dict:
 
 def enabled_groups(data: dict, root: Path) -> list[str]:
     result = []
+    reserved = {"bin", "completions", "man", "old", "tests", "lib"}
     for name, options in data["groups"].items():
         enabled = True if options == "default" else options.get("enable", True)
-        if enabled and (root / name).is_dir():
+        if name not in reserved and enabled and (root / name).is_dir():
             result.append(name)
     return result
 
