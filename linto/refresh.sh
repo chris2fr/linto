@@ -5,10 +5,10 @@ usage() {
   cat <<'EOF'
 Usage: refresh.sh [-h|--help]
 
-Refresh generated group and command wrappers in bin/ and regenerate the Fish
-completion definitions from config.yml. Bash and Zsh completions query the
-dispatcher dynamically. Only wrappers listed in the generated-wrapper inventory
-are removed when they become obsolete.
+Refresh generated group/command wrappers, shell completions and the active-group
+list in the man page from config.yml. Group options default to enable: true and
+short-stubs: true. Short command stubs are generated only when a command name is
+unique among enabled groups.
 EOF
 }
 
@@ -18,176 +18,155 @@ case "${1-}" in
   *) usage >&2; exit 2 ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
-bin_dir="$script_dir/bin"
-completion_dir="$script_dir/completions"
-man_page="$script_dir/man/linto.1"
-linto_bin="$bin_dir/linto"
-groups_file="$script_dir/config.yml"
+root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+bin_dir="$root/bin"
+completion_dir="$root/completions"
+man_page="$root/man/linto.1"
+config="$root/config.yml"
+config_tool="$root/lib/config.py"
+linto="$bin_dir/linto"
 wrapper_dir="$bin_dir/.generated-wrappers"
-owned_file="$wrapper_dir/owned"
+owned="$wrapper_dir/owned"
 
-[[ -x "$linto_bin" ]] || { printf 'refresh: dispatcher is not executable: %s\n' "$linto_bin" >&2; exit 1; }
-[[ -f "$groups_file" ]] || { printf 'refresh: group configuration not found: %s\n' "$groups_file" >&2; exit 1; }
+[[ -x "$linto" ]] || { printf 'refresh: dispatcher not executable: %s\n' "$linto" >&2; exit 1; }
+[[ -f "$config" && -f "$config_tool" ]] || { printf 'refresh: config or config helper is missing\n' >&2; exit 1; }
 
-mapfile -t groups < <("$linto_bin" --list-groups)
-declare -a desired_names=()
-declare -a desired_groups=()
-declare -a desired_commands=()
-declare -a desired_kinds=()
-declare -A desired_set=()
-declare -A short_command_groups=()
+mapfile -t groups < <("$linto" --list-groups)
+declare -a names=() groups_for_stub=() commands_for_stub=() kinds=()
+declare -A desired=() owners=()
+
+add_stub() {
+  local name=$1 group=$2 command=$3 kind=$4
+  names+=("$name")
+  groups_for_stub+=("$group")
+  commands_for_stub+=("$command")
+  kinds+=("$kind")
+  desired["$name"]=1
+}
 
 for group in "${groups[@]}"; do
-  desired_names+=("linto-$group")
-  desired_groups+=("$group")
-  desired_commands+=("")
-  desired_kinds+=(group)
-  desired_set["linto-$group"]=1
-
-  mapfile -t options < <(python3 "$script_dir/lib/config.py" "$groups_file" options "$group")
-  short_stubs=${options[1]:-true}
-  mapfile -t commands < <("$linto_bin" --list-commands "$group")
+  add_stub "linto-$group" "$group" '' group
+  mapfile -t opts < <(python3 "$config_tool" "$config" options "$group")
+  short_stubs=${opts[1]:-true}
+  mapfile -t commands < <("$linto" --list-commands "$group")
   for command in "${commands[@]}"; do
     case "$group/$command" in
-      linto/addgroup|linto/rmgroup|linto/refresh) continue ;;
+      linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
     esac
-    desired_names+=("linto-$group-$command")
-    desired_groups+=("$group")
-    desired_commands+=("$command")
-    desired_kinds+=(group-command)
-    desired_set["linto-$group-$command"]=1
+    add_stub "linto-$group-$command" "$group" "$command" group-command
     if [[ "$short_stubs" == true ]]; then
-      short_command_groups["$command"]+=" $group"
+      owners["$command"]+="$group "
     fi
   done
 done
 
-for command in "${!short_command_groups[@]}"; do
-  read -r -a owners <<< "${short_command_groups[$command]}"
-  if (( ${#owners[@]} == 1 )) && ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" && [[ "$command" != help && "$command" != completion ]]; then
-    desired_names+=("linto-$command")
-    desired_groups+=("${owners[0]}")
-    desired_commands+=("$command")
-    desired_kinds+=(short-command)
-    desired_set["linto-$command"]=1
+for command in "${!owners[@]}"; do
+  read -r -a command_owners <<< "${owners[$command]}"
+  if (( ${#command_owners[@]} == 1 )) &&
+     ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" &&
+     [[ "$command" != help && "$command" != completion ]]; then
+    add_stub "linto-$command" "${command_owners[0]}" "$command" short-command
   fi
 done
 
 mkdir -p -- "$wrapper_dir"
-: > "$wrapper_dir/current"
-for name in "${desired_names[@]}"; do
-  printf '%s\n' "$name" >> "$wrapper_dir/current"
-done
 
-write_wrapper() {
-  local destination=$1 group=$2 command=$3 kind=$4
+write_stub() {
+  local dest=$1 group=$2 command=$3 kind=$4
   {
     printf '%s\n' '#!/bin/sh'
     printf '%s\n' 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
     case "$kind" in
       group) printf 'exec "$bin_dir/linto" %q "$@"\n' "$group" ;;
-      group-command) printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command" ;;
-      short-command) printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command" ;;
+      group-command|short-command)
+        printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command"
+        ;;
     esac
-  } > "$destination"
-  chmod 755 "$destination"
+  } > "$dest"
+  chmod 755 "$dest"
 }
 
-# Verify desired destinations. A pre-existing stub with the canonical format
-# may be adopted; any other file, directory, or symlink is preserved and causes
-# an error rather than being overwritten.
-for index in "${!desired_names[@]}"; do
-  name=${desired_names[$index]}
-  destination="$bin_dir/$name"
-  [[ -e "$destination" || -L "$destination" ]] || continue
-  [[ -f "$destination" && ! -L "$destination" ]] || {
-    printf 'refresh: refusing to replace non-file path: %s\n' "$destination" >&2
+# Validate existing destinations before changing any generated files.
+for index in "${!names[@]}"; do
+  name=${names[$index]}
+  dest="$bin_dir/$name"
+  [[ -e "$dest" || -L "$dest" ]] || continue
+  [[ -f "$dest" && ! -L "$dest" ]] || {
+    printf 'refresh: refusing to replace non-file path: %s\n' "$dest" >&2
     exit 1
   }
-  case "${desired_kinds[$index]}" in
-    group) expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} \"\$@\"" ;;
-    *) expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} ${desired_commands[$index]} \"\$@\"" ;;
-  esac
-  if ! grep -Fqx '#!/bin/sh' "$destination" ||
-     ! grep -Fqx 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)' "$destination" ||
-     ! grep -Fqx "$expected_line" "$destination"; then
-    printf 'refresh: refusing to replace unrecognized path: %s\n' "$destination" >&2
+  expected_head='#!/bin/sh'
+  expected_dir='bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
+  if [[ "${kinds[$index]}" == group ]]; then
+    expected_exec="exec \"\$bin_dir/linto\" ${groups_for_stub[$index]} \"\$@\""
+  else
+    expected_exec="exec \"\$bin_dir/linto\" ${groups_for_stub[$index]} ${commands_for_stub[$index]} \"\$@\""
+  fi
+  if ! grep -Fqx "$expected_head" "$dest" ||
+     ! grep -Fqx "$expected_dir" "$dest" ||
+     ! grep -Fqx "$expected_exec" "$dest"; then
+    printf 'refresh: refusing to replace unrecognized path: %s\n' "$dest" >&2
     exit 1
   fi
 done
 
-# Remove only obsolete paths that this refresh script previously recorded.
-if [[ -f "$owned_file" ]]; then
+# Remove only paths recorded as generated by a previous refresh.
+if [[ -f "$owned" ]]; then
   while IFS= read -r old_name; do
     [[ -n "$old_name" ]] || continue
-    [[ -n "${desired_set[$old_name]+yes}" ]] || rm -f -- "$bin_dir/$old_name"
-  done < "$owned_file"
+    [[ -n "${desired[$old_name]+yes}" ]] || rm -f -- "$bin_dir/$old_name"
+  done < "$owned"
 fi
 
-for index in "${!desired_names[@]}"; do
-  name=${desired_names[$index]}
-  destination="$bin_dir/$name"
-  if [[ -e "$destination" ]]; then
-    # Already validated above; normalize it to the current canonical form.
-    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}" "${desired_kinds[$index]}"
-  else
-    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}" "${desired_kinds[$index]}"
-  fi
+for index in "${!names[@]}"; do
+  write_stub "$bin_dir/${names[$index]}" "${groups_for_stub[$index]}" \
+    "${commands_for_stub[$index]}" "${kinds[$index]}"
 done
-
-mv -- "$wrapper_dir/current" "$owned_file"
+printf '%s\n' "${names[@]}" | LC_ALL=C sort -u > "$wrapper_dir/owned.tmp"
+mv -- "$wrapper_dir/owned.tmp" "$owned"
 
 cat > "$completion_dir/linto.fish" <<'FISH_HEADER'
 set -l linto_bin (realpath (dirname (status filename))/../bin/linto)
-
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null | string replace -r "^(.*)$" "linto-$1")'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 FISH_HEADER
-
 for group in "${groups[@]}"; do
   cat >> "$completion_dir/linto.fish" <<EOF
-
 complete -c linto -f -n '__fish_seen_subcommand_from $group linto-$group' -a '(\$linto_bin --list-commands $group 2>/dev/null)'
 complete -c linto -f -n '__fish_use_subcommand' -a '(\$linto_bin --list-commands $group 2>/dev/null | string replace -r \'^(.*)\$\' \'linto-$group-\$1\')'
 EOF
 done
-
 cat >> "$completion_dir/linto.fish" <<'FISH_FOOTER'
-
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
 complete -c linto -l help -s h -d 'Show help'
 FISH_FOOTER
 
-man_tmp=$(mktemp "$script_dir/man/.linto.1.XXXXXX")
+man_tmp=$(mktemp "$root/man/.linto.1.XXXXXX")
 trap 'rm -f -- "$man_tmp"' EXIT
 python3 - "$man_page" "${groups[@]}" > "$man_tmp" <<'PY'
 from pathlib import Path
 import sys
-
-man_page = Path(sys.argv[1])
+path = Path(sys.argv[1])
 groups = sys.argv[2:]
-source = man_page.read_text()
+text = path.read_text()
 start = '.\\" BEGIN GENERATED GROUPS'
 end = '.\\" END GENERATED GROUPS'
-if source.count(start) != 1 or source.count(end) != 1:
-    raise SystemExit('refresh: expected exactly one generated-groups marker pair')
-start_at = source.index(start) + len(start)
-end_at = source.index(end)
-if end_at < start_at:
-    raise SystemExit('refresh: generated-groups markers are out of order')
+if text.count(start) != 1 or text.count(end) != 1:
+    raise SystemExit('refresh: expected one generated-groups marker pair')
+a = text.index(start) + len(start)
+b = text.index(end)
+if b < a:
+    raise SystemExit('refresh: generated-groups markers are reversed')
 lines = []
-for index, group in enumerate(groups):
-    lines.append(f'.BR {group} ' + (' ,' if index < len(groups) - 1 else ' .'))
-    if index == len(groups) - 2:
+for i, group in enumerate(groups):
+    lines.append(f'.BR {group} ' + (' ,' if i < len(groups) - 1 else ' .'))
+    if i == len(groups) - 2:
         lines.append('and')
-replacement = '\n' + '\n'.join(lines) + '\n'
-sys.stdout.write(source[:start_at] + replacement + source[end_at:])
+sys.stdout.write(text[:a] + '\n' + '\n'.join(lines) + '\n' + text[b:])
 PY
 mv -- "$man_tmp" "$man_page"
-
-printf 'Refreshed wrappers for %d group(s), Fish completion, and man page.\n' "${#groups[@]}"
+printf 'Refreshed %d active group(s), wrappers, completions, and man page.\n' "${#groups[@]}"
