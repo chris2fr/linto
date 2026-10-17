@@ -8,7 +8,7 @@ Quarto rendering, text cleanup, and development workflow helpers.
 Use `addlinto` to add this directory to the current shell's `PATH`:
 
 ```sh
-. /path/to/scripts/addlinto
+. /path/to/linto/internal/addpath.sh
 ```
 
 Sourcing is required; executing `addlinto` as a separate process cannot change the
@@ -17,6 +17,10 @@ adding the directory more than once. POSIX `sh`/`dash` cannot portably determine
 the path of a sourced file, so they are not supported by this helper.
 
 ## Utilities
+
+Add `linto/bin` to your `PATH` to use the dispatcher and generated aliases.
+For example, `linto utils prettyprint`, `linto-utils prettyprint`, and
+`linto-utils-prettyprint` run the same tool.
 
 ### `stripaccents.sh`
 
