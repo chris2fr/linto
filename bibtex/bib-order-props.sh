@@ -86,19 +86,21 @@ fi
 # Pass the preferred keys as a unit-separator-delimited string. BibTeX field
 # names cannot contain this character.
 order_list=
+declare -A seen_fields=()
+separator=$(printf '\037')
 for field_list in "${orders[@]}"; do
   IFS=',' read -r -a fields <<< "$field_list"
   for field in "${fields[@]}"; do
     field=${field//[[:space:]]/}
     [ -n "$field" ] || { echo "error: field names in --order cannot be empty" >&2; exit 2; }
-    case "$(printf '%s' "$order_list" | tr '\\037' '\\n')" in
-      *"$field"*)
-        echo "error: duplicate field in --order: $field" >&2
-        exit 2
-        ;;
-    esac
+    normalized_field=${field,,}
+    if [[ -v seen_fields[$normalized_field] ]]; then
+      echo "error: duplicate field in --order: $field" >&2
+      exit 2
+    fi
+    seen_fields[$normalized_field]=1
     if [ -n "$order_list" ]; then
-      order_list+=$(printf '\\037')
+      order_list+=$separator
     fi
     order_list+=$field
   done
