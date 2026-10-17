@@ -6,23 +6,28 @@ Linto is a local command\-line toolbox for bibliography work, Quarto projects,
 text processing, and development helpers\. This guide is split into topic pages:
 .RS
 .IP \(bu 4
-Installation and shell setup
+\fBinstall\fP \-\- Installation and shell setup
 .IP \(bu 4
-Group configuration
+\fBconfig\fP \-\- Group and Markdown\-viewer configuration
 .IP \(bu 4
-Commands and invocation
+\fBcommands\fP \-\- Commands and invocation
 .IP \(bu 4
-BibTeX and bibliography workflow
+\fBbiblio\fP \-\- BibTeX and bibliography workflow
 .IP \(bu 4
-Quarto workflow
+\fBquarto\fP \-\- Quarto workflow
 .IP \(bu 4
-Shell completion
+\fBcompletion\fP \-\- Shell completion and Markdown navigation
 .RE
 .PP
 Use \fBlinto help PAGE\fP to read a page in the terminal, for example \fBlinto help
 config\fP\. If a page name is also an active group name, select it explicitly with
 \fBlinto help page PAGE\fP (for example, \fBlinto help page bibtex\fP)\. \fBlinto help
-GROUP\fP lists the commands in a group, and \fBlinto help GROUP COMMAND\fP shows a
-command's help\.
+GROUP\fP lists the group's current commands, and \fBlinto help GROUP COMMAND\fP shows
+a command's help\.
+.PP
+Guide pages are rendered using the first installed program in the
+\fBmarkdown\-viewer\fP preference list in \fBconfig\.yml\fP\. If none of the configured
+viewers is installed, Linto displays the Markdown as plain text\. Set
+\fBLINTO_MDVIEWER\fP to override the preference list for a single invocation\.
 .PP
 For a live list of active groups and commands, run \fBlinto \-\-help\fP\.

@@ -1,4 +1,4 @@
-# Shell completion
+# Shell completion and Markdown navigation
 
 Linto includes Bash, Zsh, and Fish completion definitions. Ask the dispatcher
 for the setup instruction for your shell:
@@ -15,7 +15,14 @@ supported shell automatically. Restart the shell or source the updated
 configuration. Fish completion is optional; it is not required for Linto or for
 Bash/Zsh completion.
 
-When guide pages are displayed with `mdless`, navigate with `j`/`k` or the arrow
-keys, use Space or `f` to page down and `b` to page up, and press `/` to search
-(`n`/`N` move between matches). Press `g`/`G` to jump to the start/end, `q` to
-quit, or `h` for `mdless`'s built-in help.
+## Navigating with mdless
+
+If `mdless` is installed and comes before other installed viewers in the
+`markdown-viewer` preference list, it will be selected to display guide pages.
+Use these keys while viewing a page:
+
+- `j`/`k` or the arrow keys to scroll.
+- Space or `f` to page down; `b` to page up.
+- `/` to search; `n`/`N` to move between matches.
+- `g`/`G` to jump to the beginning/end.
+- `q` to quit; `h` to open `mdless`'s built-in help.

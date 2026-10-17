@@ -2,24 +2,25 @@
 
 .SH "BibTeX and bibliography tools"
 .PP
-The \fBbibtex\fP group contains utilities for converting and formatting BibTeX,
-JSON, Markdown, and YAML data\. See the live list with \fBlinto help bibtex\fP\.
-.PP
-Examples:
+The \fBbiblio\fP group contains utilities for converting and formatting BibTeX,
+JSON, Markdown, and YAML data\. Use \fBlinto help biblio\fP to see its current
+commands\. Typical tasks include:
 .RS
 .PP
 .nf
-linto bibtex bib2json \-\-help
-linto bibtex json2bib \-\-help
-linto bibtex build\-bib \-\-help
-linto bibtex bib\-order\-props \-\-help
-linto bibtex mkbib \-\-help
-linto bibtex renumberyml \-\-help
-linto bibtex md2json \-\-help
+linto biblio bib2json \-\-help
+linto biblio json2bib \-\-help
+linto biblio bib\-order\-props \-\-help
+linto biblio build\-bib \-\-help
+linto biblio csv2qmd \-\-help
+linto biblio md2json \-\-help
+linto biblio mkbib \-\-help
+linto biblio qmd2yml \-\-help
+linto biblio renumberyml \-\-help
 .fi
 .RE
 .PP
-Many bibliography scripts expect to be run from the project directory containing
-the relevant \fB\.bib\fP, \fB\.qmd\fP, or YAML files\. Check each command's \fB\-\-help\fP for
+Many tools expect to run from the project directory containing the relevant
+\fB\.bib\fP, \fB\.qmd\fP, JSON, Markdown, or YAML files\. Check each command's \fB\-\-help\fP for
 its exact arguments and whether it writes files in place\. Back up important
-bibliography data before using tools that modify it\.github
+bibliography data before using tools that modify it\.

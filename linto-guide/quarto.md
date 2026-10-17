@@ -2,9 +2,7 @@
 
 The `quarto` group provides citation extraction, rendering helpers, output
 browsing, and setup commands. Use `linto help quarto` for the current command
-list.
-
-Typical invocations:
+list. Typical invocations include:
 
 ```sh
 linto quarto citations --help
@@ -12,6 +10,9 @@ linto quarto render --help
 linto quarto setup --help
 linto quarto setup-document --help
 linto quarto setup-lettre --help
+linto quarto guillemets2quotes --help
+linto quarto firefox-output --help
+linto quarto github --help
 ```
 
 Citation extraction can produce YAML or CSV and supports ordering options; see
