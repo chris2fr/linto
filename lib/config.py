@@ -82,7 +82,7 @@ def main() -> int:
         elif args.action == "add":
             current = data["groups"].get(args.group)
             if current == "default":
-                data["groups"][args.group] = {"enable": True}
+                pass
             elif isinstance(current, dict):
                 current["enable"] = True
             else:
