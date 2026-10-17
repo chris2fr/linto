@@ -1,10 +1,17 @@
+# Convert semicolon-separated bibliography data into one of three Markdown
+# annex layouts. Pass `-v output_format=1|2|3`; format 1 is the default.
+# The first input record is treated as a header and skipped. Its field order
+# must match `fld` below; subsequent records are indexed by those field names.
 BEGIN {
     IGNORECASE = 1
     RS = "\n"
     OFS = ";"
     
-  if (format == "")
-    output_format = "1" # changer pour les formats de sorti 1, 2 ou 3
+  if (output_format == "")
+    output_format = "1"
+
+  # Input columns expected in each semicolon-separated record. Derived date
+  # columns are populated from `date` for the output routines below.
   n = split("key abstract author date edition file howpublished keywords language month note number organization publisher shorthand shorthand2 title type url urldate xacronym xcontentmd xcounter xdatetime xduplicate xeditionorig xeditionorig2 xeditionorig3 xfileorig xkeyorig xkeyorig2 xkeyorig3 xkeyorig4 xnumberorig xshorthandorig xshorthandorig2 xtheme xtime xtype xtypeorig year yearnum monthnum yearmonth monthname daynum", fld, " ")
 
   # Map field name -> position, so the theme filter doesn't rely on a
@@ -14,7 +21,10 @@ BEGIN {
   }
 }
 
-NR>1{
+# Skip the header row, split each record by semicolons, remove BibTeX
+# protective braces from author names, and prepare the date-derived fields.
+# Dispatch each record to the selected output formatter.
+NR > 1 {
   RS = "\n"
   OFS = ";"
   split($0,f,/;/)
@@ -35,6 +45,8 @@ NR>1{
     output3(f, fldidx)
 }
 
+# Date helpers expect an ISO-like YYYY-MM-DD value. Missing month/day
+# components are represented as an ellipsis in the rendered output.
 function get_yearnum(date) {
   n = split(date,datehyphens,"-")
   ret = datehyphens[1]
@@ -93,6 +105,8 @@ function get_daynum(date) {
   return ret
 }
 
+# Build date-part fields and emit year/month headings when those values change.
+# This helper is retained for the heading-based output layout.
 function get_dateparts(date) {
   dateparts["yearnum"] = null
   dateparts["monthnum"] = null
@@ -145,6 +159,8 @@ function get_dateparts(date) {
   return dateparts
 }
 
+# Route heading output to the format-specific implementation. Formats 2 and
+# 3 currently omit headings; format 1 uses Markdown year/month headings.
 function print_year_heading(output_format, y) {
   if (output_format == "1")
     output1_print_year_heading(y)
@@ -184,6 +200,8 @@ function output3_print_year_heading(y) {
 function output3_print_month_heading(mname, y) {
 }
 
+# Format 1: render each bibliography row as a compact Markdown paragraph,
+# including optional organization, publication details, notes, abstract, and URL.
 function output1(f, fldidx) {
   type = f[fldidx["type"]]
   xtime = f[fldidx["xtime"]]
@@ -240,6 +258,7 @@ function output1(f, fldidx) {
   printf "\n"
 }
 
+# Format 2: render one compact, citeable Markdown list entry per record.
 function output2(f, fldidx) {
   date = f[fldidx["date"]]
   author = f[fldidx["author"]]
@@ -252,6 +271,7 @@ function output2(f, fldidx) {
   # ·
 }
 
+# Format 3: render fields as a nested list-table row.
 function output3(f, fldidx) {
   date = f[fldidx["date"]]
   title = f[fldidx["title"]]
@@ -272,6 +292,8 @@ function output3(f, fldidx) {
   printf "\n"
 }
 
+# Optional format lifecycle hooks. Formats 1 and 2 need no surrounding
+# document structure; format 3 emits a table header and closing fence.
 function output1_begin (fld) {
 
 }
