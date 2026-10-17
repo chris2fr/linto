@@ -8,7 +8,7 @@ run them from any current working directory\. Common forms are:
 .PP
 .nf
 linto \-\-help                         # active groups and commands
-linto GROUP                          # list commands in a group
+linto GROUP                          # show a guide page, then list group commands
 linto GROUP COMMAND [ARGUMENTS\.\.\.]   # explicitly select a group
 linto COMMAND [ARGUMENTS\.\.\.]         # use a unique command name
 linto\-GROUP\-COMMAND [ARGUMENTS\.\.\.]   # generated group\-qualified stub
@@ -19,7 +19,12 @@ When enabled by the group's \fBshort\-stubs\fP setting, unique commands also hav
 \fBlinto\-COMMAND\fP stub\. A command's own help is generally available through
 \fBlinto COMMAND \-\-help\fP or \fBlinto help GROUP COMMAND\fP\.
 .PP
+\fBlinto help\fP displays the guide index\. Use \fBlinto help PAGE\fP to read a guide
+topic, or \fBlinto help page PAGE\fP when the topic name is also an active group
+name\. For example, \fBbibtex\fP is both a guide topic and a group, so use
+\fBlinto help page bibtex\fP to select its guide page\. The group listing takes
+precedence for \fBlinto help GROUP\fP\.
+.PP
 The dispatcher also supports \fBslug\fP as an alias for \fBstripaccents\fP\. Run
-\fBlinto help GROUP\fP to list a group's current commands, or \fBlinto help PAGE\fP to
-read a guide topic\. The group listing takes precedence if a topic has the same
-name as a group\.
+\fBlinto \-\-list\-groups\fP to list active groups and \fBlinto \-\-list\-commands GROUP\fP
+to list a group's commands\.

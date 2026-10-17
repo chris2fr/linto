@@ -3,7 +3,7 @@
 .SH "Installation and setup"
 .PP
 Add this checkout's \fBbin/\fP directory to your \fBPATH\fP, or run the setup helper to
-configure your current shell:
+configure the current user's shell:
 .RS
 .PP
 .nf
@@ -11,9 +11,8 @@ linto\-linto\-setup
 .fi
 .RE
 .PP
-The setup helper is safe to run more than once\. It configures supported shell
-startup files for Bash, Zsh, and other detected shells\. To install the \fBlinto(1)\fP
-man page as well:
+The helper supports Bash, Zsh, and Fish and can be run more than once\. To
+configure shell completion and install the \fBlinto(1)\fP man page as well:
 .RS
 .PP
 .nf
@@ -24,6 +23,19 @@ linto\-linto\-setup \-\-man
 If \fBman linto\fP is not found, ensure your user man directory is included in
 \fBMANPATH\fP\. Run \fBlinto\-linto\-addman \-\-help\fP for details\.
 .PP
+To set up Markdown\-viewer prerequisites, run:
+.RS
+.PP
+.nf
+linto linto mdsetup
+.fi
+.RE
+.PP
+This reports the configured available viewer and attempts to install \fBmdcat\fP
+and \fBmandown\fP when needed\. It does not install every optional viewer\. Viewer
+preference and ordering are configured with \fBmarkdown\-viewer\fP in \fBconfig\.yml\fP;
+see Group and Markdown\-viewer configuration\.
+.PP
 You can also configure \fBPATH\fP manually:
 .RS
 .PP
@@ -32,5 +44,5 @@ export PATH="/path/to/linto/bin:$PATH"
 .fi
 .RE
 .PP
-The path \fB/path/to/linto\fP should be replaced with this checkout's actual
-location\. See Shell completion for optional tab completion\.
+Replace \fB/path/to/linto\fP with this checkout's actual location\. See
+Shell completion and Markdown navigation for tab completion\.

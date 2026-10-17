@@ -1,17 +1,20 @@
 .TH "LINTO-CONFIG" 1
 
-.SH "Group configuration"
+.SH "Configuration"
 .PP
-The repository's \fBconfig\.yml\fP is the source of truth for active
-groups and generated command stubs\. Its \fBgroups\fP mapping accepts the \fBdefault\fP
-shorthand or a mapping of options, for example:
+The repository's \fBconfig\.yml\fP controls active command groups,
+generated command stubs, the Quarto extension default, and Markdown viewer
+preferences\.
+
+.SS "Groups and command stubs"
+.PP
+The \fBgroups\fP mapping accepts the \fBdefault\fP shorthand or a mapping of options:
 .RS
 .PP
 .nf
-markdown\-viewer: cat # bat inlyne glow frogmouth mandown mdcat mdfried mdless md\-tui
 groups:
   beta: default
-  bibtex: default
+  biblo: default
   launch: default
   linto:
     short\-stubs: false
@@ -20,24 +23,59 @@ groups:
   utils: default
   old:
     enable: false
+  biblio: default
 .fi
 .RE
 .PP
-\fBdefault\fP enables a group and uses the defaults: \fBenable: true\fP and
+\fBdefault\fP enables a group and uses the defaults \fBenable: true\fP and
 \fBshort\-stubs: true\fP\. A mapping may set \fBenable: false\fP to leave a directory in
 the checkout while making Linto ignore it for dispatch, help, completions, and
 stubs\. \fBshort\-stubs: true\fP adds \fBlinto\-COMMAND\fP stubs for command names unique
 across enabled groups\. Group\-qualified calls such as \fBlinto GROUP COMMAND\fP and
 stubs such as \fBlinto\-GROUP\-COMMAND\fP remain available\.
+
+.SS "Markdown viewer"
 .PP
-After editing configuration or adding/removing executable scripts, regenerate
-the command stubs, completion data, and active group list in the man page:
+\fBmarkdown\-viewer\fP accepts one command name or an ordered YAML list\. Linto tries
+the entries from top to bottom and runs the first installed supported viewer\.
+For example:
+.RS
+.PP
+.nf
+markdown\-viewer:
+  \- mdless
+  \- mdcat
+  \- glow
+  \- bat
+  \- cat
+.fi
+.RE
+.PP
+Supported choices include \fBmd\-tui\fP, \fBinlyne\fP, \fBmdcat\fP, \fBmandown\fP, \fBglow\fP,
+\fBfrogmouth\fP, \fBmdless\fP, \fBmdfried\fP, \fBbat\fP, and \fBcat\fP\. \fBmandown\fP is selected only
+when \fBgroff\fP is also installed\. If no configured viewer is available, Linto
+falls back to \fBcat\fP\. Set \fBLINTO_MDVIEWER\fP to override the configured list for a
+single invocation, for example \fBLINTO_MDVIEWER=cat linto help config\fP\.
+.PP
+The \fBlinto linto mdsetup\fP command reports the selected viewer and attempts to
+install Markdown prerequisites when needed\. It does not install every optional
+viewer\.
+
+.SS "Refresh generated files"
+.PP
+After editing configuration or adding/removing executable scripts, run:
 .RS
 .PP
 .nf
 linto linto refresh
 .fi
 .RE
+.PP
+Refresh regenerates command stubs, shell completion data, the active\-group list
+in the dispatcher man page, and one man page per \fBlinto\-guide/*\.md\fP topic\. Topic
+man pages are installed under \fBman/man1/\fP after generation succeeds and each
+page passes \fBgroff \-Wall\fP validation\. \fBmandown\fP and \fBgroff\fP are required for this
+step\.
 .PP
 Register or re\-enable a group with \fBlinto linto addgroup DIRECTORY\fP\. Remove a
 group from Linto's active configuration with \fBlinto linto rmgroup GROUP\fP; this

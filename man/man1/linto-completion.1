@@ -1,6 +1,6 @@
 .TH "LINTO-COMPLETION" 1
 
-.SH "Shell completion"
+.SH "Shell completion and Markdown navigation"
 .PP
 Linto includes Bash, Zsh, and Fish completion definitions\. Ask the dispatcher
 for the setup instruction for your shell:
@@ -18,3 +18,21 @@ configuration (normally \fB~/\.zshrc\fP), or run \fBlinto\-linto\-setup\fP to co
 supported shell automatically\. Restart the shell or source the updated
 configuration\. Fish completion is optional; it is not required for Linto or for
 Bash/Zsh completion\.
+
+.SS "Navigating with mdless"
+.PP
+If \fBmdless\fP is installed and comes before other installed viewers in the
+\fBmarkdown\-viewer\fP preference list, it will be selected to display guide pages\.
+Use these keys while viewing a page:
+.RS
+.IP \(bu 4
+\fBj\fP/\fBk\fP or the arrow keys to scroll\.
+.IP \(bu 4
+Space or \fBf\fP to page down; \fBb\fP to page up\.
+.IP \(bu 4
+\fB/\fP to search; \fBn\fP/\fBN\fP to move between matches\.
+.IP \(bu 4
+\fBg\fP/\fBG\fP to jump to the beginning/end\.
+.IP \(bu 4
+\fBq\fP to quit; \fBh\fP to open \fBmdless\fP's built\-in help\.
+.RE
