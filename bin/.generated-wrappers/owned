@@ -1,8 +1,8 @@
 linto-beta
 linto-beta-test
 linto-bibtex
-linto-bibtex-bib2json
 linto-bibtex-bib-order-props
+linto-bibtex-bib2json
 linto-bibtex-build-bib
 linto-bibtex-json2bib
 linto-bibtex-mkbib
@@ -10,6 +10,7 @@ linto-launch
 linto-launch-zed
 linto-linto
 linto-linto-addman
+linto-linto-setup
 linto-quarto
 linto-quarto-citations
 linto-quarto-firefox-output
