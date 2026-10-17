@@ -30,48 +30,34 @@ import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# ============================================================================
-# UTF-8 COMPATIBILITY
-# ============================================================================
-
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
     sys.argv = [arg.encode('utf-8').decode('utf-8') for arg in sys.argv]
 
-# ============================================================================
-# CORE FUNCTIONS
-# ============================================================================
 
 def parse_markdown_headers(content: str) -> List[Dict[str, Any]]:
-    """
-    Parse le Markdown en une structure hiérarchique basée sur les titres.
-    """
+    """Parse le Markdown en une structure hiérarchique basée sur les titres."""
     lines = content.split('\n')
     sections = []
     current_section = None
     current_content = []
     current_level = 0
     stack = []
-    
+
     for line in lines:
-        # Détecter les titres Markdown (#, ##, ###, etc.)
         header_match = re.match(r'^(#{1,6})\s+(.+)$', line)
-        
         if header_match:
-            # Sauvegarder la section précédente
             if current_section is not None:
                 current_section['content'] = '\n'.join(current_content).strip()
                 if stack:
-                    # Ajouter comme sous-section à la dernière section du stack
                     parent = stack[-1]
                     if 'subsections' not in parent:
                         parent['subsections'] = []
                     parent['subsections'].append(current_section)
                 else:
                     sections.append(current_section)
-            
-            # Nouvelle section
+
             level = len(header_match.group(1))
             title = header_match.group(2).strip()
             current_section = {
@@ -82,28 +68,23 @@ def parse_markdown_headers(content: str) -> List[Dict[str, Any]]:
             }
             current_content = []
             current_level = level
-            
-            # Gérer la hiérarchie avec une pile
+
             while stack and stack[-1]['level'] >= level:
                 stack.pop()
             if stack:
                 stack.append(current_section)
             else:
                 stack = [current_section]
-        else:
-            if current_section is not None:
-                current_content.append(line)
-            else:
-                # Texte avant le premier titre
-                if line.strip():
-                    sections.append({
-                        'level': 0,
-                        'title': 'Introduction',
-                        'content': line.strip(),
-                        'subsections': []
-                    })
-    
-    # Sauvegarder la dernière section
+        elif current_section is not None:
+            current_content.append(line)
+        elif line.strip():
+            sections.append({
+                'level': 0,
+                'title': 'Introduction',
+                'content': line.strip(),
+                'subsections': []
+            })
+
     if current_section is not None:
         current_section['content'] = '\n'.join(current_content).strip()
         if stack and stack[-1] != current_section:
@@ -113,24 +94,21 @@ def parse_markdown_headers(content: str) -> List[Dict[str, Any]]:
             parent['subsections'].append(current_section)
         elif not stack:
             sections.append(current_section)
-    
+
     return sections
 
 
 def extract_tables(content: str) -> List[List[List[str]]]:
-    """
-    Extrait les tableaux Markdown et les convertit en listes de listes.
-    """
+    """Extrait les tableaux Markdown et les convertit en listes de listes."""
     tables = []
     lines = content.split('\n')
     i = 0
     while i < len(lines):
-        if '|' in lines[i] and '|' in lines[i+1] if i+1 < len(lines) else False:
-            # Détecter un tableau
+        if '|' in lines[i] and '|' in lines[i + 1] if i + 1 < len(lines) else False:
             table = []
             while i < len(lines) and '|' in lines[i]:
                 row = [cell.strip() for cell in lines[i].split('|')[1:-1]]
-                if not all(c == '---' for c in row):  # Ignorer la ligne de séparation
+                if not all(c == '---' for c in row):
                     table.append(row)
                 i += 1
             if table:
@@ -141,9 +119,7 @@ def extract_tables(content: str) -> List[List[List[str]]]:
 
 
 def extract_code_blocks(content: str) -> List[Dict[str, str]]:
-    """
-    Extrait les blocs de code du Markdown.
-    """
+    """Extrait les blocs de code du Markdown."""
     code_blocks = []
     lines = content.split('\n')
     i = 0
@@ -156,40 +132,22 @@ def extract_code_blocks(content: str) -> List[Dict[str, str]]:
                 code.append(lines[i])
                 i += 1
             if code:
-                code_blocks.append({
-                    'language': lang or 'text',
-                    'code': '\n'.join(code)
-                })
+                code_blocks.append({'language': lang or 'text', 'code': '\n'.join(code)})
         i += 1
     return code_blocks
 
 
 def markdown_to_json_simple(content: str) -> Dict[str, Any]:
-    """
-    Conversion simple: tout le contenu en une seule chaîne.
-    """
-    return {
-        'content': content,
-        'length': len(content),
-        'lines': len(content.split('\n'))
-    }
+    """Conversion simple: tout le contenu en une seule chaîne."""
+    return {'content': content, 'length': len(content), 'lines': len(content.split('\n'))}
 
 
 def markdown_to_json_structured(content: str) -> Dict[str, Any]:
-    """
-    Conversion structurée avec sections, tableaux et blocs de code.
-    """
+    """Conversion structurée avec sections, tableaux et blocs de code."""
     sections = parse_markdown_headers(content)
     tables = extract_tables(content)
     code_blocks = extract_code_blocks(content)
-    
-    # Extraire le titre principal (premier titre de niveau 1)
-    title = None
-    for section in sections:
-        if section['level'] == 1:
-            title = section['title']
-            break
-    
+    title = next((section['title'] for section in sections if section['level'] == 1), None)
     return {
         'title': title or Path('fichier').stem,
         'sections': sections,
@@ -202,24 +160,14 @@ def markdown_to_json_structured(content: str) -> Dict[str, Any]:
 
 
 def markdown_to_json_flat(content: str) -> Dict[str, Any]:
-    """
-    Format plat: sépare le texte en paragraphes.
-    """
+    """Format plat: sépare le texte en paragraphes."""
     paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
-    return {
-        'paragraphs': paragraphs,
-        'count': len(paragraphs),
-        'total_chars': sum(len(p) for p in paragraphs)
-    }
+    return {'paragraphs': paragraphs, 'count': len(paragraphs), 'total_chars': sum(len(p) for p in paragraphs)}
 
 
 def markdown_to_json_metadata(content: str, file_path: Path) -> Dict[str, Any]:
-    """
-    Format avec métadonnées complètes.
-    """
+    """Format avec métadonnées complètes."""
     structured = markdown_to_json_structured(content)
-    
-    # Extraire les métadonnées YAML si présentes
     metadata = {}
     lines = content.split('\n')
     if lines and lines[0].strip() == '---':
@@ -233,13 +181,8 @@ def markdown_to_json_metadata(content: str, file_path: Path) -> Dict[str, Any]:
                 if ':' in line:
                     key, value = line.split(':', 1)
                     metadata[key.strip()] = value.strip()
-    
     return {
-        'file': {
-            'name': file_path.name,
-            'stem': file_path.stem,
-            'path': str(file_path)
-        },
+        'file': {'name': file_path.name, 'stem': file_path.stem, 'path': str(file_path)},
         'metadata': metadata,
         'content': structured,
         'stats': {
@@ -250,53 +193,25 @@ def markdown_to_json_metadata(content: str, file_path: Path) -> Dict[str, Any]:
     }
 
 
-def md_to_json(
-    md_path: Path,
-    out_path: Path,
-    format_type: str = 'simple',
-    pretty: bool = False,
-) -> None:
-    """
-    Convertit un fichier Markdown en JSON.
-    """
-    # Lire le fichier avec UTF-8
+def md_to_json(md_path: Path, out_path: Path, format_type: str = 'simple', pretty: bool = False) -> None:
+    """Convertit un fichier Markdown en JSON."""
     content = md_path.read_text(encoding='utf-8')
-    
-    # Choisir le format de conversion
     converters = {
         'simple': markdown_to_json_simple,
         'structured': markdown_to_json_structured,
         'flat': markdown_to_json_flat,
         'metadata': markdown_to_json_metadata,
     }
-    
     converter = converters.get(format_type)
     if not converter:
         raise ValueError(f"Format inconnu: {format_type}")
-    
-    if format_type == 'metadata':
-        result = converter(content, md_path)
-    else:
-        result = converter(content)
-    
-    # Ajouter des métadonnées communes
+    result = converter(content, md_path) if format_type == 'metadata' else converter(content)
     if format_type != 'metadata':
-        result['_meta'] = {
-            'source': str(md_path),
-            'format': format_type
-        }
-    
-    # Écrire le JSON avec UTF-8
+        result['_meta'] = {'source': str(md_path), 'format': format_type}
     indent = 2 if pretty else None
-    json_str = json.dumps(result, ensure_ascii=False, indent=indent)
-    out_path.write_text(json_str, encoding='utf-8')
-    
+    out_path.write_text(json.dumps(result, ensure_ascii=False, indent=indent), encoding='utf-8')
     print(f"OK : {md_path} -> {out_path}", file=sys.stderr)
 
-
-# ============================================================================
-# MAIN
-# ============================================================================
 
 def main():
     parser = argparse.ArgumentParser(
@@ -316,62 +231,33 @@ Exemples:
   %(prog)s *.md --outdir json/
         """
     )
-    
-    parser.add_argument(
-        "inputs", 
-        nargs="+", 
-        help="Fichier(s) Markdown à convertir"
-    )
-    parser.add_argument(
-        "-o", "--output",
-        help="Fichier de sortie (un seul fichier en entrée uniquement)"
-    )
-    parser.add_argument(
-        "--outdir",
-        help="Dossier de sortie pour plusieurs fichiers"
-    )
-    parser.add_argument(
-        "--format",
-        choices=['simple', 'structured', 'flat', 'metadata'],
-        default='simple',
-        help="Format de sortie JSON (défaut: simple)"
-    )
-    parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Formater le JSON avec indentation"
-    )
-    
+    parser.add_argument("inputs", nargs="+", help="Fichier(s) Markdown à convertir")
+    parser.add_argument("-o", "--output", help="Fichier de sortie (un seul fichier en entrée uniquement)")
+    parser.add_argument("--outdir", help="Dossier de sortie pour plusieurs fichiers")
+    parser.add_argument("--format", choices=['simple', 'structured', 'flat', 'metadata'], default='simple', help="Format de sortie JSON (défaut: simple)")
+    parser.add_argument("--pretty", action="store_true", help="Formater le JSON avec indentation")
     args = parser.parse_args()
-    
+
     inputs = [Path(p) for p in args.inputs]
-    
     if args.output and len(inputs) > 1:
         parser.error("--output ne peut être utilisé qu'avec un seul fichier en entrée. Utilisez --outdir pour plusieurs fichiers.")
-    
+
     outdir = Path(args.outdir) if args.outdir else None
     if outdir:
         outdir.mkdir(parents=True, exist_ok=True)
-    
+
     for md_path in inputs:
         if not md_path.exists():
             print(f"Introuvable, ignoré : {md_path}", file=sys.stderr)
             continue
-        
         if args.output:
             out_path = Path(args.output)
         elif outdir:
             out_path = outdir / (md_path.stem + ".json")
         else:
             out_path = md_path.with_suffix(".json")
-        
         print(f"Conversion de {md_path}...", file=sys.stderr)
-        md_to_json(
-            md_path,
-            out_path,
-            format_type=args.format,
-            pretty=args.pretty,
-        )
+        md_to_json(md_path, out_path, format_type=args.format, pretty=args.pretty)
 
 
 if __name__ == "__main__":
