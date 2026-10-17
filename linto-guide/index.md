@@ -5,7 +5,7 @@ text processing, and development helpers. This guide is split into topic pages:
 
 - `install` — [Installation and shell setup](install.md)
 - `config` — [Group and Markdown-viewer configuration](config.md)
-- `commands` — [Commands and invocation](commands.md)
+- `commands` — Commands and invocation
 - `biblio` — [BibTeX and bibliography workflow](biblio.md)
 - `quarto` — [Quarto workflow](quarto.md)
 - `completion` — [Shell completion and Markdown navigation](completion.md)
