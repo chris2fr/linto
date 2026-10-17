@@ -12,4 +12,4 @@ groups:
   biblio: default
 quarto:
   extension: chris2fr/quarto
-mdviewer: mdcat # cat bat inlyne glow frogmouth mandown mdcat mdfried mdless md-tui
+mdviewer: md-tui # cat bat inlyne glow frogmouth mandown mdcat mdfried mdless md-tui
