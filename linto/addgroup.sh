@@ -52,23 +52,11 @@ for script in "${scripts[@]}"; do
   [[ -f "$script" && -x "$script" ]] && executables+=("$script")
 done
 
-# Add the group to the YAML config while preserving the existing group order.
+# Add the group with default settings, or re-enable its existing config.
 config_file="$script_dir/config.yml"
 [[ -f "$config_file" ]] || fail "configuration file not found: $config_file"
-if ! grep -Eq "^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$" "$config_file"; then
-  printf '  - %s\n' "$name" >> "$config_file"
-fi
+python3 "$script_dir/lib/config.py" "$config_file" add "$name" || fail "could not update group configuration"
 
-# Validate that exposed command names can be represented by the wrapper naming convention.
-wrappers=("$bin_dir/linto-$name")
-for script in "${executables[@]}"; do
-  command_name=${script##*/}
-  command_name=${command_name%.sh}
-  case "$name/$command_name" in
-    linto/addgroup|linto/rmgroup|linto/refresh) continue ;;
-  esac
-  [[ "$command_name" != *-* ]] || continue
-done
 
 printf 'Registered group %s with %d executable script(s).\n' "$name" "${#executables[@]}"
 "$script_dir/linto/refresh.sh"

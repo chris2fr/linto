@@ -8,19 +8,15 @@ script_dir=$(CDPATH= cd -- "$bin_dir/.." && pwd -P)
 
 is_group_name() {
   case "$1" in
-    ''|.*|bin|completions|man|old|tests|lib) return 1 ;;
+    ''|.*|bin|completions|man|tests|lib) return 1 ;;
     *[!a-zA-Z0-9_-]*) return 1 ;;
     *) return 0 ;;
   esac
 }
 
 list_groups() {
-  config_file="$script_dir/config.yml"
-  [ -f "$config_file" ] || return 0
-  sed -n 's/^[[:space:]]*-[[:space:]]*//p' "$config_file" |
-    while IFS= read -r group; do
-      is_group_name "$group" && [ -d "$script_dir/$group" ] && printf '%s\n' "$group"
-    done
+  [ -f "$script_dir/config.yml" ] || return 0
+  python3 "$script_dir/lib/config.py" "$script_dir/config.yml" list
 }
 
 list_group_commands() {

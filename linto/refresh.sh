@@ -34,14 +34,19 @@ mapfile -t groups < <("$linto_bin" --list-groups)
 declare -a desired_names=()
 declare -a desired_groups=()
 declare -a desired_commands=()
+declare -a desired_kinds=()
 declare -A desired_set=()
+declare -A short_command_groups=()
 
 for group in "${groups[@]}"; do
   desired_names+=("linto-$group")
   desired_groups+=("$group")
   desired_commands+=("")
+  desired_kinds+=(group)
   desired_set["linto-$group"]=1
 
+  mapfile -t options < <(python3 "$script_dir/lib/config.py" "$groups_file" options "$group")
+  short_stubs=${options[1]:-true}
   mapfile -t commands < <("$linto_bin" --list-commands "$group")
   for command in "${commands[@]}"; do
     case "$group/$command" in
@@ -50,8 +55,23 @@ for group in "${groups[@]}"; do
     desired_names+=("linto-$group-$command")
     desired_groups+=("$group")
     desired_commands+=("$command")
+    desired_kinds+=(group-command)
     desired_set["linto-$group-$command"]=1
+    if [[ "$short_stubs" == true ]]; then
+      short_command_groups["$command"]+=" $group"
+    fi
   done
+done
+
+for command in "${!short_command_groups[@]}"; do
+  read -r -a owners <<< "${short_command_groups[$command]}"
+  if (( ${#owners[@]} == 1 )) && ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" && [[ "$command" != help && "$command" != completion ]]; then
+    desired_names+=("linto-$command")
+    desired_groups+=("${owners[0]}")
+    desired_commands+=("$command")
+    desired_kinds+=(short-command)
+    desired_set["linto-$command"]=1
+  fi
 done
 
 mkdir -p -- "$wrapper_dir"
@@ -61,15 +81,15 @@ for name in "${desired_names[@]}"; do
 done
 
 write_wrapper() {
-  local destination=$1 group=$2 command=${3-}
+  local destination=$1 group=$2 command=$3 kind=$4
   {
     printf '%s\n' '#!/bin/sh'
     printf '%s\n' 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
-    if [[ -n "$command" ]]; then
-      printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command"
-    else
-      printf 'exec "$bin_dir/linto" %q "$@"\n' "$group"
-    fi
+    case "$kind" in
+      group) printf 'exec "$bin_dir/linto" %q "$@"\n' "$group" ;;
+      group-command) printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command" ;;
+      short-command) printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command" ;;
+    esac
   } > "$destination"
   chmod 755 "$destination"
 }
@@ -85,11 +105,10 @@ for index in "${!desired_names[@]}"; do
     printf 'refresh: refusing to replace non-file path: %s\n' "$destination" >&2
     exit 1
   }
-  if [[ -n "${desired_commands[$index]}" ]]; then
-    expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} ${desired_commands[$index]} \"\$@\""
-  else
-    expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} \"\$@\""
-  fi
+  case "${desired_kinds[$index]}" in
+    group) expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} \"\$@\"" ;;
+    *) expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} ${desired_commands[$index]} \"\$@\"" ;;
+  esac
   if ! grep -Fqx '#!/bin/sh' "$destination" ||
      ! grep -Fqx 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)' "$destination" ||
      ! grep -Fqx "$expected_line" "$destination"; then
@@ -111,9 +130,9 @@ for index in "${!desired_names[@]}"; do
   destination="$bin_dir/$name"
   if [[ -e "$destination" ]]; then
     # Already validated above; normalize it to the current canonical form.
-    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}"
+    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}" "${desired_kinds[$index]}"
   else
-    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}"
+    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}" "${desired_kinds[$index]}"
   fi
 done
 
@@ -166,7 +185,7 @@ for index, group in enumerate(groups):
     lines.append(f'.BR {group} ' + (' ,' if index < len(groups) - 1 else ' .'))
     if index == len(groups) - 2:
         lines.append('and')
-replacement = '\\n' + '\\n'.join(lines) + '\\n'
+replacement = '\n' + '\n'.join(lines) + '\n'
 sys.stdout.write(source[:start_at] + replacement + source[end_at:])
 PY
 mv -- "$man_tmp" "$man_page"
