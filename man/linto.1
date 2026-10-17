@@ -14,7 +14,7 @@ linto \- dispatch command-line tools from the Linux Tools collection
 .RI [ arguments ... ]
 .br
 .B linto help
-.RI [ group ] [ command ]
+.RI [ page | group [ command ] ]
 .br
 .B linto completion
 .RI { bash | zsh | fish }
@@ -53,10 +53,12 @@ tool explicitly, for example
 All commands can also be invoked without the group when their names are unique.
 .SH COMMANDS
 .TP
-.B help [GROUP] [COMMAND]
-Print the general tool guide with no arguments. With a command name, display
-that tool's help; a group may be specified to select the command explicitly.
-For most commands this runs the tool with
+.B help [PAGE|GROUP [COMMAND]]
+Print the guide index with no arguments. A page name displays a topic guide;
+.B linto help GROUP
+lists a group's commands. With a command name, display that tool's help; a group
+may be specified to select the command explicitly. For most commands this runs
+the tool with
 .BR --help ;
 some commands provide dispatcher-specific help instead.
 .TP
@@ -156,9 +158,10 @@ linto completion bash
 .I linto
 The command dispatcher.
 .TP
-.I linto-guide
-The general guide shown by
-.BR "linto help" .
+.I linto-guide/
+The multi-page guide shown by
+.BR "linto help" . Topic pages are selected with
+.BR "linto help PAGE" .
 .TP
 .I completions/linto.bash
 .TQ

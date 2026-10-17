@@ -89,7 +89,7 @@ Usage: linto [--help] [COMMAND [arguments...]]
 Linux Tools: bibliography, Quarto, text, and shell utilities.
 
 Commands:
-  help [GROUP] [COMMAND]  Show the guide or detailed help for a command.
+  help [PAGE|GROUP [COMMAND]]  Show a guide page or command help.
   completion SHELL        Print shell completion setup instructions.
   --list-groups           Print group names, one per line.
   --list-commands GROUP   Print commands in GROUP, one per line.
@@ -148,22 +148,31 @@ case "$1" in
     ;;
   help)
     if [ "$#" -eq 1 ]; then
-      cat "$script_dir/linto-guide"
+      cat "$script_dir/linto-guide/index.md"
       exit 0
     elif [ "$#" -eq 2 ]; then
-      if group_exists "$2"; then
-        echo "Commands in group '$2':"
-        list_group_commands "$2" | sed 's/^/  /'
+      topic=$2
+      case "$topic" in
+        installation) topic=install ;;
+        configuration) topic=config ;;
+      esac
+      if group_exists "$topic"; then
+        echo "Commands in group '$topic':"
+        list_group_commands "$topic" | sed 's/^/  /'
         exit 0
-      else
-        group=
-        command=$2
       fi
+      guide_page="$script_dir/linto-guide/$topic.md"
+      if [ -f "$guide_page" ]; then
+        cat "$guide_page"
+        exit 0
+      fi
+      group=
+      command=$2
     elif [ "$#" -eq 3 ]; then
       group=$2
       command=$3
     else
-      echo "Usage: linto help [GROUP] [COMMAND]" >&2
+      echo "Usage: linto help [PAGE|GROUP [COMMAND]]" >&2
       exit 2
     fi
     case "$command" in
