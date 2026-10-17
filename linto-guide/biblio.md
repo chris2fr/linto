@@ -20,15 +20,12 @@ the relevant `.bib`, `.qmd`, or YAML files. Check each command's `--help` for
 its exact arguments and whether it writes files in place. Back up important
 bibliography data before using tools that modify it.
 
-
 biblio.bib --> bib2json --> biblio.json   
 biblio.json & biblio.bib --> json2bib --> biblio.bib
-
 
 biblio.bib --> bib-order-props --> biblio.bib
 
 biblio.bib --> mkbib --> bibkeys.bib
-
 
 _pieces.yml & biblio.bib --> build-bib --> pieces.bib  
 _pieces.yml --> renumberyml --> _pieces.yml
