@@ -1,152 +1,58 @@
 #!/usr/bin/env bash
 #
 # prettyprint.sh -- render text as big block ASCII art.
-#
-# Each character is drawn in a 5-line-high by 6-character-wide cell, so a
-# line of input becomes five rows of output. Words are wrapped so that each
-# output line fits the available terminal width (detected automatically, or
-# forced with -w). Words too long for one line are split across lines.
-#
-# Usage:
-#   prettyprint.sh [-w COLS] [-h] [TEXT...]
-#
-# Options:
-#   -w, --width COLS   Force the maximum output width, in columns.
-#   -h, --help         Show this help and exit.
-#
-# The TEXT arguments are joined with single spaces. With no arguments the
-# text is read from standard input and rendered line by line.
-# Exit status is 0 on success, 2 on a usage error.
 
 set -euo pipefail
 
-# Cell geometry: 5 rows high, 6 columns wide, one blank column between cells.
 CELL_W=6
 ROWS=5
 
 usage() {
   cat <<'EOF'
-Usage: prettyprint.sh [-w COLS] [-h] [TEXT...]
+Usage: prettyprint.sh [-w COLS] [-f FONT] [-h] [TEXT...]
 
 Render TEXT as 5-line-high block ASCII art, wrapped to the terminal width.
 
 Options:
   -w, --width COLS   Force the maximum output width, in columns.
+  -f, --font FONT    Select a font (classic or outlined; default: classic).
   -h, --help         Show this help and exit.
 
 With no TEXT arguments the input is read from standard input.
 EOF
 }
 
-# ---------------------------------------------------------------------------
-# Font.
-#
-# The font lives in the heredoc below: one glyph per line, "X:rows", where X
-# is the key character and `rows` is five '|'-separated rows. Each row is 6
-# characters wide using '.' or spaces for blanks and any other printable
-# character (#, |, /, ...) for ink. Lookups are case-insensitive, so lower-case
-# letters reuse the upper-case glyphs. Unknown characters blank out.
-# ---------------------------------------------------------------------------
-read -r -d '' FONT_TABLE <<'FONT' || true
-A:. ### |#   # |##### |#   # |#   #
-B:##### |#   # |####  |#   # |#####
-C:.#### |#     |#     |#     |.####
-D:####  |#   # |#   # |#   # |####
-E:##### |#     |####  |#     |#####
-F:##### |#     |####  |#     |#
-G:.#### |#     |# ### |#   # |.###.
-H:#   # |#   # |##### |#   # |#   #
-I:.###. |. # . |. # . |. # . |.###.
-J:..### |... # |... # |#  #  |.##.
-K:#   # |#  #  |###   |#  #  |#   #
-L:#     |#     |#     |#     |#####
-M:#   # |## ## |# # # |#   # |#   #
-N:#   # |##  # |# # # |#  ## |#   #
-O:.###. |#   # |#   # |#   # |.###.
-P:##### |#   # |##### |#     |#
-Q:.###. |#   # |#   # |#  ## |.####
-R:##### |#   # |##### |#  #  |#   #
-S:.#### |#     |.###. |    # |####.
-T:##### |. # . |. # . |. # . |. # .
-U:#   # |#   # |#   # |#   # |.###.
-V:#   # |#   # |#   # |. # . |. # .
-W:#   # |#   # |# # # |## ## |#   #
-X:#   # |. # . |. # . |. # . |#   #
-Y:#   # |. # . |. # . |. # . |. # .
-Z:##### |   #  |. # . |#     |#####
-0:.###. |#   # |#   # |#   # |.###.
-1:.. #  |. ##  |.. #  |.. #  |.####
-2:.###  |#   # |.  #  |. #   |#####
-3:##### |    # |.###. |    # |####.
-4:#   # |#   # |##### |    # |    #
-5:##### |#     |####  |    # |####.
-6:. ### |#     |##### |#   # |.####
-7:##### |    # |.  #  |. #   |. #
-8:.###. |#   # |.###. |#   # |.###.
-9:##### |#   # |##### |    # |.###.
-.:     |     |     |     |  #
-,:     |     |     |  #  | #
-!:  #  |  #  |  #  |     |  #
-?: ### |#   # |   # |     |   #
--:     |     |#####|     |
-_:     |     |     |     |#####
-':. #  |. #  |     |     |
-":. # #|. # #|     |     |
-::     |     |     |. #  |
-;:     |     |. #  |     | #
-(:   # |  #  |  #  |  #  |   #
-):  #  |   # |   # |   # |  #
-/:    #|   # |  #  | #   |#
-\:#     |  #  |   # |    #|
-+:     |  #  |#####|  #  |
-=:     |#####|     |#####|
-*:#   #|  #  |#####|  #  |#   #
-$: ####|# ## |#### |## # |####
-&:  #  | #   |  #  | # # |  # #
-#:#   #|#####|#   #|#####|#   #
-@:##    |# ##  |# ##  |#     | ##
-%:#   #|   # |  #  | #   |#   #
-^:  #  | # # |#   #|     |
-~:     | ##  |   # |  ## |
-|:#   # |#   # |#   # |#   # |#   #
-<:   # |  #  | #   |  #  |   #
->: #   |  #  |   # |  #  | #
-[:.###. |#     |#     |#     |.###.
-]:.###. |    # |    # |    # |.###.
-{:. ### |  ##  | ##   |  ##  |. ###
-}: ###. |  ##  |   ## |  ##  | ###.
-`:. #  |  #  |     |     |
-FONT
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+font_name=classic
+FONT_TABLE=
 
-# Build an associative lookup from the font table: key -> rows, so that font
-# keys which are regex metacharacters (\ / $ # . * ? [ ] :) need no escaping.
-#
-# The format is exactly "X:rows" -- a single key character, a colon, then the
-# five '|'-separated rows -- so punctuation keys such as ':' parse unambiguously.
 declare -A FONT=()
-while IFS= read -r line; do
-  [[ -z $line ]] && continue
-  key=${line:0:1}
-  FONT["$key"]=${line:2}
-  FONT["${key^^}"]=${line:2}
-  FONT["${key,,}"]=${line:2}
-done <<<"$FONT_TABLE"
 
-# glyph ROW_CHAR -> the five rows of ROW_CHAR, '|'-separated.
+load_font() {
+  local font_file="$script_dir/lib/fonts/$1"
+  [[ -r $font_file ]] || { printf 'prettyprint.sh: unknown or unreadable font: %s\n' "$1" >&2; exit 2; }
+  FONT_TABLE=$(<"$font_file")
+  FONT=()
+  local line key
+  while IFS= read -r line; do
+    [[ -z $line ]] && continue
+    key=${line:0:1}
+    FONT["$key"]=${line:2}
+    FONT["${key^^}"]=${line:2}
+    FONT["${key,,}"]=${line:2}
+  done <<<"$FONT_TABLE"
+}
+
+# Glyph files use KEY:row1|row2|row3|row4|row5. Dots are blank pixels,
+# lookups are case-insensitive, and unknown characters render as blank cells.
+load_font "$font_name"
+
 glyph() {
   printf '%s' "${FONT[$1]:-      |      |      |      |      }"
 }
 
-# ---------------------------------------------------------------------------
-# Wrapping: turn the input line into rows of glyphs that each fit MAX_WIDTH.
-# Rows are filled word by word; a word wider than MAX_WIDTH is split so no
-# output ever exceeds the width.
-# ---------------------------------------------------------------------------
 wrap_words() {
   local text=$1 max=$2
-  # Cells are CELL_W+1 columns wide except the last (no trailing gutter).
-  # Include the two-column left margin in the available width. Each glyph
-  # takes CELL_W columns; the one-column gutter follows all but the last glyph.
   local cap=$(( (max - 2 + 1) / (CELL_W + 1) ))
   (( cap < 1 )) && cap=1
 
@@ -154,10 +60,10 @@ wrap_words() {
   read -r -a words <<<"$text"
 
   local -a row=() ; local rowlen=0
-  local w wlen i piece
+  local w wlen
   for w in "${words[@]}"; do
     wlen=${#w}
-    if (( wlen > cap )); then            # split an over-long word
+    if (( wlen > cap )); then
       if (( rowlen > 0 )); then printf '%s\n' "${row[*]}"; row=(); rowlen=0; fi
       while (( wlen > cap )); do
         printf '%s\n' "${w:0:cap}"
@@ -177,9 +83,6 @@ wrap_words() {
   (( rowlen > 0 )) && printf '%s\n' "${row[*]}"
 }
 
-# ---------------------------------------------------------------------------
-# Rendering: draw one wrapped row of glyph cells as five output lines.
-# ---------------------------------------------------------------------------
 render_row() {
   local rowtext=$1 r ch g
   for (( r = 1; r <= ROWS; r++ )); do
@@ -187,7 +90,6 @@ render_row() {
     for (( i = 0; i < ${#rowtext}; i++ )); do
       ch=${rowtext:i:1}
       g=$(glyph "$ch" | cut -d'|' -f"$r")
-      # Normalise blanks and pad/trim to CELL_W.
       g=${g//./ }
       printf -v g '%-*s' "$CELL_W" "${g:0:CELL_W}"
       out+=$g' '
@@ -204,7 +106,7 @@ render() {
     if (( first )); then
       first=0
     else
-      echo            # blank line between blocks
+      echo
     fi
     render_row "$line"
   done < <(wrap_words "$text" "$max")
@@ -221,14 +123,20 @@ main() {
         shift
         [[ ${1:-} =~ ^[0-9]+$ ]] || { echo "prettyprint.sh: -w needs a column count" >&2; exit 2; }
         max=$1 ;;
+      -f|--font)
+        shift
+        [[ -n ${1:-} ]] || { echo "prettyprint.sh: -f needs a font name" >&2; exit 2; }
+        font_name=$1 ;;
+      --font=*) font_name=${1#*=} ;;
       --) shift; args+=("$@"); break ;;
       -*) echo "prettyprint.sh: unknown option: $1" >&2; usage >&2; exit 2 ;;
-      *)  args+=("$1") ;;
+      *) args+=("$1") ;;
     esac
     shift
   done
 
-  # Resolve width: -w wins, else the terminal, else a sane default.
+  load_font "$font_name"
+
   if [[ -z $max ]]; then
     max=$(tput cols 2>/dev/null || true)
     [[ $max =~ ^[0-9]+$ ]] || max=${COLUMNS:-80}
@@ -238,7 +146,6 @@ main() {
   if (( ${#args[@]} )); then
     render "${args[*]}" "$max"
   else
-    local line
     while IFS= read -r line; do
       [[ -z ${line//[[:space:]]/} ]] && { echo; continue; }
       render "$line" "$max"
