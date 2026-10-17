@@ -171,6 +171,11 @@ case "$1" in
         configuration) topic=config ;;
       esac
       if group_exists "$topic"; then
+        guide_page="$script_dir/linto-guide/$topic.md"
+        if [ -f "$guide_page" ]; then
+          cat "$guide_page"
+          printf '\n'
+        fi
         echo "Commands in group '$topic':"
         list_group_commands "$topic" | sed 's/^/  /'
         exit 0
