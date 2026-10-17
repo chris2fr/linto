@@ -41,6 +41,63 @@ assert_output '"zeta": 10
 "beta": 12' \
     "$root/quarto/citations.sh" --start 10 "$tmpdir/citations.qmd"
 
+cat > "$tmpdir/references.bib" <<'EOF'
+@article{first,
+  year = {2020},
+  title = {First title},
+  author = {A. Author}
+}
+
+@book{second,
+  zeta = {last},
+  date = {2021},
+  abstract = {Some text
+    continued},
+  author = {B. Author}
+}
+EOF
+
+"$root/bibtex/format-single-bib.sh" "$tmpdir/references.bib" >/dev/null
+expected=$(cat <<'EOF'
+@article{first,
+  author = {A. Author},
+  title = {First title},
+  year = {2020}
+}
+
+@book{second,
+  abstract = {Some text
+    continued},
+  author = {B. Author},
+  date = {2021},
+  zeta = {last}
+}
+EOF
+)
+actual=$(cat "$tmpdir/references.bib")
+[ "$actual" = "$expected" ] || fail "default BibTeX field sorting"
+
+cat > "$tmpdir/ordered.bib" <<'EOF'
+@article{ordered,
+  year = {2020},
+  title = {Ordered},
+  author = {A. Author},
+  custom = {extra}
+}
+EOF
+"$root/bibtex/format-single-bib.sh" --order author --order title "$tmpdir/ordered.bib" >/dev/null
+expected=$(cat <<'EOF'
+@article{ordered,
+  author = {A. Author},
+  title = {Ordered},
+  custom = {extra},
+  year = {2020}
+}
+EOF
+)
+actual=$(cat "$tmpdir/ordered.bib")
+[ "$actual" = "$expected" ] || fail "preferred BibTeX field order"
+
 assert_output 'prettyprint
 stripaccents
 timezone' "$root/bin/linto" --list-commands utils
