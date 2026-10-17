@@ -6,11 +6,27 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
 list_commands() {
-  for tool in "$script_dir"/*.sh; do
+  for tool in "$script_dir"/*.sh "$script_dir"/*/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
     printf '%s\n' "${name%.sh}"
   done
+}
+
+find_tool() {
+  command_name=$1
+  for candidate in \
+    "$script_dir/$command_name" \
+    "$script_dir/$command_name.sh" \
+    "$script_dir"/*/"$command_name" \
+    "$script_dir"/*/"$command_name.sh"
+  do
+    if [ -f "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
 }
 
 usage() {
@@ -60,34 +76,16 @@ case "$1" in
     case "$command" in
       slug) command=stripaccents ;;
     esac
-    tool="$script_dir/$command"
-    if [ ! -x "$tool" ] || [ ! -f "$tool" ]; then
-      tool="$script_dir/$command.sh"
-    fi
-    if [ ! -f "$tool" ]; then
+    if ! tool=$(find_tool "$command"); then
       echo "linto: unknown command: $command" >&2
       usage >&2
       exit 2
     fi
-    case "$command" in
-      zed)
-        cat <<EOF
-Usage: linto zed
-
-Launch Zed for the current directory using the local .zed user-data directory.
-This command creates .zed if needed and opens the current directory in a new
-Zed window. Requires zeditor to be installed and available on PATH.
-EOF
-        ;;
-      *)
-        if [ ! -x "$tool" ]; then
-          echo "linto: command is not executable: $command" >&2
-          exit 1
-        fi
-        exec "$tool" --help
-        ;;
-    esac
-    exit 0
+    if [ ! -x "$tool" ]; then
+      echo "linto: command is not executable: $command" >&2
+      exit 1
+    fi
+    exec "$tool" --help
     ;;
   completion)
     if [ "$#" -ne 2 ]; then
@@ -117,11 +115,7 @@ EOF
     case "$command" in
       slug) command=stripaccents ;;
     esac
-    tool="$script_dir/$command"
-    if [ ! -x "$tool" ] || [ ! -f "$tool" ]; then
-      tool="$script_dir/$command.sh"
-    fi
-    if [ -x "$tool" ] && [ -f "$tool" ]; then
+    if tool=$(find_tool "$command") && [ -x "$tool" ]; then
       exec "$tool" "$@"
     fi
     echo "linto: unknown command: $command" >&2
