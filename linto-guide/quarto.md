@@ -31,7 +31,6 @@ quarto-setup-lettre --> lettre.qmd
 quarto-github
 ```
 
-
 ```mermaid
 flowchart LR
 quarto.qmd --> quarto-render --> output --> firefox-output
