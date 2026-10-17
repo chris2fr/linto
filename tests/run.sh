@@ -57,7 +57,7 @@ cat > "$tmpdir/references.bib" <<'EOF'
 }
 EOF
 
-"$root/bibtex/format-single-bib.sh" "$tmpdir/references.bib" >/dev/null
+"$root/bibtex/bib-order-props.sh" "$tmpdir/references.bib" >/dev/null
 expected=$(cat <<'EOF'
 @article{first,
   author = {A. Author},
@@ -85,7 +85,7 @@ cat > "$tmpdir/ordered.bib" <<'EOF'
   custom = {extra}
 }
 EOF
-"$root/bibtex/format-single-bib.sh" --order author --order title "$tmpdir/ordered.bib" >/dev/null
+"$root/bibtex/bib-order-props.sh" --order author --order title "$tmpdir/ordered.bib" >/dev/null
 expected=$(cat <<'EOF'
 @article{ordered,
   author = {A. Author},
@@ -97,6 +97,17 @@ EOF
 )
 actual=$(cat "$tmpdir/ordered.bib")
 [ "$actual" = "$expected" ] || fail "preferred BibTeX field order"
+
+for form in separated repeated attached; do
+  cp "$tmpdir/ordered.bib" "$tmpdir/$form.bib"
+  case "$form" in
+    separated) "$root/bibtex/bib-order-props.sh" -o title -o author,date "$tmpdir/$form.bib" >/dev/null ;;
+    repeated) "$root/bibtex/bib-order-props.sh" -o title -o author -o date "$tmpdir/$form.bib" >/dev/null ;;
+    attached) "$root/bibtex/bib-order-props.sh" -otitle,author,date "$tmpdir/$form.bib" >/dev/null ;;
+  esac
+done
+cmp -s "$tmpdir/separated.bib" "$tmpdir/repeated.bib" || fail "comma-separated order equivalence"
+cmp -s "$tmpdir/separated.bib" "$tmpdir/attached.bib" || fail "attached order equivalence"
 
 assert_output 'prettyprint
 stripaccents

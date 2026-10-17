@@ -112,19 +112,20 @@ trap 'rm -f -- "$fields_tmp" "$output_tmp"' EXIT
 
 if ! awk -v order_list="$order_list" '
   BEGIN {
-    RS = "\n"
+    RS = "\\n"
     FS = ""
     order_count = split(order_list, preferred, sprintf("%c", 31))
     if (order_list == "") order_count = 0
     for (i = 1; i <= order_count; i++) field_rank[tolower(preferred[i])] = i
     in_entry = 0
     entry_count = 0
+    failed = 0
   }
 
-  function flush_entry(    i, j, key, rank, temp_key, temp_line) {
+  function flush_entry(    i, j, rank_i, rank_j, temp_key, temp_line) {
     if (!in_entry) return
     if (entry_count == 0) {
-      printf "%s\n", header
+      fail("entry has no fields")
       return
     }
 
@@ -148,7 +149,16 @@ if ! awk -v order_list="$order_list" '
       sub(/,[[:space:]]*$/, "", line)
       printf "%s%s\n", line, (i < entry_count ? "," : "")
     }
-    printf "}\n"
+    printf "%s\\n", closing
+    delete field_key
+    delete field_line
+    entry_count = 0
+  }
+
+  function fail(message) {
+    printf "%s:%d: %s\\n", FILENAME, FNR, message > "/dev/stderr"
+    failed = 1
+    exit 2
   }
 
   /^[[:space:]]*$/ {
@@ -156,44 +166,92 @@ if ! awk -v order_list="$order_list" '
     next
   }
 
-  /^[[:space:]]*@[^[:space:]]+[[:space:]]*[{(]/ {
-    flush_entry()
+  /^[[:space:]]*@/ {
+    if (in_entry) fail("new entry started before previous entry closed")
+    if ($0 !~ /^[[:space:]]*@[[:alnum:]_-]+[[:space:]]*[{(][^,]+,[[:space:]]*$/)
+      fail("unsupported or malformed entry header")
+    header = $0
+    entry_type = tolower($0)
+    sub(/^[[:space:]]*@/, "", entry_type)
+    sub(/[[:space:]].*$/, "", entry_type)
+    entry_key = $0
+    sub(/^[^({]*[{(][[:space:]]*/, "", entry_key)
+    sub(/,[[:space:]]*$/, "", entry_key)
+    if (entry_key == "") fail("entry has no citation key")
     in_entry = 1
     entry_count = 0
-    header = $0
+    closing = (header ~ /[(][^)]*$/ ? ")" : "}")
     next
   }
 
-  in_entry && /^[[:space:]]*}[[:space:]]*[,;]?[[:space:]]*$/ {
+  in_entry && $0 ~ /^[[:space:]]*[})][[:space:]]*[,;]?[[:space:]]*$/ {
+    if ($0 !~ "^[[:space:]]*" closing "[[:space:]]*[,;]?[[:space:]]*$")
+      fail("entry closes with a delimiter that does not match its header")
     flush_entry()
     in_entry = 0
     next
   }
 
   in_entry {
+    if ($0 ~ /^[[:space:]]*[%#]/ || $0 ~ /^[[:space:]]*@/) {
+      fail("comments and directives inside entries are not supported")
+    }
     if (match($0, /^[[:space:]]*[^[:space:]=,]+[[:space:]]*=/)) {
       key = substr($0, RSTART, RLENGTH)
       sub(/^[[:space:]]*/, "", key)
       sub(/[[:space:]]*=$/, "", key)
       key = tolower(key)
+      if (key == tolower(entry_type)) fail("field name conflicts with entry type")
+      if (field_seen[key]++) fail("duplicate field: " key)
       field_key[++entry_count] = key
       field_line[entry_count] = $0
-    } else {
-      # Keep multiline values attached to their field instead of reordering
-      # their continuation lines as if they were separate fields.
-      if (entry_count == 0) {
-        printf "%s\n", $0
-      } else {
-        field_line[entry_count] = field_line[entry_count] "\n" $0
-      }
+      value = substr($0, RSTART + RLENGTH)
+      value_balance = 0
+      quote = ""
+      escaped = 0
+      scan_value(value)
+      field_balance[entry_count] = value_balance
+      field_quote[entry_count] = quote
+      field_escaped[entry_count] = escaped
+    } else if (entry_count > 0) {
+      field_line[entry_count] = field_line[entry_count] "\\n" $0
+      scan_value($0)
+      field_balance[entry_count] = value_balance
+      field_quote[entry_count] = quote
+      field_escaped[entry_count] = escaped
+    } else if ($0 !~ /^[[:space:]]*$/) {
+      fail("unrecognized content before first field")
     }
     next
   }
 
   { print }
 
+  function scan_value(text,    i, ch) {
+    for (i = 1; i <= length(text); i++) {
+      ch = substr(text, i, 1)
+      if (escaped) { escaped = 0; continue }
+      if (ch == "\\\\") { escaped = 1; continue }
+      if (quote != "") {
+        if (ch == quote) quote = ""
+        continue
+      }
+      if (ch == "\"") { quote = ch; continue }
+      if (ch == "{") value_balance++
+      else if (ch == "}") value_balance--
+      else if (ch == "(") value_balance++
+      else if (ch == ")") value_balance--
+      if (value_balance < 0) fail("unbalanced delimiter in field value")
+    }
+    if (quote != "" || value_balance != 0 || escaped)
+      return
+    if (text ~ /,[[:space:]]*$/) return
+  }
+
   END {
-    flush_entry()
+    if (in_entry && !failed) {
+      fail("unterminated entry")
+    }
   }
 ' "$input" > "$output_tmp"; then
   echo "$0: failed to parse BibTeX entries in: $input" >&2
