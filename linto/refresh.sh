@@ -126,17 +126,17 @@ printf '%s\n' "${names[@]}" | LC_ALL=C sort -u > "$wrapper_dir/owned.tmp"
 mv -- "$wrapper_dir/owned.tmp" "$owned"
 
 cat > "$completion_dir/linto.fish" <<'FISH_HEADER'
-set -l linto_bin (realpath (dirname (status filename))/../bin/linto)
+set -g linto_bin (realpath (dirname (status filename))/../bin/linto)
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null)'
-complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null | string replace -r "^(.*)$" "linto-$1")'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null | string replace -r \'^\' \'linto-\')'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 FISH_HEADER
 for group in "${groups[@]}"; do
   cat >> "$completion_dir/linto.fish" <<EOF
 complete -c linto -f -n '__fish_seen_subcommand_from $group linto-$group' -a '(\$linto_bin --list-commands $group 2>/dev/null)'
-complete -c linto -f -n '__fish_use_subcommand' -a '(\$linto_bin --list-commands $group 2>/dev/null | string replace -r \'^(.*)\$\' \'linto-$group-\$1\')'
+complete -c linto -f -n '__fish_use_subcommand' -a '(\$linto_bin --list-commands $group 2>/dev/null | string replace -r \'^\' \'linto-$group-\')'
 EOF
 done
 cat >> "$completion_dir/linto.fish" <<'FISH_FOOTER'
