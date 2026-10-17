@@ -6,25 +6,9 @@ Scripts de gestion de la bibliographie (`fr.bib`, `transcriptions.json`, fichier
 
 La plupart des scripts supposent d'être lancés **depuis la racine du projet** (le dossier parent de `scripts/`), là où se trouvent `fr.bib`, `transcriptions.json` et les fichiers `.qmd`.
 
-## Vue d'ensemble du flux
-
-```
-transcriptions.json ⇄ fr.bib ──► _pieces-XXX.yml ──► pieces-XXX.bib ──► quarto render
-   (json2bib.sh / bib2json.sh)     (lib/generer-bib.py via build-bib.sh, lancé par render.sh)
-```
-
-### bib2json.sh
-
-### json2bib.sh
-
 ## Rendu et génération de la bibliographie
 
-| Script | Rôle | Usage |
-|---|---|---|
-
 ### render.sh
-
-### scripts/render.sh
 
 Lance `build-bib.sh` puis `quarto render` sur chaque `*.qmd` du dossier courant. 
 
@@ -33,7 +17,7 @@ Lance `build-bib.sh` puis `quarto render` sur chaque `*.qmd` du dossier courant.
 ./scripts/build-bib.sh  
 Pour chaque `_pieces-*.yml`, appelle `lib/generer-bib.py` et produit `pieces-*.bib` (le préfixe `_` est retiré). 
 
-### lib/generer-bib.py
+#### lib/generer-bib.py
 
 python3 lib/generer-bib.py _pieces-ref-08.yml pieces-ref-08.bib  
 Génère un `.bib` contextuel : reprend les entrées de `fr.bib` listées dans un YAML clé → numéro et leur injecte un champ `number`. Signale les clés absentes de `fr.bib`. Nécessite PyYAML. Appelé par `build-bib.sh`. 
@@ -42,8 +26,12 @@ Génère un `.bib` contextuel : reprend les entrées de `fr.bib` listées dans u
  
 Ouvre dans Firefox la dernière version `draft-*` de `_output/versions/`. 
 
-
 ## Conversion et manipulation de la bibliographie
+
+```
+transcriptions.json ⇄ fr.bib ──► _pieces-XXX.yml ──► pieces-XXX.bib ──► quarto render
+   (json2bib.sh / bib2json.sh)     (lib/generer-bib.py via build-bib.sh, lancé par render.sh)
+```
 
 ### bib2json.sh
 
@@ -75,7 +63,6 @@ Extrait la clé et un ensemble fixe de champs d'un `.bib` en CSV séparé par `;
 gawk -f annexes.awk fr.csv  
 Lit le CSV produit par `bib2csv.awk` et génère les listes d'annexes en Markdown, regroupées par année et mois. Trois formats de sortie (variable `output_format`, 1 par défaut). Nécessite gawk. 
 
-
 ## Numérotation et texte
 
 ### renumberyml.py
@@ -103,13 +90,9 @@ Convertit du Markdown en JSON (formats texte brut, structuré, sections ; option
 python3 cetcst.py  
 Exemple/utilitaire : transforme une date et une heure locales (Europe/Paris) en horodatage ISO 8601 avec décalage UTC, pour le champ `date` de biblatex. Nécessite `pytz`. Les valeurs sont codées en dur dans le script. 
 
-
 ## `loops/` – scripts de migration ponctuels
 
 Scripts utilisés pour des migrations en masse de `fr.bib`. Les `loop_*.sh` lisent un CSV séparé par `;` sans en-tête et appliquent un `sed -i` sur `fr.bib` pour chaque ligne. Ils ont été écrits pour des opérations ponctuelles : **ils modifient `fr.bib` sur place, faites une copie avant de les relancer**.
-
-| Script | Rôle |
-|---|---|
 
 ### loop_authors.sh
 
