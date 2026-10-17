@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-if [[ $# -gt 0 ]]; then
+if [ "$#" -gt 0 ]; then
   case "$1" in
     -h|--help)
       printf 'Usage: %s [-h|--help]\n\nPrint the absolute path to the Linto installation directory.\n' "${0##*/}"
@@ -14,6 +14,6 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 cd -- "$script_dir/.."
 pwd -P

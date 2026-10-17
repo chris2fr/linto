@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-if [[ $# -lt 2 || $# -gt 3 ]]; then
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
   echo "error: internal setup-template invocation is malformed" >&2
   exit 2
 fi

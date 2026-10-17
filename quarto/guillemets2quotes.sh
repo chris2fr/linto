@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 usage() {
     cat <<EOF
@@ -21,13 +21,11 @@ if [ "$#" -ne 1 ]; then
 fi
 
 
-if [ -f $1 ]; then
-   echo $1;
+if [ -f "$1" ]; then
+  printf '%s\n' "$1"
 else
-   echo "$1 n'existe pas";
-   exit 1;
+  printf '%s n\047existe pas\n' "$1" >&2
+  exit 1
 fi
 
-echo $1
-
-sed -i.bak -e 's/« \| »/"/g' $1
+sed -i.bak -e 's/« \| »/"/g' "$1"

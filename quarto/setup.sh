@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 usage() {
   cat <<'EOF'
@@ -21,21 +21,21 @@ esac
 search_dir=$(pwd -P)
 extensions_dir=
 while :; do
-  if [[ -d "$search_dir/_extensions" ]]; then
+  if [ -d "$search_dir/_extensions" ]; then
     extensions_dir="$search_dir/_extensions"
     break
   fi
-  [[ "$search_dir" == / ]] && break
+  [ "$search_dir" = / ] && break
   search_dir=$(dirname -- "$search_dir")
 done
 
-if [[ -z "$extensions_dir" ]]; then
+if [ -z "$extensions_dir" ]; then
   exec quarto add chris2fr/quarto
 fi
 
 project_dir=$(dirname -- "$extensions_dir")
 cd "$project_dir"
-if [[ -d "$extensions_dir/chris2fr" ]]; then
+if [ -d "$extensions_dir/chris2fr" ]; then
   exec quarto update chris2fr/quarto
 else
   exec quarto add chris2fr/quarto
