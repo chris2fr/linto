@@ -10,7 +10,7 @@ list_groups() {
   for group_dir in "$script_dir"/*; do
     [ -d "$group_dir" ] || continue
     case "${group_dir##*/}" in
-      awk|beta|bibtex|internal|launch|quarto|utils)
+      awk|beta|bibtex|launch|quarto|utils)
         printf '%s\n' "${group_dir##*/}"
         ;;
     esac
@@ -35,7 +35,7 @@ list_groups_and_commands() {
 
 group_exists() {
   case "$1" in
-    awk|beta|bibtex|internal|launch|quarto|utils) return 0 ;;
+    awk|beta|bibtex|launch|quarto|utils) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -150,7 +150,7 @@ case "$1" in
       exit 0
     elif [ "$#" -eq 2 ]; then
       case "$2" in
-        awk|beta|bibtex|internal|launch|quarto|utils)
+        awk|beta|bibtex|launch|quarto|utils)
           echo "Commands in group '$2':"
           list_group_commands "$2" | sed 's/^/  /'
           exit 0
