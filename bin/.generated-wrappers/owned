@@ -16,7 +16,7 @@ linto-launch
 linto-launch-zed
 linto-linto
 linto-linto-addman
-linto-linto-scriptdir
+linto-linto-path
 linto-md2json
 linto-mkbib
 linto-prettyprint

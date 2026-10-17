@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Generate one .bib file per piece configuration.
 #
 # Iterates over every staged config file matching `_pieces-*.yml` in the
@@ -58,10 +58,8 @@ do
   esac
 done
 
-# -e: exit immediately if any command fails
-# -u: treat unset variables as an error
-# -o pipefail: a pipeline fails if any command in it fails
-set -euo pipefail
+# Exit on errors and references to unset variables. POSIX sh has no pipefail.
+set -eu
 
 # Locate the bibliography generator next to this script, so build-bib.sh
 # works regardless of the directory it is run from.

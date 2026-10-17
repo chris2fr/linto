@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # mkbib.sh -- split a BibTeX file into one file per entry.
 #
@@ -14,7 +14,7 @@
 # The single remaining argument must be an existing .bib file.
 # Exit status: 0 on success, 1 on a missing/invalid file, 2 on a usage error.
 
-set -euo pipefail
+set -eu
 
 usage() {
   cat <<EOF

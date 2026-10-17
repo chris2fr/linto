@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 usage() {
   cat <<'EOF'
@@ -16,26 +16,27 @@ case "${1-}" in
   *) usage >&2; exit 2 ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 source_man=$(CDPATH= cd -- "$script_dir/../man" && pwd -P)/linto.1
-man_dir="${XDG_DATA_HOME:-$HOME/.local/share}/man/man1"
+data_home=${XDG_DATA_HOME:-$HOME/.local/share}
+man_dir="$data_home/man/man1"
 link_path="$man_dir/linto.1"
 
-if [[ ! -f "$source_man" ]]; then
+if [ ! -f "$source_man" ]; then
   printf 'error: man page not found: %s\n' "$source_man" >&2
   exit 1
 fi
 
 mkdir -p "$man_dir"
-if [[ -L "$link_path" ]]; then
+if [ -L "$link_path" ]; then
   existing_target=$(readlink -f -- "$link_path" || true)
-  if [[ "$existing_target" == "$source_man" ]]; then
+  if [ "$existing_target" = "$source_man" ]; then
     printf 'Man page already linked: %s\n' "$link_path"
   else
     printf 'error: refusing to replace existing symbolic link: %s\n' "$link_path" >&2
     exit 1
   fi
-elif [[ -e "$link_path" ]]; then
+elif [ -e "$link_path" ]; then
   printf 'error: refusing to replace existing file: %s\n' "$link_path" >&2
   exit 1
 else
@@ -44,4 +45,4 @@ else
 fi
 
 printf '\nIf `man linto` is not found, add this to your shell configuration:\n'
-printf 'export MANPATH="%s:${MANPATH:-}"\n' "${XDG_DATA_HOME:-$HOME/.local/share}/man"
+printf 'export MANPATH="%s:${MANPATH:-}"\n' "$data_home/man"
