@@ -1,7 +1,7 @@
-function format3_begin() {
+function format_begin(fld, count) {
 }
 
-function format3_output(vals, fldidx, fld, count, i, firstfield) {
+function format_output(vals, fldidx, fld, count, i, firstfield) {
     if (out != "") close(out)
 
     key = vals[fldidx["key"]]

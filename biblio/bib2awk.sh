@@ -6,13 +6,13 @@ usage() {
 Usage: bib2awk.sh [-t THEME] [-f FORMAT] [--] FILE.bib
 
 Extract BibTeX fields using the selected output handler:
-  1 / csv   semicolon-separated CSV (default)
-  2 / sed   shell commands for replacing howpublished with publisher
-  3 / bibs  write one JSON file per entry under ./bib/
+  csv   semicolon-separated CSV (default)
+  sed   shell commands for replacing howpublished with publisher
+  bibs  write one JSON file per entry under ./bib/
 
 Options:
   -t, --theme THEME   Keep entries whose keywords match THEME (comma-separated).
-  -f, --format FORMAT Select 1/csv, 2/sed, or 3/bibs.
+  -f, --format FORMAT Select a handler name (csv, sed, bibs), or a legacy number (1, 2, 3).
   -h, --help          Show this help and exit.
 
 Formats 1 and 2 write to standard output. Format 3 writes JSON files in the
@@ -76,26 +76,24 @@ done
 [ -n "$input" ] || { usage >&2; exit 2; }
 [ -f "$input" ] && [ -r "$input" ] || fail "input file absent or unreadable: $input"
 case "$format" in
-  1|csv) format=1 ;;
-  2|sed) format=2 ;;
-  3|bibs) format=3 ;;
-  *) printf 'bib2awk: invalid format: %s (expected 1/csv, 2/sed, or 3/bibs)\n' "$format" >&2; exit 2 ;;
+  1|csv) format=csv ;;
+  2|sed) format=sed ;;
+  3|bibs) format=bibs ;;
+  *) printf 'bib2awk: invalid format: %s\n' "$format" >&2; exit 2 ;;
 esac
 command -v gawk >/dev/null 2>&1 || fail 'GNU awk (gawk) is required'
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 lib_dir="$script_dir/lib"
-for awk_file in "$lib_dir/bib2awk.awk" "$lib_dir/bib2awk/csv.awk" "$lib_dir/bib2awk/sed.awk" "$lib_dir/bib2awk/bibs.awk"; do
-  [ -r "$awk_file" ] || fail "AWK component not found: $awk_file"
-done
+awk_file="$lib_dir/bib2awk/$format.awk"
+[ -r "$lib_dir/bib2awk.awk" ] || fail "AWK parser not found: $lib_dir/bib2awk.awk"
+[ -r "$awk_file" ] || fail "unknown or unreadable output format: $format ($awk_file)"
 input_path=$(CDPATH= cd -- "$(dirname -- "$input")" && pwd -P)/$(basename -- "$input")
 cd "$lib_dir"
-if [ "$format" -eq 3 ]; then
+if [ "$format" = bibs ]; then
   mkdir -p ./bib
 fi
-exec gawk -v theme="$theme" -v format="$format" \
+exec gawk -v theme="$theme" \
   -f bib2awk.awk \
-  -f bib2awk/csv.awk \
-  -f bib2awk/sed.awk \
-  -f bib2awk/bibs.awk \
+  -f "$awk_file" \
   -- "$input_path"

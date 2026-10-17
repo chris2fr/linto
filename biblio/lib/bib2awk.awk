@@ -94,10 +94,8 @@ BEGIN {
     RS = "\n@"
     OFS = ";"
 
-    if (format == "")
-        output_format = "1" # changer pour les formats de sorti 1, 2 ou 3
-    else
-        output_format = format
+    output_format = format
+    if (output_format == "") output_format = "csv"
 
     n = split("key abstract author date edition file howpublished keywords language month note number organization publisher shorthand shorthand2 title type url urldate xacronym xcontentmd xcounter xdatetime xduplicate xeditionorig xeditionorig2 xeditionorig3 xfileorig xkeyorig xkeyorig2 xkeyorig3 xkeyorig4 xnumberorig xshorthandorig xshorthandorig2 xtheme xtime xtype xtypeorig year", fld, " ")
 
@@ -119,12 +117,7 @@ BEGIN {
         }
     }
 
-    if (output_format == "1")
-        format1_begin(fld, n)
-    if (output_format == "2")
-        format2_begin()
-    if (output_format == "3")
-        format3_begin()
+    format_begin(fld, n)
 }
 
 
@@ -159,12 +152,7 @@ BEGIN {
         next
     }
 
-    if (output_format == "1")
-        format1_output(vals, fldidx, fld)
-    if (output_format == "2")
-        format2_output(vals, fldidx, fld)
-    if (output_format == "3")
-        format3_output(vals, fldidx, fld)
+    format_output(vals, fldidx, fld)
 }
 
 
