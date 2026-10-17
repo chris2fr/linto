@@ -51,8 +51,7 @@ cat > "$tmpdir/references.bib" <<'EOF'
 @book{second,
   zeta = {last},
   date = {2021},
-  abstract = {Some text
-    continued},
+  abstract = {Some text},
   author = {B. Author}
 }
 EOF
@@ -66,8 +65,7 @@ expected=$(cat <<'EOF'
 }
 
 @book{second,
-  abstract = {Some text
-    continued},
+  abstract = {Some text},
   author = {B. Author},
   date = {2021},
   zeta = {last}
@@ -108,6 +106,29 @@ for form in separated repeated attached; do
 done
 cmp -s "$tmpdir/separated.bib" "$tmpdir/repeated.bib" || fail "comma-separated order equivalence"
 cmp -s "$tmpdir/separated.bib" "$tmpdir/attached.bib" || fail "attached order equivalence"
+
+cat > "$tmpdir/unsupported.bib" <<'EOF'
+@article{unsupported,
+  title = {A multiline
+    value},
+  author = {A. Author}
+}
+EOF
+cp "$tmpdir/unsupported.bib" "$tmpdir/unsupported.original"
+if "$root/bibtex/bib-order-props.sh" "$tmpdir/unsupported.bib" >/dev/null 2>&1; then
+  fail "unsupported multiline field was accepted"
+fi
+cmp -s "$tmpdir/unsupported.bib" "$tmpdir/unsupported.original" || fail "unsupported input was modified"
+
+cat > "$tmpdir/unterminated.bib" <<'EOF'
+@article{broken,
+  title = {Missing close}
+EOF
+cp "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original"
+if "$root/bibtex/bib-order-props.sh" "$tmpdir/unterminated.bib" >/dev/null 2>&1; then
+  fail "unterminated entry was accepted"
+fi
+cmp -s "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original" || fail "unterminated input was modified"
 
 assert_output 'prettyprint
 stripaccents
