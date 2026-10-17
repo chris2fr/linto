@@ -83,6 +83,8 @@ usage() {
   cat <<EOF
 Usage: linto [--help] [COMMAND [arguments...]]
        linto [--help] GROUP COMMAND [arguments...]
+       linto-GROUP [COMMAND [arguments...]]
+       linto-GROUP-COMMAND [arguments...]
 
 Linux Tools: bibliography, Quarto, text, and shell utilities.
 
@@ -116,6 +118,8 @@ Examples:
   linto-utils
   linto-utils prettyprint
   linto-utils-prettyprint
+  linto-utils-stripaccents
+  linto-quarto-render
 EOF
 }
 
