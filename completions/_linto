@@ -2,11 +2,11 @@
 
 _linto() {
   local -a commands groups group_commands aliases
-  local command group linto_bin completion_file
-  completion_file="${${funcsourcetrace[1]:-${(%):-%x}}}"
-  linto_bin="$(cd "$(dirname "$completion_file")/../bin" && pwd -P)/linto"
+  local group linto_bin completion_file
+  completion_file=${funcsourcetrace[1]%%:*}
+  linto_bin="${completion_file:A:h:h}/bin/linto"
   groups=(${(f)"$("$linto_bin" --list-groups 2>/dev/null)"})
-  commands=(${(f)"$("$linto_bin" --help 2>/dev/null | awk '/^Available commands/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')"})
+  commands=(${(f)"$("$linto_bin" --help 2>/dev/null | sed -n '/^Available commands/,/^$/p' | sed '1d' | sed 's/^  //')"})
 
   if (( CURRENT == 2 )); then
     aliases=(linto-${^groups})
