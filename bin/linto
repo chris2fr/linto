@@ -107,22 +107,24 @@ EOF
   list_groups_and_commands
   cat <<EOF
 
-Examples:
-  linto stripaccents --min 4 --max 20 'Été à Paris'
-  linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
-  linto stripaccents --dir 'Documents/Été à Paris'
-  linto render --help
-  linto quarto render --help
-  linto prettyprint
-  linto utils prettyprint
-  linto-utils
-  linto-utils prettyprint
-  linto-utils-prettyprint
-  linto-utils-stripaccents
-  linto-quarto-render
-  linto quarto citations --order-by key --format csv report.qmd
 EOF
 }
+
+
+# Examples:
+#   linto stripaccents --min 4 --max 20 'Été à Paris'
+#   linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
+#   linto stripaccents --dir 'Documents/Été à Paris'
+#   linto render --help
+#   linto quarto render --help
+#   linto prettyprint
+#   linto utils prettyprint
+#   linto-utils
+#   linto-utils prettyprint
+#   linto-utils-prettyprint
+#   linto-utils-stripaccents
+#   linto-quarto-render
+#   linto quarto citations --order-by key --format csv report.qmd
 
 if [ "$#" -eq 0 ]; then
   usage
