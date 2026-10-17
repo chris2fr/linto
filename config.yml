@@ -12,4 +12,26 @@ groups:
   biblio: default
 quarto:
   extension: chris2fr/quarto
-mdviewer: md-tui # cat bat inlyne glow frogmouth mandown mdcat mdfried mdless md-tui
+# markdown-viewer: md-tui
+markdown-viewer:
+  - mdless
+  - md-tui
+  - frogmouth
+  - mdcat
+  - mandown
+  - glow
+  - inlyne
+  - bat
+  - cat
+  - mdfried
+  - md-viewer
+  - mandown-md-viewer
+  - markdown-reader
+  - blink-markdown
+  - cmd-markdown
+  - ghostwriter
+  - marktext
+  - zeditor
+  - apostrophe
+  - marknote
+  - marker

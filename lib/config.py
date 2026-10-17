@@ -52,6 +52,21 @@ def group_options(data: dict, name: str) -> dict:
     }
 
 
+def markdown_viewers(data: dict) -> list[str]:
+    """Return configured Markdown viewers in preference order."""
+    viewers = data.get("markdown-viewer", ["cat"])
+    if isinstance(viewers, str):
+        viewers = [viewers]
+    if not isinstance(viewers, list) or not viewers:
+        raise ValueError("'markdown-viewer' must be a non-empty string or list")
+    result = []
+    for viewer in viewers:
+        if not isinstance(viewer, str) or not viewer.strip():
+            raise ValueError("'markdown-viewer' entries must be non-empty strings")
+        result.append(viewer.strip())
+    return result
+
+
 def quarto_extension(data: dict) -> str:
     """Return the configured Quarto extension repository."""
     quarto = data.get("quarto", {})
@@ -78,6 +93,7 @@ def main() -> int:
     options_parser = sub.add_parser("options")
     options_parser.add_argument("group")
     sub.add_parser("quarto-extension")
+    sub.add_parser("markdown-viewer")
     add_parser = sub.add_parser("add")
     add_parser.add_argument("group")
     rm_parser = sub.add_parser("remove")
@@ -95,6 +111,9 @@ def main() -> int:
             print("true" if options["short-stubs"] else "false")
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
+        elif args.action == "markdown-viewer":
+            for viewer in markdown_viewers(data):
+                print(viewer)
         elif args.action == "add":
             current = data["groups"].get(args.group)
             if current == "default":
