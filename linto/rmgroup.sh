@@ -35,13 +35,13 @@ bin_dir="$script_dir/bin"
 group_dir="$script_dir/$name"
 [[ -d "$group_dir" ]] || fail "group directory not found: $group_dir"
 
-groups_file="$bin_dir/.linto-groups"
-[[ -f "$groups_file" ]] || fail "group configuration not found: $groups_file"
-grep -Fxq -- "$name" "$groups_file" || fail "group is not active: $name"
-tmp_groups=$(mktemp "$bin_dir/.linto-groups.XXXXXX")
-trap 'rm -f -- "$tmp_groups"' EXIT
- grep -Fxv -- "$name" "$groups_file" > "$tmp_groups" || true
-mv -- "$tmp_groups" "$groups_file"
+config_file="$script_dir/config.yml"
+[[ -f "$config_file" ]] || fail "configuration file not found: $config_file"
+grep -Eq "^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$" "$config_file" || fail "group is not active: $name"
+tmp_config=$(mktemp "$script_dir/.config.yml.XXXXXX")
+trap 'rm -f -- "$tmp_config"' EXIT
+sed "/^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$/d" "$config_file" > "$tmp_config"
+mv -- "$tmp_config" "$config_file"
 
 "$script_dir/linto/refresh.sh"
 printf 'Unregistered group %s.\n' "$name"
