@@ -37,11 +37,7 @@ group_dir="$script_dir/$name"
 
 config_file="$script_dir/config.yml"
 [[ -f "$config_file" ]] || fail "configuration file not found: $config_file"
-grep -Eq "^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$" "$config_file" || fail "group is not active: $name"
-tmp_config=$(mktemp "$script_dir/.config.yml.XXXXXX")
-trap 'rm -f -- "$tmp_config"' EXIT
-sed "/^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$/d" "$config_file" > "$tmp_config"
-mv -- "$tmp_config" "$config_file"
+python3 "$script_dir/lib/config.py" "$config_file" remove "$name" || fail "could not update group configuration"
 
 "$script_dir/linto/refresh.sh"
 printf 'Unregistered group %s.\n' "$name"

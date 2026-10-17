@@ -182,7 +182,7 @@ wrap_words() {
 render_row() {
   local rowtext=$1 r ch g
   for (( r = 1; r <= ROWS; r++ )); do
-    local out=''
+    local out='  '
     for (( i = 0; i < ${#rowtext}; i++ )); do
       ch=${rowtext:i:1}
       g=$(glyph "$ch" | cut -d'|' -f"$r")

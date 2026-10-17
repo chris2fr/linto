@@ -1,7 +1,11 @@
 groups:
-  - beta
-  - bibtex
-  - launch
-  - linto
-  - quarto
-  - utils
+  beta: default
+  bibtex: default
+  launch: default
+  linto:
+    short-stubs: false
+  quarto:
+    short-stubs: false
+  utils: default
+  old:
+    enable: false
