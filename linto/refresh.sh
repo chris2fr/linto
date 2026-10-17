@@ -5,8 +5,9 @@ usage() {
   cat <<'EOF'
 Usage: refresh.sh [-h|--help]
 
-Refresh generated group/command wrappers, shell completions and the active-group
-list in the man page from config.yml. Group options default to enable: true and
+Refresh generated group/command wrappers, shell completions, and man pages.
+The dispatcher man page's active-group list and topic man pages are generated
+from config.yml and linto-guide/*.md. Group options default to enable: true and
 short-stubs: true. Short command stubs are generated only when a command name is
 unique among enabled groups.
 EOF
@@ -24,12 +25,23 @@ completion_dir="$root/completions"
 man_page="$root/man/linto.1"
 config="$root/config.yml"
 config_tool="$root/lib/config.py"
+guide_dir="$root/linto-guide"
+man_topics_dir="$root/man/man1"
 linto="$bin_dir/linto"
 wrapper_dir="$bin_dir/.generated-wrappers"
 owned="$wrapper_dir/owned"
 
 [[ -x "$linto" ]] || { printf 'refresh: dispatcher not executable: %s\n' "$linto" >&2; exit 1; }
 [[ -f "$config" && -f "$config_tool" ]] || { printf 'refresh: config or config helper is missing\n' >&2; exit 1; }
+if ! command -v mandown >/dev/null 2>&1; then
+  printf 'refresh: mandown is required to generate topic man pages (run linto linto mdsetup)\n' >&2
+  exit 1
+fi
+if ! command -v groff >/dev/null 2>&1; then
+  printf 'refresh: groff is required to validate topic man pages\n' >&2
+  exit 1
+fi
+[[ -d "$root/linto-guide" ]] || { printf 'refresh: guide directory not found: %s\n' "$root/linto-guide" >&2; exit 1; }
 
 mapfile -t groups < <("$linto" --list-groups)
 declare -a names=() groups_for_stub=() commands_for_stub=() kinds=()
@@ -167,5 +179,66 @@ for i, group in enumerate(groups):
         lines.append('and')
 sys.stdout.write(text[:a] + '\n' + '\n'.join(lines) + '\n' + text[b:])
 PY
+mkdir -p -- "$man_topics_dir"
+
+topic_tmp=$(mktemp -d "$root/man/.topics.XXXXXX")
+trap 'rm -rf -- "$topic_tmp"' EXIT
+
+declare -A desired_topics=()
+for source in "$guide_dir"/*.md; do
+  [[ -f "$source" ]] || continue
+  topic=${source##*/}
+  topic=${topic%.md}
+  case "$topic" in
+    *[!a-zA-Z0-9_-]*|'')
+      printf 'refresh: invalid guide topic filename: %s\n' "$source" >&2
+      exit 1
+      ;;
+  esac
+  dest="$man_topics_dir/linto-$topic.1"
+  [[ ! -e "$dest" || -f "$dest" ]] || {
+    printf 'refresh: refusing to replace non-file path: %s\n' "$dest" >&2
+    exit 1
+  }
+  desired_topics["linto-$topic.1"]=1
+
+  preprocessed="$topic_tmp/$topic.md"
+  roff_tmp="$topic_tmp/linto-$topic.1"
+  python3 - "$source" "$preprocessed" <<'PY'
+from pathlib import Path
+import re, sys
+source, output = map(Path, sys.argv[1:])
+text = source.read_text()
+# Mermaid diagrams do not have a meaningful plain-text man-page rendering.
+text = re.sub(r"```mermaid\s*\n.*?^```\s*$", "", text, flags=re.M | re.S)
+# Convert fenced examples to indented Markdown; mandown preserves those as
+# no-fill blocks with line breaks intact.
+def code_block(match):
+    body = match.group(1).rstrip("\n")
+    return "\n".join("    " + line if line else "" for line in body.splitlines())
+text = re.sub(r"```[^\n]*\n(.*?)^```\s*$", code_block, text, flags=re.M | re.S)
+# mandown treats inline code and Markdown link targets awkwardly. Keep the
+# visible text while avoiding literal backticks and reference footnotes.
+text = re.sub(r"`([^`]+)`", r"**\1**", text)
+text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+output.write_text(text)
+PY
+  title=$(printf '%s' "$topic" | tr '[:lower:]_-' '[:upper:]__')
+  mandown "$preprocessed" "LINTO-$title" 1 > "$roff_tmp"
+  groff -Wall -man -Tutf8 "$roff_tmp" > /dev/null
+done
+
+# Install only after all generated pages have passed groff validation.
+for generated in "$topic_tmp"/linto-*.1; do
+  [[ -f "$generated" ]] || continue
+  install -m 0644 -- "$generated" "$man_topics_dir/${generated##*/}"
+done
+for existing in "$man_topics_dir"/linto-*.1; do
+  [[ -f "$existing" ]] || continue
+  name=${existing##*/}
+  [[ -n "${desired_topics[$name]+yes}" ]] || rm -f -- "$existing"
+done
 mv -- "$man_tmp" "$man_page"
-printf 'Refreshed %d active group(s), wrappers, completions, and man page.\n' "${#groups[@]}"
+
+printf 'Refreshed %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s).\n' \
+  "${#groups[@]}" "${#desired_topics[@]}"
