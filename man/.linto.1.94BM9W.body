@@ -1,0 +1,172 @@
+.TH LINTO 1 "October 2026" "linto" "User Commands"
+.SH NAME
+linto \- dispatch command-line tools from the Linux Tools collection
+.SH SYNOPSIS
+.B linto
+.RI [ --help ]
+.br
+.B linto
+.I command
+.RI [ arguments ... ]
+.br
+.B linto
+.I group command
+.RI [ arguments ... ]
+.br
+.B linto help
+.RI [ group ] [ command ]
+.br
+.B linto completion
+.RI { bash | zsh | fish }
+.SH DESCRIPTION
+.B linto
+is a command dispatcher for the local Linux Tools collection. It locates tools
+relative to the
+.B linto
+launcher, so commands can be run from any working directory. A tool receives
+the arguments supplied after its command name.
+.PP
+With no arguments or with
+.BR --help ,
+.B linto
+prints the available groups and their commands. Running a group by itself
+lists its commands. Each command can be run as
+.B "linto GROUP COMMAND"
+or as the shorthand
+.BR "linto COMMAND" .
+.SH GROUPS
+The currently active groups are:
+.\" BEGIN GENERATED GROUPS
+.BR beta ,
+.BR bibtex ,
+.BR launch ,
+.BR linto ,
+.BR quarto ,
+and
+.BR utils .
+.\" END GENERATED GROUPS
+Run a group by itself to list its commands. The
+.B launch
+group contains the Zed launcher. Use a group followed by a command to run a
+tool explicitly, for example
+.BR "linto utils prettyprint" .
+All commands can also be invoked without the group when their names are unique.
+.SH COMMANDS
+.TP
+.B help [GROUP] [COMMAND]
+Print the general tool guide with no arguments. With a command name, display
+that tool's help; a group may be specified to select the command explicitly.
+For most commands this runs the tool with
+.BR --help ;
+some commands provide dispatcher-specific help instead.
+.TP
+.B completion SHELL
+Print shell completion setup instructions for
+.BR bash ,
+.BR zsh ,
+or
+.BR fish .
+This prints instructions; it does not modify shell configuration files.
+.TP
+.I command [arguments ...]
+Run a tool by its command name, optionally without its group.
+.TP
+.I group command [arguments ...]
+Run a tool from the specified group. The tool's standard input, output, error,
+and exit status are passed through.
+.PP
+The alias
+.B slug
+runs
+.BR stripaccents .
+.SH OPTIONS
+.TP
+.BR -h , --help
+Print the usage summary when given as the first argument. To request help for a
+specific tool, use
+.B "linto COMMAND --help"
+or
+.BR "linto help GROUP COMMAND" .
+.SH EXIT STATUS
+The dispatcher exits with status 0 when it successfully prints its own help or
+completion instructions. Invalid dispatcher usage, an unsupported completion
+shell, or an unknown command results in status 2. For a dispatched command,
+.B linto
+returns that command's exit status.
+.SH EXAMPLES
+Show the available commands:
+.PP
+.nf
+.RS
+linto --help
+.RE
+.fi
+.PP
+List commands in a group:
+.PP
+.nf
+.RS
+linto quarto
+.RE
+.fi
+.PP
+Extract unique citation keys from a Quarto document as a numbered YAML map,
+ordered by first appearance (the default):
+.PP
+.nf
+.RS
+linto quarto citations report.qmd
+.RE
+.fi
+.PP
+Write the keys as CSV, sorted alphabetically:
+.PP
+.nf
+.RS
+linto quarto citations --order-by key --format csv report.qmd
+.RE
+.fi
+.PP
+Run a tool with or without its group:
+.PP
+.nf
+.RS
+linto render --help
+linto quarto render --help
+.RE
+.fi
+.PP
+Open a file with the Zed tool:
+.PP
+.nf
+.RS
+linto zed Makefile
+.RE
+.fi
+.PP
+Print the Bash completion setup line:
+.PP
+.nf
+.RS
+linto completion bash
+.RE
+.fi
+.SH FILES
+.TP
+.I linto
+The command dispatcher.
+.TP
+.I linto-guide
+The general guide shown by
+.BR "linto help" .
+.TP
+.I completions/linto.bash
+.TQ
+.I completions/linto.zsh
+.TQ
+.I completions/linto.fish
+Shell completion definitions.
+.SH SEE ALSO
+.BR bash (1),
+.BR zsh (1),
+.BR fish (1)

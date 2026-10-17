@@ -21,6 +21,7 @@ esac
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
+man_page="$script_dir/man/linto.1"
 linto_bin="$bin_dir/linto"
 groups_file="$script_dir/config.yml"
 wrapper_dir="$bin_dir/.generated-wrappers"
@@ -143,4 +144,31 @@ complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --hel
 complete -c linto -l help -s h -d 'Show help'
 FISH_FOOTER
 
-printf 'Refreshed wrappers for %d group(s) and Fish completion.\n' "${#groups[@]}"
+man_tmp=$(mktemp "$script_dir/man/.linto.1.XXXXXX")
+trap 'rm -f -- "$man_tmp"' EXIT
+python3 - "$man_page" "${groups[@]}" > "$man_tmp" <<'PY'
+from pathlib import Path
+import sys
+
+man_page = Path(sys.argv[1])
+groups = sys.argv[2:]
+source = man_page.read_text()
+start = '.\\" BEGIN GENERATED GROUPS'
+end = '.\\" END GENERATED GROUPS'
+if source.count(start) != 1 or source.count(end) != 1:
+    raise SystemExit('refresh: expected exactly one generated-groups marker pair')
+start_at = source.index(start) + len(start)
+end_at = source.index(end)
+if end_at < start_at:
+    raise SystemExit('refresh: generated-groups markers are out of order')
+lines = []
+for index, group in enumerate(groups):
+    lines.append(f'.BR {group} ' + (' ,' if index < len(groups) - 1 else ' .'))
+    if index == len(groups) - 2:
+        lines.append('and')
+replacement = '\\n' + '\\n'.join(lines) + '\\n'
+sys.stdout.write(source[:start_at] + replacement + source[end_at:])
+PY
+mv -- "$man_tmp" "$man_page"
+
+printf 'Refreshed wrappers for %d group(s), Fish completion, and man page.\n' "${#groups[@]}"
