@@ -6,10 +6,23 @@ complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 
-for group in ($linto_bin --list-groups 2>/dev/null)
-    complete -c linto -f -n "__fish_seen_subcommand_from $group linto-$group" -a "($linto_bin --list-commands $group 2>/dev/null)"
-    complete -c linto -f -n '__fish_use_subcommand' -a "($linto_bin --list-commands $group 2>/dev/null | string replace -r '^(.*)$' 'linto-$group-$1')"
-end
+complete -c linto -f -n '__fish_seen_subcommand_from beta linto-beta' -a '($linto_bin --list-commands beta 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands beta 2>/dev/null | string replace -r \'^(.*)$\' \'linto-beta-$1\')'
+
+complete -c linto -f -n '__fish_seen_subcommand_from bibtex linto-bibtex' -a '($linto_bin --list-commands bibtex 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands bibtex 2>/dev/null | string replace -r \'^(.*)$\' \'linto-bibtex-$1\')'
+
+complete -c linto -f -n '__fish_seen_subcommand_from launch linto-launch' -a '($linto_bin --list-commands launch 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands launch 2>/dev/null | string replace -r \'^(.*)$\' \'linto-launch-$1\')'
+
+complete -c linto -f -n '__fish_seen_subcommand_from linto linto-linto' -a '($linto_bin --list-commands linto 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands linto 2>/dev/null | string replace -r \'^(.*)$\' \'linto-linto-$1\')'
+
+complete -c linto -f -n '__fish_seen_subcommand_from quarto linto-quarto' -a '($linto_bin --list-commands quarto 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands quarto 2>/dev/null | string replace -r \'^(.*)$\' \'linto-quarto-$1\')'
+
+complete -c linto -f -n '__fish_seen_subcommand_from utils linto-utils' -a '($linto_bin --list-commands utils 2>/dev/null)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-commands utils 2>/dev/null | string replace -r \'^(.*)$\' \'linto-utils-$1\')'
 
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'

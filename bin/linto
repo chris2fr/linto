@@ -14,11 +14,15 @@ is_group_name() {
   esac
 }
 
+group_is_disabled() {
+  [ -f "$bin_dir/.disabled-groups/$1" ]
+}
+
 list_groups() {
   for group_dir in "$script_dir"/*; do
     [ -d "$group_dir" ] || continue
     group=${group_dir##*/}
-    is_group_name "$group" && printf '%s\n' "$group"
+    is_group_name "$group" && ! group_is_disabled "$group" && printf '%s\n' "$group"
   done
 }
 
@@ -39,7 +43,7 @@ list_groups_and_commands() {
 }
 
 group_exists() {
-  is_group_name "$1" && [ -d "$script_dir/$1" ]
+  is_group_name "$1" && [ -d "$script_dir/$1" ] && ! group_is_disabled "$1"
 }
 
 find_group_command() {
