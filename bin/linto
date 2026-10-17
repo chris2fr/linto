@@ -261,6 +261,11 @@ case "$1" in
     if group_exists "$first"; then
       group=$first
       if [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && [ "$1" = --help ]; }; then
+        guide_page="$script_dir/linto-guide/$group.md"
+        if [ -f "$guide_page" ]; then
+          cat "$guide_page"
+          printf '\n'
+        fi
         printf 'Commands in group %s:\n' "$group"
         list_group_commands "$group" | sed 's/^/  /'
         exit 0
