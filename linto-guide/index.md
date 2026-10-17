@@ -6,7 +6,7 @@ text processing, and development helpers. This guide is split into topic pages:
 - [Installation and shell setup](install.md)
 - [Group configuration](config.md)
 - [Commands and invocation](commands.md)
-- [BibTeX and bibliography workflow](bibtex.md)
+- [BibTeX and bibliography workflow](biblio.md)
 - [Quarto workflow](quarto.md)
 - [Shell completion](completion.md)
 
