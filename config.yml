@@ -9,3 +9,5 @@ groups:
   utils: default
   old:
     enable: false
+quarto:
+  extension: "chris2fr/quarto"

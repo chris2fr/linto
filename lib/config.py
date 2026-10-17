@@ -52,6 +52,19 @@ def group_options(data: dict, name: str) -> dict:
     }
 
 
+def quarto_extension(data: dict) -> str:
+    """Return the configured Quarto extension repository."""
+    quarto = data.get("quarto", {})
+    if quarto is None:
+        quarto = {}
+    if not isinstance(quarto, dict):
+        raise ValueError("'quarto' configuration must be a mapping")
+    extension = quarto.get("extension", "chris2fr/quarto")
+    if not isinstance(extension, str) or not extension.strip():
+        raise ValueError("'quarto.extension' must be a non-empty string")
+    return extension.strip()
+
+
 def dump(data: dict, path: Path) -> None:
     text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
     path.write_text(text)
@@ -64,6 +77,7 @@ def main() -> int:
     sub.add_parser("list")
     options_parser = sub.add_parser("options")
     options_parser.add_argument("group")
+    sub.add_parser("quarto-extension")
     add_parser = sub.add_parser("add")
     add_parser.add_argument("group")
     rm_parser = sub.add_parser("remove")
@@ -79,6 +93,8 @@ def main() -> int:
             options = group_options(data, args.group)
             print("true" if options["enable"] else "false")
             print("true" if options["short-stubs"] else "false")
+        elif args.action == "quarto-extension":
+            print(quarto_extension(data))
         elif args.action == "add":
             current = data["groups"].get(args.group)
             if current == "default":

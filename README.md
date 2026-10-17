@@ -1,139 +1,100 @@
-# linto
+# Linto
 
-Linux Tools (mainly command-line)
+Linto is a small, local command-line toolbox for bibliography work, Quarto
+projects, text utilities, and development helpers. The `bin/linto` dispatcher
+finds tools relative to this checkout, so commands work from any working
+directory.
 
-Scripts de gestion de la bibliographie (`fr.bib`, `transcriptions.json`, fichiers `_pieces-*.yml`) et de rendu des documents Quarto du projet.
+## Quick start
 
-La plupart des scripts supposent d'être lancés **depuis la racine du projet** (le dossier parent de `scripts/`), là où se trouvent `fr.bib`, `transcriptions.json` et les fichiers `.qmd`.
+Add this checkout's `bin/` directory to your `PATH`, then configure completion
+for your shell:
 
-## Command-line layout
-
-Add `bin/` to `PATH` to use the dispatcher and command aliases. For example,
-`linto utils prettyprint`, `linto-utils prettyprint`, and
-`linto-utils-prettyprint` invoke the same utility.
-
-## Rendu et génération de la bibliographie
-
-### render.sh
-
-Lance `build-bib.sh` puis `quarto render` sur chaque `*.qmd` du dossier courant. 
-
-### build-bib.sh
-
-./scripts/build-bib.sh  
-Pour chaque `_pieces-*.yml`, appelle `lib/generer-bib.py` et produit `pieces-*.bib` (le préfixe `_` est retiré). 
-
-#### lib/generer-bib.py
-
-python3 lib/generer-bib.py _pieces-ref-08.yml pieces-ref-08.bib  
-Génère un `.bib` contextuel : reprend les entrées de `fr.bib` listées dans un YAML clé → numéro et leur injecte un champ `number`. Signale les clés absentes de `fr.bib`. Nécessite PyYAML. Appelé par `build-bib.sh`. 
-
-### firefox-open-version.sh
- 
-Ouvre dans Firefox la dernière version `draft-*` de `_output/versions/`. 
-
-## Conversion et manipulation de la bibliographie
-
-```
-transcriptions.json ⇄ fr.bib ──► _pieces-XXX.yml ──► pieces-XXX.bib ──► quarto render
-   (json2bib.sh / bib2json.sh)     (lib/generer-bib.py via build-bib.sh, lancé par render.sh)
+```sh
+export PATH="/path/to/linto/bin:$PATH"
 ```
 
-### bib2json.sh
+Or use Linto's setup helper for Bash, Zsh, or Fish:
 
-./bib2json.sh <fichier.bib> <entrée.json> <sortie.json>  
-Injecte les entrées de `fr.bib` dans le champ `bibtex` de chaque clé de `transcriptions.json` (via `bibtexparser`, installé avec pip) et liste les clés absentes de `fr.bib`. Les trois fichiers sont obligatoires. 
+```sh
+linto-linto-setup
+```
 
-### json2bib.sh
+Install the `linto(1)` man page too with `linto-linto-setup --man`. See
+[`linto help install`](linto-guide/install.md) for details.
 
-./json2bib.sh <entrée.json> <sortie.bib>  
-Opération inverse : reconstruit `fr.bib` à partir du champ `bibtex` de `transcriptions.json` (via `jq`). Les deux fichiers sont obligatoires. 
+## Running commands
 
-### mkbib.sh
+```sh
+linto --help                 # show active groups and commands
+linto utils prettyprint      # run a command through its group
+linto prettyprint            # omit the group when the name is unique
+linto-utils-prettyprint      # generated convenience stub, if enabled
+linto bibtex renumberyml in.yml
+```
 
-./mkbib.sh fr.bib  
-Éclate un fichier `.bib` en un fichier par entrée dans `./bib/<clé>.bib`. `mkbib.sh` vérifie l'argument et appelle `lib/mkbib.awk` (résolu par rapport au dossier du script).  (utilise  ./lib/mkbib.awk )
+Use `linto help PAGE` for a topic guide and `linto help GROUP` to list commands
+in a group. Individual tools generally support `--help`. The [multi-page Linto
+guide](linto-guide/index.md) is also available in the terminal through `linto
+help`.
 
-### formatsiglebib.sh
+## Group configuration
 
-./formatsiglebib.sh fichier.bib  
-Remet en forme un `.bib` de `@misc` : en-tête, champs triés, virgules finales corrigées. Réécrit le fichier. 
+[`config.yml`](config.yml) is the source of truth for active groups and stub
+policy. It uses a YAML mapping:
 
-### bib2csv.awk
+```yaml
+groups:
+  beta: default
+  bibtex: default
+  launch: default
+  linto:
+    short-stubs: false
+  quarto:
+    short-stubs: false
+  utils: default
+  old:
+    enable: false
+```
 
-gawk -f bib2csv.awk fr.bib > fr.csv  
-Extrait la clé et un ensemble fixe de champs d'un `.bib` en CSV séparé par `;`. Filtre optionnel par thème (`-v theme="acp,far"`). Nécessite gawk. 
+- `GROUP: default` enables a group and uses the defaults: `short-stubs: true`.
+- A group mapping may set `enable: false` to keep its directory but hide it from
+  Linto, help, completions, and generated stubs.
+- `short-stubs: true` adds `linto-COMMAND` stubs for commands that are unique
+  across enabled groups. Group-qualified stubs (`linto-GROUP-COMMAND`) remain
+  available. The command form `linto COMMAND` is also supported for unique
+  command names.
+- Omitted mapping options default to `enable: true` and `short-stubs: true`.
 
-### annexes.awk
+Refresh generated command stubs, Fish completions, and the active-group list in
+the man page after changing configuration or scripts:
 
-gawk -f annexes.awk fr.csv  
-Lit le CSV produit par `bib2csv.awk` et génère les listes d'annexes en Markdown, regroupées par année et mois. Trois formats de sortie (variable `output_format`, 1 par défaut). Nécessite gawk. 
+```sh
+linto linto refresh
+```
 
-## Numérotation et texte
+`linto linto addgroup DIRECTORY` registers or re-enables a group; `linto linto
+rmgroup GROUP` removes a `default` entry or disables a mapped group. Neither
+command deletes an existing group directory. See [`linto help config`](linto-guide/config.md).
 
-### renumberyml.sh
+## Main groups
 
-`linto bibtex renumberyml in.yml [out.yml]`  
-Renumérote un YAML de lignes `"clé": N` pour que chaque valeur soit égale à son numéro de ligne. La sortie est écrite sur stdout si aucun fichier de sortie n'est donné; l'implémentation Python est rangée dans `bibtex/lib/renumberyml.py`. 
+The active groups are listed in `config.yml`. Broadly:
 
-### renumberyml.awk
+- `bibtex`: BibTeX/JSON conversion, bibliography formatting, and YAML helpers.
+- `quarto`: rendering, citations, Quarto setup, and output browsing.
+- `utils`: text, time-zone, and formatting tools.
+- `launch`: application launchers such as Zed.
+- `linto`: Linto setup, group management, and refresh commands.
+- `beta`: experimental tools.
 
-awk -f renumberyml.awk in.yml  
-Version minimale : affiche `premier-champ: numéro-de-ligne`. 
+Use `linto help GROUP` for the live command list. For detailed topics, see
+[`linto-guide/`](linto-guide/).
 
-### endquotes.sh
+## Documentation and tests
 
-./endquotes.sh fichier.md  
-Remplace les guillemets français `«` et `»` par `"` dans un fichier (sauvegarde `.bak`). 
-
-### md2json.py
-
-python3 md2json.py fichier.md --format sections --pretty  
-Convertit du Markdown en JSON (formats texte brut, structuré, sections ; options `-o`, `--format`, `--pretty`, `--outdir`). 
-
-### cetcst.py
-
-python3 cetcst.py  
-Exemple/utilitaire : transforme une date et une heure locales (Europe/Paris) en horodatage ISO 8601 avec décalage UTC, pour le champ `date` de biblatex. Nécessite `pytz`. Les valeurs sont codées en dur dans le script. 
-
-## `loops/` – scripts de migration ponctuels
-
-Scripts utilisés pour des migrations en masse de `fr.bib`. Les `loop_*.sh` lisent un CSV séparé par `;` sans en-tête et appliquent un `sed -i` sur `fr.bib` pour chaque ligne. Ils ont été écrits pour des opérations ponctuelles : **ils modifient `fr.bib` sur place, faites une copie avant de les relancer**.
-
-### loop_authors.sh
-
-CSV `auteur;acronyme-organisation` : ajoute un champ `x-orgacronyme` après chaque champ `author` correspondant.
-
-### loop_types.sh
-
-CSV `ancien;nouveau` : renomme le préfixe des clés `@misc`, et ajoute `x-key-orig`, `x-type-orig`, `x-type`.
-
-### loop_calckey_key.sh
-
-CSV `calckey;clé` : modèle de boucle de correspondance entre clés calculées et clés.
-
-### loop_compteurs.sh
-
-Idem, pour les compteurs.
-
-### loop_keys.sh
-
-Idem, pour les clés.
-
-### loop_neweditions.sh
-
-Idem, pour les nouvelles éditions.
-
-### old2newkeys.awk
-
-À partir d'un CSV de la bibliographie, affiche des commandes `sed` qui remplacent les anciennes clés (`x-key-orig`, `x-key-orig2`) par les nouvelles dans les citations `@clé`.
-
-### modifrefs.sh
-
-Série de `sed` qui renomment les anciennes clés de citation (`@email211209acparisorg1838`) vers le nouveau format (`@2021-12-09-acparisorg-1838`) dans le fichier passé en argument.
-
-### modifpublishers.sh
-
-Série de `sed` qui convertissent `howpublished` en `publisher` pour des adresses e-mail dans les `.bib` d'un dossier passé en argument.
-
-> Les en-têtes de commentaires de plusieurs `loop_*.sh` sont des copies de `loop_calckey_key.sh` et ne décrivent pas toujours fidèlement le script ; le rôle indiqué ci-dessus est déduit de la commande `sed` de chaque boucle.
+- [`linto-guide/index.md`](linto-guide/index.md): multi-page topic guide for
+  installation, config, command usage, bibliography, Quarto, and completion.
+- [`man/linto.1`](man/linto.1): dispatcher manual, installed with
+  `linto-linto-addman`.
+- Run `tests/run.sh` from the checkout to execute the test suite.
