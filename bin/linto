@@ -90,6 +90,7 @@ Linux Tools: bibliography, Quarto, text, and shell utilities.
 
 Commands:
   help [PAGE|GROUP [COMMAND]]  Show a guide page or command help.
+  help page PAGE               Show a guide page, even if its name is a group.
   completion SHELL        Print shell completion setup instructions.
   --list-groups           Print group names, one per line.
   --list-commands GROUP   Print commands in GROUP, one per line.
@@ -150,6 +151,19 @@ case "$1" in
     if [ "$#" -eq 1 ]; then
       cat "$script_dir/linto-guide/index.md"
       exit 0
+    elif [ "$#" -eq 3 ] && [ "$2" = page ]; then
+      topic=$3
+      case "$topic" in
+        installation) topic=install ;;
+        configuration) topic=config ;;
+      esac
+      guide_page="$script_dir/linto-guide/$topic.md"
+      if [ -f "$guide_page" ]; then
+        cat "$guide_page"
+        exit 0
+      fi
+      printf 'linto: unknown guide page: %s\n' "$topic" >&2
+      exit 2
     elif [ "$#" -eq 2 ]; then
       topic=$2
       case "$topic" in
@@ -172,7 +186,7 @@ case "$1" in
       group=$2
       command=$3
     else
-      echo "Usage: linto help [PAGE|GROUP [COMMAND]]" >&2
+      echo "Usage: linto help [PAGE|GROUP [COMMAND]] | linto help page PAGE" >&2
       exit 2
     fi
     case "$command" in
