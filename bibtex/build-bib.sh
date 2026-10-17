@@ -7,7 +7,7 @@
 # the input file.
 #
 # Expects to be run from a directory that contains the `_pieces-*.yml`
-# files (the script resolves ../lib/generer-bib.py relative to itself).
+# files (the script resolves lib/generer-bib.py relative to itself).
 #
 # Run with `-h` or `--help` for usage information.
 
@@ -19,7 +19,7 @@ Usage: build-bib.sh [-h|--help]
 Generate one .bib file per staged piece configuration.
 
 Scans the current directory for files matching `_pieces-*.yml` and runs
-../lib/generer-bib.py on each one, writing a sibling `<name>.bib`
+lib/generer-bib.py on each one, writing a sibling `<name>.bib`
 file (e.g. `_pieces-ref-08.yml` -> `pieces-ref-08.bib`).
 
 Must be run from a directory containing the `_pieces-*.yml` files.
@@ -63,10 +63,10 @@ done
 # -o pipefail: a pipeline fails if any command in it fails
 set -euo pipefail
 
-# Locate the shared bibliography generator in the sibling lib directory, so
-# build-bib.sh works regardless of the directory it is run from.
+# Locate the bibliography generator next to this script, so build-bib.sh
+# works regardless of the directory it is run from.
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-generator="$script_dir/../lib/generer-bib.py"
+generator="$script_dir/lib/generer-bib.py"
 
 # Loop over each staged piece file (unquoted glob so the shell expands it).
 for i in _pieces-*.yml
