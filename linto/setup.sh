@@ -7,10 +7,10 @@ Usage: setup.sh [--shell SHELL] [--man] [-h|--help]
 
 Configure Linto for the current user's shell by adding bin/ to PATH and
 installing the matching command completion. The shell defaults to $SHELL.
-Configuration files are backed up before modification and setup lines are not
-duplicated. Use --man to also run linto-linto-addman.
+Configuration lines are not duplicated. Use --man to also run
+linto-linto-addman.
 
-Supported shells: zsh, bash
+Supported shells: zsh, bash, fish
 EOF
 }
 
@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help) usage; exit 0 ;;
     --man) install_man=true; shift ;;
     --shell)
-      [[ $# -ge 2 ]] || fail '--shell requires zsh or bash'
+      [[ $# -ge 2 ]] || fail '--shell requires zsh, bash, or fish'
       shell_name=$2
       shift 2
       ;;
@@ -37,8 +37,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$shell_name" in
-  zsh|bash) ;;
-  *) fail "unsupported shell '$shell_name' (supported: zsh, bash)" ;;
+  zsh|bash|fish) ;;
+  *) fail "unsupported shell '$shell_name' (supported: zsh, bash, fish)" ;;
 esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
@@ -46,16 +46,26 @@ bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
 [[ -x "$bin_dir/linto" ]] || fail "dispatcher not found or not executable: $bin_dir/linto"
 
-if [[ "$shell_name" == zsh ]]; then
-  config_file="${ZDOTDIR:-$HOME}/.zshrc"
-  completion_line="fpath=(\"$completion_dir\" \$fpath)"
-  init_line='autoload -Uz compinit && compinit'
-else
-  config_file="$HOME/.bashrc"
-  completion_line="source \"$completion_dir/linto.bash\""
-  init_line=''
-fi
-path_line="export PATH=\"$bin_dir:\$PATH\""
+case "$shell_name" in
+  zsh)
+    config_file="${ZDOTDIR:-$HOME}/.zshrc"
+    completion_line="fpath=(\"$completion_dir\" \$fpath)"
+    init_line='autoload -Uz compinit && compinit'
+    path_line="export PATH=\"$bin_dir:\$PATH\""
+    ;;
+  bash)
+    config_file="$HOME/.bashrc"
+    completion_line="source \"$completion_dir/linto.bash\""
+    init_line=''
+    path_line="export PATH=\"$bin_dir:\$PATH\""
+    ;;
+  fish)
+    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
+    completion_line="source \"$completion_dir/linto.fish\""
+    init_line=''
+    path_line="fish_add_path \"$bin_dir\""
+    ;;
+esac
 
 mkdir -p -- "$(dirname -- "$config_file")"
 [[ -f "$config_file" ]] || : > "$config_file"
@@ -70,11 +80,7 @@ append_once() {
 # Ensure Zsh loads the Linto function from fpath before compinit. Avoid adding a
 # second compinit when an existing initialization is already present.
 if [[ "$shell_name" == zsh ]]; then
-  if grep -Fqx -- "$completion_line" "$config_file"; then
-    :
-  else
-    append_once "$completion_line"
-  fi
+  append_once "$completion_line"
   if ! grep -Eq '(^|[;&[:space:]])(autoload[[:space:]]+-Uz[[:space:]]+compinit|compinit)([;&[:space:]]|$)' "$config_file"; then
     append_once "$init_line"
   fi
