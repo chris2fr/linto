@@ -52,12 +52,11 @@ for script in "${scripts[@]}"; do
   [[ -f "$script" && -x "$script" ]] && executables+=("$script")
 done
 
-# Record the group as active; refresh.sh creates its wrappers and completions.
-groups_file="$bin_dir/.linto-groups"
-touch "$groups_file"
-if ! grep -Fxq -- "$name" "$groups_file"; then
-  printf '%s\n' "$name" >> "$groups_file"
-  LC_ALL=C sort -u "$groups_file" -o "$groups_file"
+# Add the group to the YAML config while preserving the existing group order.
+config_file="$script_dir/config.yml"
+[[ -f "$config_file" ]] || fail "configuration file not found: $config_file"
+if ! grep -Eq "^[[:space:]]*-[[:space:]]*${name}[[:space:]]*$" "$config_file"; then
+  printf '  - %s\n' "$name" >> "$config_file"
 fi
 
 # Validate that exposed command names can be represented by the wrapper naming convention.

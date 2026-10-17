@@ -6,9 +6,9 @@ usage() {
 Usage: refresh.sh [-h|--help]
 
 Refresh generated group and command wrappers in bin/ and regenerate the Fish
-completion definitions from bin/.linto-groups. Bash and Zsh completions query
-the dispatcher dynamically. Only wrappers listed in the generated-wrapper
-inventory are removed when they become obsolete.
+completion definitions from config.yml. Bash and Zsh completions query the
+dispatcher dynamically. Only wrappers listed in the generated-wrapper inventory
+are removed when they become obsolete.
 EOF
 }
 
@@ -22,7 +22,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
 linto_bin="$bin_dir/linto"
-groups_file="$bin_dir/.linto-groups"
+groups_file="$script_dir/config.yml"
 wrapper_dir="$bin_dir/.generated-wrappers"
 owned_file="$wrapper_dir/owned"
 

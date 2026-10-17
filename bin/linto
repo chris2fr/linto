@@ -15,12 +15,12 @@ is_group_name() {
 }
 
 list_groups() {
-  local groups_file="$bin_dir/.linto-groups"
-  [ -f "$groups_file" ] || return 0
-  while IFS= read -r group; do
-    [ -n "$group" ] || continue
-    is_group_name "$group" && [ -d "$script_dir/$group" ] && printf '%s\n' "$group"
-  done < "$groups_file"
+  config_file="$script_dir/config.yml"
+  [ -f "$config_file" ] || return 0
+  sed -n 's/^[[:space:]]*-[[:space:]]*//p' "$config_file" |
+    while IFS= read -r group; do
+      is_group_name "$group" && [ -d "$script_dir/$group" ] && printf '%s\n' "$group"
+    done
 }
 
 list_group_commands() {
@@ -41,7 +41,7 @@ list_groups_and_commands() {
 
 group_exists() {
   is_group_name "$1" && [ -d "$script_dir/$1" ] &&
-    grep -Fxq -- "$1" "$bin_dir/.linto-groups"
+    list_groups | grep -Fxq -- "$1"
 }
 
 find_group_command() {
