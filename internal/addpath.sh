@@ -1,4 +1,4 @@
-# Source this file to add the Linux Tools collection root to PATH.
+# Source this file to add the Linux Tools bin directory to PATH.
 # Usage: . /path/to/linto/internal/addpath.sh
 # Supports Bash, zsh, and ksh93; see `linto` for tool documentation.
 
@@ -18,7 +18,7 @@ if [ -z "$_linto_source" ]; then
   return 1
 fi
 
-_linto_dir=$(CDPATH= cd -- "$(dirname -- "$_linto_source")/.." && pwd -P) || {
+_linto_dir=$(CDPATH= cd -- "$(dirname -- "$_linto_source")/../bin" && pwd -P) || {
   printf 'addlinto: could not determine the script directory\n' >&2
   unset _linto_source _linto_dir
   return 1

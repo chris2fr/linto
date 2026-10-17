@@ -3,7 +3,8 @@
 
 set -eu
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+script_dir=$(CDPATH= cd -- "$bin_dir/.." && pwd -P)
 
 list_groups() {
   for group_dir in "$script_dir"/*; do
@@ -37,6 +38,18 @@ group_exists() {
     awk|beta|bibtex|internal|quarto|utils) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+find_group_command() {
+  group=$1
+  command_name=$2
+  for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+    if [ -f "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
 }
 
 find_tool() {
@@ -76,7 +89,10 @@ Linux Tools: bibliography, Quarto, text, and shell utilities.
 Commands:
   help [GROUP] [COMMAND]  Show the guide or detailed help for a command.
   completion SHELL        Print shell completion setup instructions.
-  GROUP [COMMAND...]      Run a command in GROUP; with no command, show its tools.
+  --list-groups           Print group names, one per line.
+  --list-commands GROUP   Print commands in GROUP, one per line.
+  GROUP [COMMAND...]      Run a command in GROUP or list its commands.
+  linto-GROUP [COMMAND]   Group alias; linto-GROUP-COMMAND runs a tool directly.
   COMMAND [ARGUMENTS...]  Run a tool by its command name.
 
 Groups:
@@ -97,6 +113,9 @@ Examples:
   linto quarto render --help
   linto prettyprint
   linto utils prettyprint
+  linto-utils
+  linto-utils prettyprint
+  linto-utils-prettyprint
 EOF
 }
 
@@ -106,6 +125,16 @@ if [ "$#" -eq 0 ]; then
 fi
 
 case "$1" in
+  --list-groups)
+    [ "$#" -eq 1 ] || { echo "Usage: linto --list-groups" >&2; exit 2; }
+    list_groups
+    exit 0
+    ;;
+  --list-commands)
+    [ "$#" -eq 2 ] && group_exists "$2" || { echo "Usage: linto --list-commands GROUP" >&2; exit 2; }
+    list_group_commands "$2"
+    exit 0
+    ;;
   -h|--help)
     usage
     exit 0
@@ -154,13 +183,13 @@ case "$1" in
     fi
     case "$2" in
       bash)
-        printf 'source "%s/completions/linto.bash"\n' "$script_dir"
+        printf 'source "%s/completions/linto.bash"\n' "$script_dir/completions"
         ;;
       zsh)
-        printf 'fpath=("%s/completions" $fpath)\nautoload -Uz compinit && compinit\n' "$script_dir"
+        printf 'fpath=("%s/completions" $fpath)\nautoload -Uz compinit && compinit\n' "$script_dir/completions"
         ;;
       fish)
-        printf 'source "%s/completions/linto.fish"\n' "$script_dir"
+        printf 'source "%s/completions/linto.fish"\n' "$script_dir/completions"
         ;;
       *)
         echo "linto: unsupported completion shell: $2 (choose bash, zsh, or fish)" >&2
@@ -175,6 +204,28 @@ case "$1" in
     case "$first" in
       slug) first=stripaccents ;;
     esac
+
+    case "$first" in
+      linto-*-*)
+        encoded=${first#linto-}
+        encoded_group=${encoded%%-*}
+        encoded_command=${encoded#*-}
+        if group_exists "$encoded_group" && [ "$encoded_command" != "$encoded" ]; then
+          if tool=$(find_group_command "$encoded_group" "$encoded_command") && [ -x "$tool" ]; then
+            exec "$tool" "$@"
+          fi
+          echo "linto: unknown command '$encoded_command' in group '$encoded_group'" >&2
+          exit 2
+        fi
+        ;;
+      linto-*)
+        encoded_group=${first#linto-}
+        if group_exists "$encoded_group"; then
+          first=$encoded_group
+        fi
+        ;;
+    esac
+
     if group_exists "$first"; then
       group=$first
       if [ "$#" -eq 0 ] || { [ "$#" -eq 1 ] && [ "$1" = --help ]; }; then

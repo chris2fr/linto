@@ -1,35 +1,49 @@
 #compdef linto
 
 _linto() {
-  local -a commands groups group_commands
-  local command group
-  groups=(${(f)"$(linto --help 2>/dev/null | awk '/^Groups:$/ { in_groups=1; next } /^Commands/ { in_groups=0 } in_groups && /^  [[:alnum:]_-]+$/ { print $1 }')"})
-  commands=(${(f)"$(linto --help 2>/dev/null | awk '/^Commands \(also available/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')"})
+  local -a commands groups group_commands aliases
+  local command group linto_bin completion_file
+  completion_file="${${funcsourcetrace[1]:-${(%):-%x}}}"
+  linto_bin="$(cd "$(dirname "$completion_file")/../bin" && pwd -P)/linto"
+  groups=(${(f)"$("$linto_bin" --list-groups 2>/dev/null)"})
+  commands=(${(f)"$("$linto_bin" --help 2>/dev/null | awk '/^Available commands/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')"})
 
   if (( CURRENT == 2 )); then
-    _describe 'linto command or group' commands
+    aliases=(linto-${^groups})
+    _describe 'linto command' commands
     _describe 'linto group' groups
+    _describe 'group alias' aliases
     _values 'special command' help completion
-  elif (( CURRENT == 3 )); then
-    command=$words[2]
-    if [[ $command == completion ]]; then
-      _values 'shell' bash zsh fish
-    elif [[ $command == help ]]; then
-      _describe 'group or command' groups
+  elif [[ $words[2] == completion ]] && (( CURRENT == 3 )); then
+    _values 'shell' bash zsh fish
+  elif [[ $words[2] == help ]]; then
+    if (( CURRENT == 3 )); then
+      _describe 'group' groups
       _describe 'command' commands
-    elif (( ${groups[(Ie)$command]} )); then
-      case $command in
-        utils) group_commands=(prettyprint stripaccents) ;;
-        quarto) group_commands=(firefox-open-version guillemets2quotes listcitations2piecesyml qmd-extract-citations render) ;;
-        bibtex) group_commands=(bib2json build-bib format-single-bib json2bib mkbib) ;;
-        internal) group_commands=(add2profile addpath) ;;
-        *) group_commands=() ;;
-      esac
-      _describe "$command command" group_commands
+    elif (( CURRENT == 4 )); then
+      group=$words[3]
+      group_commands=(${(f)"$("$linto_bin" --list-commands "$group" 2>/dev/null)"})
+      _describe "$group command" group_commands
+    fi
+  elif [[ $words[2] == linto-* ]]; then
+    group=${words[2]#linto-}
+    if [[ $group == *-* ]]; then
+      _arguments '*:argument: '
+    elif (( CURRENT == 3 )); then
+      group_commands=(${(f)"$("$linto_bin" --list-commands "$group" 2>/dev/null)"})
+      _describe "$group command" group_commands
+    else
+      _arguments '*:argument: '
+    fi
+  elif (( ${groups[(Ie)$words[2]]} )); then
+    group=$words[2]
+    if (( CURRENT == 3 )); then
+      group_commands=(${(f)"$("$linto_bin" --list-commands "$group" 2>/dev/null)"})
+      _describe "$group command" group_commands
     else
       _arguments '(-h --help)'{-h,--help}'[Show help]'
     fi
-  elif (( CURRENT == 4 )); then
+  elif (( CURRENT == 3 )); then
     _arguments '(-h --help)'{-h,--help}'[Show help]'
   else
     _arguments '*:argument: '
