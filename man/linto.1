@@ -109,6 +109,23 @@ linto quarto
 .RE
 .fi
 .PP
+Extract unique citation keys from a Quarto document as a numbered YAML map,
+ordered by first appearance (the default):
+.PP
+.nf
+.RS
+linto quarto citations report.qmd
+.RE
+.fi
+.PP
+Write the keys as CSV, sorted alphabetically:
+.PP
+.nf
+.RS
+linto quarto citations --order-by key --format csv report.qmd
+.RE
+.fi
+.PP
 Run a tool with or without its group:
 .PP
 .nf
