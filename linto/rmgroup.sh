@@ -35,30 +35,14 @@ bin_dir="$script_dir/bin"
 group_dir="$script_dir/$name"
 [[ -d "$group_dir" ]] || fail "group directory not found: $group_dir"
 
-# Only delete wrappers whose contents match the exact wrapper format produced
-# by addgroup.sh. This leaves manually created bin commands untouched.
-wrappers=("$bin_dir/linto-$name" "$bin_dir"/linto-"$name"-*)
-deleted=0
-for wrapper in "${wrappers[@]}"; do
-  [[ -f "$wrapper" && ! -L "$wrapper" ]] || continue
-  if ! grep -Fqx '#!/bin/sh' "$wrapper" ||
-     ! grep -Fqx 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)' "$wrapper" ||
-     ! grep -Fq "exec \"\$bin_dir/linto\" $name" "$wrapper"; then
-    fail "refusing to remove wrapper not generated for group '$name': $wrapper"
-  fi
-done
+groups_file="$bin_dir/.linto-groups"
+[[ -f "$groups_file" ]] || fail "group configuration not found: $groups_file"
+grep -Fxq -- "$name" "$groups_file" || fail "group is not active: $name"
+tmp_groups=$(mktemp "$bin_dir/.linto-groups.XXXXXX")
+trap 'rm -f -- "$tmp_groups"' EXIT
+ grep -Fxv -- "$name" "$groups_file" > "$tmp_groups" || true
+mv -- "$tmp_groups" "$groups_file"
 
-for wrapper in "${wrappers[@]}"; do
-  [[ -f "$wrapper" && ! -L "$wrapper" ]] || continue
-  rm -- "$wrapper"
-  deleted=$((deleted + 1))
-done
-
-# A group exclusion keeps the directory available on disk while excluding it
-# from group discovery and group-qualified dispatch.
-disabled_dir="$bin_dir/.disabled-groups"
-mkdir -p -- "$disabled_dir"
-: > "$disabled_dir/$name"
-
-printf 'Unregistered group %s; removed %d wrapper(s).\n' "$name" "$deleted"
+"$script_dir/linto/refresh.sh"
+printf 'Unregistered group %s.\n' "$name"
 printf 'Directory left untouched: %s\n' "$group_dir"

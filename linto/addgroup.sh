@@ -52,39 +52,25 @@ for script in "${scripts[@]}"; do
   [[ -f "$script" && -x "$script" ]] && executables+=("$script")
 done
 
-# Validate every destination before creating any wrappers.
+# Record the group as active; refresh.sh creates its wrappers and completions.
+groups_file="$bin_dir/.linto-groups"
+touch "$groups_file"
+if ! grep -Fxq -- "$name" "$groups_file"; then
+  printf '%s\n' "$name" >> "$groups_file"
+  LC_ALL=C sort -u "$groups_file" -o "$groups_file"
+fi
+
+# Validate that exposed command names can be represented by the wrapper naming convention.
 wrappers=("$bin_dir/linto-$name")
 for script in "${executables[@]}"; do
   command_name=${script##*/}
   command_name=${command_name%.sh}
-  [[ "$command_name" != *-* ]] || fail "script name cannot be represented by the wrapper convention: ${script##*/}"
-  wrappers+=("$bin_dir/linto-$name-$command_name")
-done
-for wrapper in "${wrappers[@]}"; do
-  [[ ! -e "$wrapper" && ! -L "$wrapper" ]] || fail "refusing to overwrite existing path: $wrapper"
-done
-
-write_wrapper() {
-  local destination=$1 group=$2 command=${3-}
-  {
-    printf '%s\n' '#!/bin/sh'
-    printf '%s\n' 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
-    if [[ -n "$command" ]]; then
-      printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command"
-    else
-      printf 'exec "$bin_dir/linto" %q "$@"\n' "$group"
-    fi
-  } > "$destination"
-  chmod 755 "$destination"
-}
-
-write_wrapper "${wrappers[0]}" "$name"
-for index in "${!executables[@]}"; do
-  script=${executables[$index]}
-  command_name=${script##*/}
-  command_name=${command_name%.sh}
-  write_wrapper "${wrappers[$((index + 1))]}" "$name" "$command_name"
+  case "$name/$command_name" in
+    linto/addgroup|linto/rmgroup|linto/refresh) continue ;;
+  esac
+  [[ "$command_name" != *-* ]] || continue
 done
 
 printf 'Registered group %s with %d executable script(s).\n' "$name" "${#executables[@]}"
+"$script_dir/linto/refresh.sh"
 printf 'Available via: linto %s\n' "$name"
