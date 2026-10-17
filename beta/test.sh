@@ -1,1 +1,2 @@
-echo "Beta Test"
+#!/bin/sh
+printf '%s\n' 'Beta Test'
