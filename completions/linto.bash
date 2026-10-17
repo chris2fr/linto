@@ -19,15 +19,14 @@ _linto_complete() {
     groups=$("$linto_bin" --list-groups 2>/dev/null)
     commands=$("$linto_bin" --help 2>/dev/null | awk '/^Available commands/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')
     aliases=$(printf '%s\n' "$groups" | sed 's#^#linto-#')
-    COMPREPLY=( $(compgen -W "help completion $groups $aliases $commands" -- "$cur") )
+    grouped_commands=$(printf '%s\n' "$groups" | sed 's#^#linto #')
+    COMPREPLY=( $(compgen -W "help completion $groups $grouped_commands $aliases $commands" -- "$cur") )
     return
   fi
 
   if [[ $first == linto-* && $COMP_CWORD -eq 2 ]]; then
-    local group
     group=${first#linto-}
     if [[ $group == *-* ]]; then
-      group=${group%%-*}
       COMPREPLY=()
     else
       commands=$("$linto_bin" --list-commands "$group" 2>/dev/null)
@@ -35,8 +34,6 @@ _linto_complete() {
     fi
     return
   fi
-
-
 
   if [[ $first == completion && $COMP_CWORD -eq 2 ]]; then
     COMPREPLY=( $(compgen -W 'bash zsh fish' -- "$cur") )

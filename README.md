@@ -6,6 +6,12 @@ Scripts de gestion de la bibliographie (`fr.bib`, `transcriptions.json`, fichier
 
 La plupart des scripts supposent d'être lancés **depuis la racine du projet** (le dossier parent de `scripts/`), là où se trouvent `fr.bib`, `transcriptions.json` et les fichiers `.qmd`.
 
+## Command-line layout
+
+Add `bin/` to `PATH` to use the dispatcher and command aliases. For example,
+`linto utils prettyprint`, `linto-utils prettyprint`, and
+`linto-utils-prettyprint` invoke the same utility.
+
 ## Rendu et génération de la bibliographie
 
 ### render.sh
