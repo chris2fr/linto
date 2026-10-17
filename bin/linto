@@ -120,6 +120,7 @@ Examples:
   linto-utils-prettyprint
   linto-utils-stripaccents
   linto-quarto-render
+  linto quarto citations --order-by key --format csv report.qmd
 EOF
 }
 
