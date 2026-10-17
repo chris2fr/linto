@@ -5,6 +5,17 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
+list_groups() {
+  for group_dir in "$script_dir"/*; do
+    [ -d "$group_dir" ] || continue
+    case "${group_dir##*/}" in
+      awk|beta|bibtex|internal|quarto|utils)
+        printf '%s\n' "${group_dir##*/}"
+        ;;
+    esac
+  done
+}
+
 list_commands() {
   for tool in "$script_dir"/*.sh "$script_dir"/*/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
@@ -13,8 +24,35 @@ list_commands() {
   done
 }
 
+list_group_commands() {
+  group=$1
+  for tool in "$script_dir/$group"/*.sh; do
+    [ -f "$tool" ] && [ -x "$tool" ] || continue
+    name=${tool##*/}
+    printf '%s\n' "${name%.sh}"
+  done
+}
+
+group_exists() {
+  case "$1" in
+    awk|beta|bibtex|internal|quarto|utils) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 find_tool() {
   command_name=$1
+  group=${2-}
+  if [ -n "$group" ]; then
+    for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+      if [ -f "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    done
+    return 1
+  fi
+
   for candidate in \
     "$script_dir/$command_name" \
     "$script_dir/$command_name.sh" \
@@ -36,11 +74,16 @@ Usage: linto [--help] [command [arguments...]]
 Linux Tools: bibliography, Quarto, text, and shell utilities.
 
 Commands:
-  help [COMMAND]    Show the full guide or detailed help for a command.
+  help [GROUP] [COMMAND] Show the guide or detailed help for a command.
   completion SHELL  Print completion setup instructions (bash, zsh, fish).
-  COMMAND --help    Show help for a specific tool.
+  GROUP COMMAND     Run a command from a group directory.
 
-Available commands:
+Groups:
+EOF
+  list_groups | sed 's/^/  /'
+  cat <<EOF
+
+Commands (also available as GROUP COMMAND):
 EOF
   list_commands | sed 's/^/  /'
   cat <<EOF
@@ -49,7 +92,8 @@ Examples:
   linto stripaccents --min 4 --max 20 'Été à Paris'
   linto stripaccents --file 'Documents/Été à Paris.Final.PDF'
   linto stripaccents --dir 'Documents/Été à Paris'
-  linto render --help
+  linto quarto render --help
+  linto utils prettyprint
 EOF
 }
 
@@ -67,16 +111,28 @@ case "$1" in
     if [ "$#" -eq 1 ]; then
       cat "$script_dir/linto-guide"
       exit 0
-    fi
-    if [ "$#" -ne 2 ]; then
-      echo "Usage: linto help [COMMAND]" >&2
+    elif [ "$#" -eq 2 ]; then
+      case "$2" in
+        awk|beta|bibtex|internal|quarto|utils)
+          echo "Usage: linto help GROUP COMMAND" >&2
+          exit 2
+          ;;
+        *)
+          group=
+          command=$2
+          ;;
+      esac
+    elif [ "$#" -eq 3 ]; then
+      group=$2
+      command=$3
+    else
+      echo "Usage: linto help [GROUP] [COMMAND]" >&2
       exit 2
     fi
-    command=$2
     case "$command" in
       slug) command=stripaccents ;;
     esac
-    if ! tool=$(find_tool "$command"); then
+    if ! tool=$(find_tool "$command" "$group"); then
       echo "linto: unknown command: $command" >&2
       usage >&2
       exit 2
@@ -110,15 +166,30 @@ case "$1" in
     exit 0
     ;;
   *)
-    command=$1
+    first=$1
     shift
+    case "$first" in
+      slug) first=stripaccents ;;
+    esac
+    if [ "$#" -gt 0 ] && group_exists "$first"; then
+      group=$first
+      command=$1
+      shift
+    else
+      group=
+      command=$first
+    fi
     case "$command" in
       slug) command=stripaccents ;;
     esac
-    if tool=$(find_tool "$command") && [ -x "$tool" ]; then
+    if tool=$(find_tool "$command" "$group") && [ -x "$tool" ]; then
       exec "$tool" "$@"
     fi
-    echo "linto: unknown command: $command" >&2
+    if [ -n "$group" ]; then
+      echo "linto: unknown command '$command' in group '$group'" >&2
+    else
+      echo "linto: unknown command: $command" >&2
+    fi
     usage >&2
     exit 2
     ;;
