@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: document.sh [-h|--help]
+Usage: setup-document.sh [-h|--help]
 
 Create a Quarto document from the chris2fr/quarto/document template in the
 current directory.
