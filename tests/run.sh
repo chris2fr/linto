@@ -3,7 +3,7 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 tmpdir=$(mktemp -d)
-trap 'rm -rf "$tmpdir"' EXIT HUP INT TERM
+trap 'rm -rf "$tmpdir"' 0 HUP INT TERM
 
 fail() {
     echo "FAIL: $*" >&2
