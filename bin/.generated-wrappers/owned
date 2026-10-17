@@ -1,7 +1,9 @@
 linto-beta
 linto-beta-test
 linto-bibtex
+linto-bibtex-bib-order-props
 linto-bibtex-bib2json
+linto-bibtex-build-bib
 linto-bibtex-json2bib
 linto-bibtex-mkbib
 linto-launch
@@ -10,8 +12,11 @@ linto-linto
 linto-linto-addman
 linto-quarto
 linto-quarto-citations
+linto-quarto-firefox-output
 linto-quarto-guillemets2quotes
 linto-quarto-render
+linto-quarto-setup-document
+linto-quarto-setup-lettre
 linto-quarto-setup
 linto-utils
 linto-utils-prettyprint

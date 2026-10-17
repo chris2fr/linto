@@ -6,9 +6,9 @@ usage() {
 Usage: refresh.sh [-h|--help]
 
 Refresh generated group and command wrappers in bin/ and regenerate the Fish
-completion definitions from enabled groups. Bash and Zsh completions discover
-commands dynamically through the dispatcher. The group wrappers are generated
-from executable *.sh files; existing unrelated files are not overwritten.
+completion definitions from bin/.linto-groups. Bash and Zsh completions query
+the dispatcher dynamically. Only wrappers listed in the generated-wrapper
+inventory are removed when they become obsolete.
 EOF
 }
 
@@ -22,12 +22,42 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
 linto_bin="$bin_dir/linto"
+groups_file="$bin_dir/.linto-groups"
+wrapper_dir="$bin_dir/.generated-wrappers"
+owned_file="$wrapper_dir/owned"
+
 [[ -x "$linto_bin" ]] || { printf 'refresh: dispatcher is not executable: %s\n' "$linto_bin" >&2; exit 1; }
+[[ -f "$groups_file" ]] || { printf 'refresh: group configuration not found: %s\n' "$groups_file" >&2; exit 1; }
 
 mapfile -t groups < <("$linto_bin" --list-groups)
-wrapper_dir="$bin_dir/.generated-wrappers"
+declare -a desired_names=()
+declare -a desired_groups=()
+declare -a desired_commands=()
+declare -A desired_set=()
+
+for group in "${groups[@]}"; do
+  desired_names+=("linto-$group")
+  desired_groups+=("$group")
+  desired_commands+=("")
+  desired_set["linto-$group"]=1
+
+  mapfile -t commands < <("$linto_bin" --list-commands "$group")
+  for command in "${commands[@]}"; do
+    case "$group/$command" in
+      linto/addgroup|linto/rmgroup|linto/refresh) continue ;;
+    esac
+    desired_names+=("linto-$group-$command")
+    desired_groups+=("$group")
+    desired_commands+=("$command")
+    desired_set["linto-$group-$command"]=1
+  done
+done
+
 mkdir -p -- "$wrapper_dir"
 : > "$wrapper_dir/current"
+for name in "${desired_names[@]}"; do
+  printf '%s\n' "$name" >> "$wrapper_dir/current"
+done
 
 write_wrapper() {
   local destination=$1 group=$2 command=${3-}
@@ -43,87 +73,50 @@ write_wrapper() {
   chmod 755 "$destination"
 }
 
-# Build the desired wrapper inventory, skipping internal management commands
-# and command names that cannot be encoded unambiguously with hyphen separators.
-for group in "${groups[@]}"; do
-  group_wrapper="linto-$group"
-  printf '%s\n' "$group_wrapper" >> "$wrapper_dir/current"
-  mapfile -t commands < <("$linto_bin" --list-commands "$group")
-  for command in "${commands[@]}"; do
-    case "$group/$command" in
-      linto/addgroup|linto/rmgroup|linto/refresh) continue ;;
-    esac
-    [[ "$command" != *-* ]] || continue
-    printf 'linto-%s-%s\n' "$group" "$command" >> "$wrapper_dir/current"
-  done
-done
-
-# Check destination collisions before writing anything. Adopt existing stubs
-# only when their complete content exactly matches the expected dispatcher call.
-while IFS= read -r wrapper_name; do
-  [[ -n "$wrapper_name" ]] || continue
-  destination="$bin_dir/$wrapper_name"
+# Verify desired destinations. A pre-existing stub with the canonical format
+# may be adopted; any other file, directory, or symlink is preserved and causes
+# an error rather than being overwritten.
+for index in "${!desired_names[@]}"; do
+  name=${desired_names[$index]}
+  destination="$bin_dir/$name"
   [[ -e "$destination" || -L "$destination" ]] || continue
   [[ -f "$destination" && ! -L "$destination" ]] || {
-    printf 'refresh: refusing to overwrite non-file path: %s\n' "$destination" >&2
+    printf 'refresh: refusing to replace non-file path: %s\n' "$destination" >&2
     exit 1
   }
-  if grep -Fxq "$wrapper_name" "$wrapper_dir/owned" 2>/dev/null; then
-    continue
+  if [[ -n "${desired_commands[$index]}" ]]; then
+    expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} ${desired_commands[$index]} \"\$@\""
+  else
+    expected_line="exec \"\$bin_dir/linto\" ${desired_groups[$index]} \"\$@\""
   fi
-  case "$wrapper_name" in
-    linto-*-*)
-      encoded=${wrapper_name#linto-}
-      expected_group=${encoded%%-*}
-      expected_command=${encoded#*-}
-      expected_line="exec \"\$bin_dir/linto\" $expected_group $expected_command \"\$@\""
-      ;;
-    linto-*)
-      expected_group=${wrapper_name#linto-}
-      expected_line="exec \"\$bin_dir/linto\" $expected_group \"\$@\""
-      ;;
-  esac
-  if ! grep -Fxq '#!/bin/sh' "$destination" ||
-     ! grep -Fxq 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)' "$destination" ||
-     ! grep -Fxq "$expected_line" "$destination"; then
-    printf 'refresh: refusing to overwrite unrecognized path: %s\n' "$destination" >&2
+  if ! grep -Fqx '#!/bin/sh' "$destination" ||
+     ! grep -Fqx 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)' "$destination" ||
+     ! grep -Fqx "$expected_line" "$destination"; then
+    printf 'refresh: refusing to replace unrecognized path: %s\n' "$destination" >&2
     exit 1
   fi
-done < "$wrapper_dir/current"
+done
 
-# Delete only wrapper paths previously recorded as generated by this script.
-if [[ -f "$wrapper_dir/owned" ]]; then
-  while IFS= read -r wrapper_name; do
-    [[ -n "$wrapper_name" ]] || continue
-    if ! grep -Fxq "$wrapper_name" "$wrapper_dir/current"; then
-      rm -f -- "$bin_dir/$wrapper_name"
-    fi
-  done < "$wrapper_dir/owned"
+# Remove only obsolete paths that this refresh script previously recorded.
+if [[ -f "$owned_file" ]]; then
+  while IFS= read -r old_name; do
+    [[ -n "$old_name" ]] || continue
+    [[ -n "${desired_set[$old_name]+yes}" ]] || rm -f -- "$bin_dir/$old_name"
+  done < "$owned_file"
 fi
 
-while IFS= read -r wrapper_name; do
-  [[ -n "$wrapper_name" ]] || continue
-  destination="$bin_dir/$wrapper_name"
+for index in "${!desired_names[@]}"; do
+  name=${desired_names[$index]}
+  destination="$bin_dir/$name"
   if [[ -e "$destination" ]]; then
-    grep -Fxq "$wrapper_name" "$wrapper_dir/owned" 2>/dev/null && continue
-    # Existing exact stubs were validated above; adopt without rewriting.
-    continue
+    # Already validated above; normalize it to the current canonical form.
+    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}"
+  else
+    write_wrapper "$destination" "${desired_groups[$index]}" "${desired_commands[$index]}"
   fi
-  case "$wrapper_name" in
-    linto-*-*)
-      encoded=${wrapper_name#linto-}
-      group=${encoded%%-*}
-      command=${encoded#*-}
-      write_wrapper "$destination" "$group" "$command"
-      ;;
-    linto-*)
-      group=${wrapper_name#linto-}
-      write_wrapper "$destination" "$group"
-      ;;
-  esac
-done < "$wrapper_dir/current"
+done
 
-mv -- "$wrapper_dir/current" "$wrapper_dir/owned"
+mv -- "$wrapper_dir/current" "$owned_file"
 
 cat > "$completion_dir/linto.fish" <<'FISH_HEADER'
 set -l linto_bin (realpath (dirname (status filename))/../bin/linto)
