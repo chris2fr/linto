@@ -1,5 +1,10 @@
 
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '(linto --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
+complete -c linto -f -n '__fish_use_subcommand' -a 'awk beta bibtex internal quarto utils'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
+complete -c linto -f -n '__fish_seen_subcommand_from utils' -a 'prettyprint stripaccents'
+complete -c linto -f -n '__fish_seen_subcommand_from quarto' -a 'firefox-open-version guillemets2quotes listcitations2piecesyml qmd-extract-citations render'
+complete -c linto -f -n '__fish_seen_subcommand_from bibtex' -a 'bib2json build-bib format-single-bib json2bib mkbib'
+complete -c linto -f -n '__fish_seen_subcommand_from internal' -a 'add2profile addpath'
 complete -c linto -l help -s h -d 'Show help'

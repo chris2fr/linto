@@ -21,7 +21,14 @@ _linto_complete() {
     case "$prev" in
       completion) COMPREPLY=( $(compgen -W 'bash zsh fish' -- "$cur") ) ;;
       utils|quarto|bibtex|internal|beta|awk)
-        commands=$(find "$(dirname "$(command -v linto)")/$prev" -maxdepth 1 -type f -executable -name '*.sh' -printf '%f\\n' 2>/dev/null | sed 's/\\.sh$//')
+        commands=$(linto --help 2>/dev/null | awk -v group="$prev" '$0 == "Commands (also available as GROUP COMMAND):" { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')
+        case "$prev" in
+          utils) commands='prettyprint stripaccents' ;;
+          quarto) commands='firefox-open-version guillemets2quotes listcitations2piecesyml qmd-extract-citations render' ;;
+          bibtex) commands='bib2json build-bib format-single-bib json2bib mkbib' ;;
+          internal) commands='add2profile addpath' ;;
+          *) commands='' ;;
+        esac
         COMPREPLY=( $(compgen -W "$commands -h --help" -- "$cur") )
         ;;
       *) COMPREPLY=( $(compgen -W '-h --help' -- "$cur") ) ;;
