@@ -14,10 +14,8 @@ quarto:
   extension: chris2fr/quarto
 # markdown-viewer: md-tui
 markdown-viewer:
-  - md-viewer
-  - blink-markdown
-  - mdless
   - md-tui
+  - mdless
   - frogmouth
   - mdcat
   - mandown
@@ -26,8 +24,6 @@ markdown-viewer:
   - bat
   - cat
   - mdfried
-  - markdown-reader
-  - cmd-markdown
   - ghostwriter
   - marktext
   - zeditor
@@ -35,3 +31,5 @@ markdown-viewer:
   - marknote
   - marker
   - md-reader
+  - md-viewer
+  - blink
