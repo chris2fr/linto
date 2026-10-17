@@ -3,7 +3,7 @@ set -eu
 
 usage() {
     cat <<'EOF'
-Usage: citations.sh [OPTIONS] FILE.qmd
+Usage: qmd2yml.sh [OPTIONS] FILE.qmd
 
 Extract unique Pandoc-style citation keys from a Quarto/Markdown file and
 write them as a numbered YAML mapping or a one-column CSV.
@@ -15,9 +15,9 @@ Options:
   -h, --help         Show this help and exit.
 
 Examples:
-  citations.sh report.qmd
-  citations.sh --order-by key --format csv report.qmd
-  citations.sh --start 10 report.qmd
+  qmd2yml.sh report.qmd
+  qmd2yml.sh --order-by key --format csv report.qmd
+  qmd2yml.sh --start 10 report.qmd
 EOF
 }
 
@@ -128,4 +128,4 @@ grep -oE '\[@[^]]+\]' "$file" |
             gsub(/"/, "\\\"", key)
             printf "\"%s\": %d\n", key, number++
         }
-    ' 
+    '

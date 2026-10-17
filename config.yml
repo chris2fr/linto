@@ -1,6 +1,6 @@
 groups:
   beta: default
-  bibtex: default
+  biblo: default
   launch: default
   linto:
     short-stubs: false
@@ -9,5 +9,6 @@ groups:
   utils: default
   old:
     enable: false
+  biblio: default
 quarto:
-  extension: "chris2fr/quarto"
+  extension: chris2fr/quarto
