@@ -2,7 +2,7 @@
 #
 # mkbib.sh -- split a BibTeX file into one file per entry.
 #
-# Calls ../lib/mkbib.awk, which reads the given .bib file and writes each entry
+# Calls lib/mkbib.awk, which reads the given .bib file and writes each entry
 # to ./bib/<clé>.bib (the directory is created if missing).
 #
 # Usage:
@@ -51,9 +51,9 @@ else
 fi
 
 # --- Split the bibliography -------------------------------------------------
-# ../lib/mkbib.awk reads the input (given via -f) and writes ./bib/<clé>.bib.
+# lib/mkbib.awk reads the input (given via -f) and writes ./bib/<clé>.bib.
 # Resolve it relative to this script so mkbib.sh works from any directory.
 mkdir -p ./bib
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-awk -f "$script_dir/../lib/mkbib.awk" "$1"
+awk -f "$script_dir/lib/mkbib.awk" "$1"
