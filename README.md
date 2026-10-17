@@ -34,7 +34,8 @@ linto bibtex renumberyml in.yml
 ```
 
 Use `linto help PAGE` for a topic guide and `linto help GROUP` to list commands
-in a group. Individual tools generally support `--help`. The [multi-page Linto
+in a group. If a page name is also a group name, use `linto help page PAGE`.
+Individual tools generally support `--help`. The [multi-page Linto
 guide](linto-guide/index.md) is also available in the terminal through `linto
 help`.
 

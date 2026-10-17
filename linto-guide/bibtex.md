@@ -19,3 +19,11 @@ Many bibliography scripts expect to be run from the project directory containing
 the relevant `.bib`, `.qmd`, or YAML files. Check each command's `--help` for
 its exact arguments and whether it writes files in place. Back up important
 bibliography data before using tools that modify it.
+
+```mermaid
+bib2json --> json --> json2bib --> bib --> bib2json
+
+build-bib --> pieces.bib 
+_pieces.yml --> pieces.bib
+fr.bib --> pieces.bib
+```
