@@ -54,28 +54,59 @@ find_group_command() {
 
 render_guide() {
   guide_page=$1
-  viewer=${LINTO_MDVIEWER:-}
-  if [ -z "$viewer" ]; then
-    for candidate in md-tui mdcat mandown glow bat mdfried mdless; do
-      if command -v "$candidate" >/dev/null 2>&1; then
-        viewer=$candidate
-        break
-      fi
-    done
+  if [ -n "${LINTO_MDVIEWER:-}" ]; then
+    viewers=$LINTO_MDVIEWER
+  elif [ -f "$script_dir/config.yml" ]; then
+    viewers=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" markdown-viewer 2>/dev/null || true)
+  else
+    viewers=cat
   fi
 
+  selected=
+  while IFS= read -r viewer; do
+    [ -n "$viewer" ] || continue
+    case "$viewer" in
+      cat) selected=cat; break ;;
+      md-tui|inlyne|mdcat|mandown|glow|frogmouth|bat|mdfried|mdless)
+        if command -v "$viewer" >/dev/null 2>&1 &&
+           { [ "$viewer" != mandown ] || command -v groff >/dev/null 2>&1; }; then
+          selected=$viewer
+          break
+        fi
+        ;;
+      *)
+        printf 'linto: unsupported Markdown viewer: %s\n' "$viewer" >&2
+        ;;
+    esac
+  done <<EOF
+$viewers
+EOF
+  viewer=${selected:-cat}
+
   case "$viewer" in
-    md-tui|mdcat|glow|mdfried)
+    md-tui|inlyne|mdcat|glow|frogmouth|mdfried)
       "$viewer" "$guide_page"
       ;;
     mdless)
-      mdless "$guide_page"
+      if command -v mdless >/dev/null 2>&1; then
+        mdless "$guide_page"
+      else
+        cat "$guide_page"
+      fi
       ;;
     mandown)
-      mandown "$guide_page" | groff -Tutf8 -man
+      if command -v mandown >/dev/null 2>&1 && command -v groff >/dev/null 2>&1; then
+        mandown "$guide_page" "LINTO-GUIDE" 1 | groff -Tutf8 -man
+      else
+        cat "$guide_page"
+      fi
       ;;
     bat)
-      bat --language markdown --style plain "$guide_page"
+      if command -v bat >/dev/null 2>&1; then
+        bat --language markdown --style plain "$guide_page"
+      else
+        cat "$guide_page"
+      fi
       ;;
     cat|'')
       cat "$guide_page"
