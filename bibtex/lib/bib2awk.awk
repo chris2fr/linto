@@ -127,19 +127,6 @@ BEGIN {
         format3_begin()
 }
 
-function format1_begin (fld, n) {
-    # printf "%s", fld[1]
-    for (i = 1; i <= n; i++) printf "%s;", fld[i]
-    printf "\n"
-}
-function format2_begin() {
-    printf "#!/bin/bash\n\nif [ $# -ne \"1\" ]; then\n        echo \"Usage:  $0 <fichier à traiter>\"\n        exit 1;\nfi\n\n"
-    printf "\nif [ -f $1 ]; then\n   echo $1;\nelse\n   echo \"$1 n'existe pas\";\n    exit 1;\n fi;\n\n"
-}
-
-function format3_begin() {
-    
-}
 
 {
     rec = $0
@@ -176,45 +163,10 @@ function format3_begin() {
         format1_output(vals, fldidx, fld)
     if (output_format == "2")
         format2_output(vals, fldidx, fld)
-    if (output_format == "3") {
-        printf "ok"
+    if (output_format == "3")
         format3_output(vals, fldidx, fld)
-    }
 }
 
-function format1_output (vals, fldidx, fld) {
-    # printf "%s;%s", csv(date), csv(key)
-    n = length(fldidx)
-    for (i = 1; i <= n; i++) printf "%s;", csv(vals[i])
-    printf "\n"
-}
-
-function format2_output (vals, fldidx, fld) {
-    publisher = vals[fldidx["publisher"]]
-    howpublished = vals[fldidx["howpublished"]]
-
-    if (howpublished && !publisher)
-        printf "sed -i -e 's/howpublished = {%s},/publisher = {%s},/g' $1/%s.bib\n", howpublished, howpublished, key
-}
-
-function format3_output (vals, fldidx, fld) {
-    if (out != "") close(out)
-
-    key = vals[fldidx["key"]]
-
-    out = "./bib/" key ".json"
-
-    printf "{" > out
-    n = length(fldidx)
-    firstfield = ""
-    for (i = 1; i <= n; i++) {
-        if (vals[i]) {
-            printf "%s\n  \"%s\":\"%s\"", firstfield, fld[i], json(vals[i]) > out
-            firstfield = ","
-        }
-    }
-    printf "\n}\n" > out
-}
 
 # Return 1 if val's theme content matches the -v theme filter (or if no
 # filter is active), 0 otherwise. Splits val on comma/semicolon in case a
