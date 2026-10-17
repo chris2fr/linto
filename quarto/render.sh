@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # render.sh -- rebuild bibliographies, then render every Quarto document.
 #
@@ -19,7 +19,7 @@
 # usage error.
 
 # Stop on command failures, unset variables, and failed commands in pipelines.
-set -euo pipefail
+set -eu
 
 usage() {
   cat <<EOF
@@ -55,20 +55,15 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 "$script_dir/../bibtex/build-bib.sh"
 
 # Render explicit arguments, or every *.qmd in the caller's project root.
-# With nullglob, an unmatched *.qmd expands to no files instead of staying literal.
-shopt -s nullglob
-qmd_files=("$@")
 if [ "$#" -eq 0 ]; then
-  qmd_files=(*.qmd)
+  set -- *.qmd
+  [ -f "$1" ] || {
+    echo "$0: aucun fichier .qmd à rendre" >&2
+    exit 1
+  }
 fi
 
-# Fail clearly if neither the glob nor the caller supplied any documents.
-if [ "${#qmd_files[@]}" -eq 0 ]; then
-  echo "$0: aucun fichier .qmd à rendre" >&2
-  exit 1
-fi
-
-for i in "${qmd_files[@]}"; do
+for i do
   echo "$i"
   quarto render "$i"
 done
