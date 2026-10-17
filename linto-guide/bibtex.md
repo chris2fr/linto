@@ -21,9 +21,38 @@ its exact arguments and whether it writes files in place. Back up important
 bibliography data before using tools that modify it.
 
 ```mermaid
-bib2json --> json --> json2bib --> bib --> bib2json
+flowchart LR
+biblio.bib --> bib2json --> biblio.json 
+biblio.json & biblio.bib --> json2bib --> biblio.bib
+```
 
-build-bib --> pieces.bib 
-_pieces.yml --> pieces.bib
-fr.bib --> pieces.bib
+```mermaid
+flowchart LR
+biblio.bib --> bib-order-props --> biblio.bib
+```
+
+```mermaid
+flowchart LR
+biblio.bib --> mkbib --> bibkeys.bib
+```
+
+```mermaid
+flowchart LR
+
+_pieces.yml & biblio.bib --> build-bib --> pieces.bib
+_pieces.yml --> renumberyml --> _pieces.yml
+```
+
+```mermaid
+flowchart LR
+
+bibkey.md --> md2json --> bibkey.json
+
+```
+
+
+```mermaid
+flowchart LR
+quarto.qmd --> citations --> pieces.yml
+
 ```
