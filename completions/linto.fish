@@ -6,7 +6,7 @@ complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --help 2>/dev/null | string match -r "^  [[:alnum:]_-]+" | string trim)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 
-for group in awk beta bibtex launch quarto utils
+for group in beta bibtex launch quarto utils
     complete -c linto -f -n "__fish_seen_subcommand_from $group linto-$group" -a "($linto_bin --list-commands $group 2>/dev/null)"
     complete -c linto -f -n '__fish_use_subcommand' -a "($linto_bin --list-commands $group 2>/dev/null | string replace -r '^(.*)$' 'linto-$group-$1')"
 end
