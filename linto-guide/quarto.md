@@ -17,3 +17,23 @@ linto quarto setup-lettre --help
 Citation extraction can produce YAML or CSV and supports ordering options; see
 `linto quarto citations --help` for the supported flags. Quarto commands may
 invoke the Quarto CLI and may read or write files in the current project.
+
+```mermaid
+flowchart LR
+quarto.qmd --> citations --> pieces.yml
+```
+
+```mermaid
+flowchart LR
+quarto-setup
+quarto-setup-document --> document.qmd
+quarto-setup-lettre --> lettre.qmd
+quarto-github
+```
+
+
+```mermaid
+flowchart LR
+quarto.qmd --> quarto-render --> output --> firefox-output
+quarto.qmd --> guillemets2quotes --> quarto.qmd
+```
