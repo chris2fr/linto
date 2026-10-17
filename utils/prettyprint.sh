@@ -145,8 +145,9 @@ glyph() {
 wrap_words() {
   local text=$1 max=$2
   # Cells are CELL_W+1 columns wide except the last (no trailing gutter).
-  # Effective capacity, in glyph cells, for a row of `max` columns.
-  local cap=$(( (max + 1) / (CELL_W + 1) ))
+  # Include the two-column left margin in the available width. Each glyph
+  # takes CELL_W columns; the one-column gutter follows all but the last glyph.
+  local cap=$(( (max - 2 + 1) / (CELL_W + 1) ))
   (( cap < 1 )) && cap=1
 
   local -a words=()
@@ -197,10 +198,15 @@ render_row() {
 
 render() {
   local text=$1 max=$2 line
+  local first=1
   while IFS= read -r line; do
-    [[ -z $line ]] && { echo; continue; }
+    [[ -z $line ]] && continue
+    if (( first )); then
+      first=0
+    else
+      echo            # blank line between blocks
+    fi
     render_row "$line"
-    echo            # blank line between blocks
   done < <(wrap_words "$text" "$max")
 }
 
