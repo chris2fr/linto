@@ -95,6 +95,16 @@ class ConfigdataTests(unittest.TestCase):
             self.assertFalse(config.command_options(data, "demo", "run")["enable"])
             self.assertTrue(config.command_options(data, "demo", "other")["enable"])
             self.assertEqual(config.configdata(data)["shared"], "configured")
+            effective = config.effective_config(data)
+            self.assertEqual(effective["configdata"]["shared"], "configured")
+            self.assertEqual(
+                effective["groups"]["demo"]["configdata"],
+                {"nested": {"group": "configured"}},
+            )
+            self.assertEqual(
+                effective["groups"]["demo"]["commands"]["run"]["configdata"],
+                {"nested": {"command": "configured"}},
+            )
 
     def test_external_system_and_user_configs_override_installation_settings(self):
         with tempfile.TemporaryDirectory() as directory:

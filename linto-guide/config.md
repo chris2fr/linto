@@ -48,9 +48,21 @@ are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
 them. At runtime, `/etc/linto/linto.yml` is merged next, then
 `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`, so user settings have the
 highest precedence. A legacy `~/.linto.yml` is read below the XDG config file.
-These files may contain only the settings they override. Defaults are located
-relative to the Linto installation, not the current working directory. The
-Markdown viewer is root configdata, while the shipped
+These files may contain only the settings they override. The config command
+supports these inspection and editing modes:
+
+- `linto linto config` prints the user config directory and file path.
+- `linto linto config --group quarto` shows effective configdata for a group;
+  add `--command render` for command-level configdata.
+- `linto linto config --effective` prints the full configuration with defaults
+  and overrides merged. This report is informational, not intended to be copied
+  back as a user override.
+- `linto linto config --edit` opens the user file with `linto launch zed`; pass
+  `--editor PROGRAM` to use another executable. If needed, it creates an empty
+  user override file.
+
+Defaults are located relative to the Linto installation, not the current working
+directory. The Markdown viewer is root configdata, while the shipped
 Quarto extension and Linto shell-alias defaults are in
 [`quarto/lib/default.yml`](../quarto/lib/default.yml) and
 [`linto/lib/default.yml`](../linto/lib/default.yml), respectively.

@@ -256,8 +256,7 @@ def group_options(data: dict, name: str) -> dict:
     }
 
 
-def command_options(data: dict, group_name: str, command_name: str) -> dict:
-    options = group_options(data, group_name)
+def command_configdata(data: dict, group_name: str, command_name: str) -> dict:
     group = data["groups"].get(group_name, "default")
     group_commands = group.get("commands", {}) if isinstance(group, dict) else {}
     command = group_commands.get(command_name, {})
@@ -273,13 +272,22 @@ def command_options(data: dict, group_name: str, command_name: str) -> dict:
                 command_defaults,
                 read_default_configdata(command_defaults_path, "command defaults"),
             )
-    command_configdata = merge_mappings(
+    return merge_mappings(
         command_defaults,
         command.get("configdata", {}) if isinstance(command, dict) else {},
     )
+
+
+def command_options(data: dict, group_name: str, command_name: str) -> dict:
+    options = group_options(data, group_name)
+    group = data["groups"].get(group_name, "default")
+    group_commands = group.get("commands", {}) if isinstance(group, dict) else {}
+    command = group_commands.get(command_name, {})
     return {
         "enable": command.get("enable", True) if isinstance(command, dict) else True,
-        "configdata": merge_mappings(options["configdata"], command_configdata),
+        "configdata": merge_mappings(
+            options["configdata"], command_configdata(data, group_name, command_name)
+        ),
     }
 
 
@@ -305,6 +313,48 @@ def enabled_groups(data: dict, root: Path, data_root: Path | None = None) -> lis
         exists = (root / name).is_dir() or (user_groups / name).is_dir()
         if name not in reserved and enabled and exists:
             result.append(name)
+    return result
+
+
+def effective_config(data: dict) -> dict:
+    """Return a read-only view of configuration with defaults merged in."""
+    result = {}
+    if "version" in data:
+        result["version"] = data["version"]
+    result["groups"] = {}
+    if "shortcuts" in data:
+        result["shortcuts"] = data["shortcuts"]
+    result["configdata"] = configdata(data)
+
+    root = Path(data.get("_root", Path.cwd()))
+    data_root = Path(data.get("_data_root", data_directory()))
+    for group_name in data["groups"]:
+        options = group_options(data, group_name)
+        effective_group = {
+            "enable": options["enable"],
+            "configdata": options["configdata"],
+        }
+        group = data["groups"].get(group_name, "default")
+        configured_commands = group.get("commands", {}) if isinstance(group, dict) else {}
+        command_names = set(configured_commands)
+        for command_lib in (
+            root / group_name / "lib",
+            data_root / "groups" / group_name / "lib",
+        ):
+            if command_lib.is_dir():
+                command_names.update(
+                    path.stem for path in command_lib.glob("*.yml")
+                    if path.stem != "default" and valid_name(path.stem)
+                )
+        if command_names:
+            effective_group["commands"] = {}
+            for command_name in sorted(command_names):
+                command = configured_commands.get(command_name, {})
+                effective_group["commands"][command_name] = {
+                    "enable": command.get("enable", True) if isinstance(command, dict) else True,
+                    "configdata": command_configdata(data, group_name, command_name),
+                }
+        result["groups"][group_name] = effective_group
     return result
 
 
@@ -378,6 +428,7 @@ def main() -> int:
     configdata_parser = sub.add_parser("configdata")
     configdata_parser.add_argument("group", nargs="?")
     configdata_parser.add_argument("command", nargs="?")
+    sub.add_parser("effective")
     sub.add_parser("aliases")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
@@ -414,8 +465,12 @@ def main() -> int:
                     if not command_options(data, group, command)["enable"]:
                         print(f"{group}/{command}")
         elif args.action == "configdata":
+            if args.group is not None and args.group not in data["groups"]:
+                raise ValueError(f"unknown group: {args.group}")
             result = configdata(data, args.group, args.command)
             print(yaml.safe_dump(result, sort_keys=False, allow_unicode=True), end="")
+        elif args.action == "effective":
+            print(yaml.safe_dump(effective_config(data), sort_keys=False, allow_unicode=True), end="")
         elif args.action == "aliases":
             for alias, target in data.get("shortcuts", {}).items():
                 group, command = target.split()

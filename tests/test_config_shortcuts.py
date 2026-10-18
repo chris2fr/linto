@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -18,11 +19,20 @@ class ShortcutConfigTests(unittest.TestCase):
             (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
             path = root / "config.yml"
             path.write_text(config, encoding="utf-8")
+            home = root / "home"
+            home.mkdir()
+            environment = os.environ.copy()
+            environment.update(
+                HOME=str(home),
+                XDG_CONFIG_HOME=str(root / "xdg-config"),
+                XDG_DATA_HOME=str(root / "xdg-data"),
+            )
             return subprocess.run(
                 [sys.executable, MODULE_PATH, path, action, *args],
                 capture_output=True,
                 text=True,
                 check=False,
+                env=environment,
             )
 
     def test_shortcut_aliases_resolve_to_group_commands(self):
