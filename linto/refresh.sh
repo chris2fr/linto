@@ -49,6 +49,10 @@ declare -A desired=()
 
 add_stub() {
   local name=$1 group=$2 command=$3 kind=$4
+  [[ -z "${desired[$name]+yes}" ]] || {
+    printf 'refresh: generated wrapper name collision: %s\n' "$name" >&2
+    exit 1
+  }
   names+=("$name")
   groups_for_stub+=("$group")
   commands_for_stub+=("$command")
