@@ -5,6 +5,12 @@ set -eu
 
 bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 script_dir=$(CDPATH= cd -- "$bin_dir/.." && pwd -P)
+case "${XDG_DATA_HOME:-}" in
+  /*) data_home=$XDG_DATA_HOME ;;
+  *) data_home=$HOME/.local/share ;;
+esac
+user_data_dir="$data_home/linto"
+user_groups_dir="$user_data_dir/groups"
 
 is_group_name() {
   case "$1" in
@@ -39,10 +45,21 @@ command_enabled() {
   return 0
 }
 
+group_directory() {
+  if [ -d "$script_dir/$1" ]; then
+    printf '%s\n' "$script_dir/$1"
+  elif [ -d "$user_groups_dir/$1" ]; then
+    printf '%s\n' "$user_groups_dir/$1"
+  else
+    return 1
+  fi
+}
+
 list_group_commands() {
   list_command_group=$1
+  command_directory=$(group_directory "$list_command_group") || return 1
   load_command_states || return 1
-  for tool in "$script_dir/$list_command_group"/*.sh; do
+  for tool in "$command_directory"/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
     name=${name%.sh}
@@ -83,7 +100,7 @@ list_shortcuts() {
 }
 
 group_exists() {
-  is_group_name "$1" && [ -d "$script_dir/$1" ] &&
+  is_group_name "$1" && { [ -d "$script_dir/$1" ] || [ -d "$user_groups_dir/$1" ]; } &&
     list_groups | grep -Fxq -- "$1"
 }
 
@@ -91,7 +108,8 @@ find_group_command() {
   group=$1
   command_name=$2
   command_enabled "$group" "$command_name" || return 1
-  for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+  command_directory=$(group_directory "$group") || return 1
+  for candidate in "$command_directory/$command_name" "$command_directory/$command_name.sh"; do
     if [ -f "$candidate" ]; then
       printf '%s\n' "$candidate"
       return 0
@@ -192,12 +210,10 @@ find_tool() {
 
   list_shortcuts | grep -Fxq -- "$command_name" || return 1
   for search_group in $(list_groups); do
-    for candidate in "$script_dir/$search_group/$command_name" "$script_dir/$search_group/$command_name.sh"; do
-      if [ -f "$candidate" ] && [ -x "$candidate" ]; then
-        printf '%s\n' "$candidate"
-        return 0
-      fi
-    done
+    if candidate=$(find_group_command "$search_group" "$command_name") && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
   done
   return 1
 }
@@ -362,7 +378,9 @@ case "$1" in
         printf 'fpath=("%s/completions" $fpath)\nautoload -Uz compinit && compinit\n' "$script_dir/completions"
         ;;
       fish)
-        printf 'source "%s/completions/linto.fish"\n' "$script_dir/completions"
+        fish_completion="$user_data_dir/completions/linto.fish"
+        [ -f "$fish_completion" ] || fish_completion="$script_dir/completions/linto.fish"
+        printf 'source "%s"\n' "$fish_completion"
         ;;
       *)
         echo "linto: unsupported completion shell: $2 (choose bash, zsh, or fish)" >&2

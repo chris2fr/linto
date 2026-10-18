@@ -5,8 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: addman.sh [-h|--help]
 
-Install the linto man page for the current user by creating a symbolic link in
-~/.local/share/man/man1. Prints the MANPATH setup line if needed.
+Generate and install the user's Linto man page in the XDG data directory.
 EOF
 }
 
@@ -17,13 +16,19 @@ case "${1-}" in
 esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-source_man=$(CDPATH= cd -- "$script_dir/../man" && pwd -P)/linto.1
-data_home=${XDG_DATA_HOME:-$HOME/.local/share}
+repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+case "${XDG_DATA_HOME:-}" in
+  /*) data_home=$XDG_DATA_HOME ;;
+  *) data_home=$HOME/.local/share ;;
+esac
+linto_data="$data_home/linto"
+source_man="$linto_data/man/man1/linto.1"
 man_dir="$data_home/man/man1"
 link_path="$man_dir/linto.1"
 
+"$repo_root/linto/refresh.sh"
 if [ ! -f "$source_man" ]; then
-  printf 'error: man page not found: %s\n' "$source_man" >&2
+  printf 'error: generated man page not found: %s\n' "$source_man" >&2
   exit 1
 fi
 
