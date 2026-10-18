@@ -35,6 +35,20 @@ list_groups_and_commands() {
   done
 }
 
+list_shortcuts() {
+  for group in $(list_groups); do
+    options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$group") || continue
+    shortcuts=$(printf '%s\n' "$options" | sed -n '2p')
+    [ "$shortcuts" = true ] || continue
+    list_group_commands "$group" | while IFS= read -r command_name; do
+      case "$group/$command_name" in
+        linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
+      esac
+      printf '%s\t%s\n' "$command_name" "$group"
+    done
+  done | awk -F '\t' '{ count[$1]++; owner[$1] = $2 } END { for (command in count) if (count[command] == 1) print command }' | LC_ALL=C sort
+}
+
 group_exists() {
   is_group_name "$1" && [ -d "$script_dir/$1" ] &&
     list_groups | grep -Fxq -- "$1"
@@ -131,16 +145,21 @@ find_tool() {
     return 1
   fi
 
-  for candidate in \
-    "$script_dir/$command_name" \
-    "$script_dir/$command_name.sh" \
-    "$script_dir"/*/"$command_name" \
-    "$script_dir"/*/"$command_name.sh"
-  do
+  for candidate in "$script_dir/$command_name" "$script_dir/$command_name.sh"; do
     if [ -f "$candidate" ]; then
       printf '%s\n' "$candidate"
       return 0
     fi
+  done
+
+  list_shortcuts | grep -Fxq -- "$command_name" || return 1
+  for group in $(list_groups); do
+    for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+      if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    done
   done
   return 1
 }
@@ -160,6 +179,7 @@ Commands:
   completion SHELL        Print shell completion setup instructions.
   --list-groups           Print group names, one per line.
   --list-commands GROUP   Print commands in GROUP, one per line.
+  --list-shortcuts        Print unique unqualified command shortcuts.
   GROUP [COMMAND...]      Run a command in GROUP or list its commands.
   linto-GROUP [COMMAND]   Group alias; linto-GROUP-COMMAND runs a tool directly.
   COMMAND [ARGUMENTS...]  Run a tool by its command name.
@@ -169,9 +189,14 @@ EOF
   list_groups | sed 's/^/  /'
   cat <<EOF
 
-Available commands, grouped by folder (also available without the group):
+Commands by group (always callable as linto GROUP COMMAND):
 EOF
   list_groups_and_commands
+  cat <<EOF
+
+Available unqualified shortcuts (unique commands enabled by group config):
+EOF
+  list_shortcuts | sed 's/^/  /'
   cat <<EOF
 
 EOF
@@ -206,6 +231,11 @@ case "$1" in
   --list-commands)
     [ "$#" -eq 2 ] && group_exists "$2" || { echo "Usage: linto --list-commands GROUP" >&2; exit 2; }
     list_group_commands "$2"
+    exit 0
+    ;;
+  --list-shortcuts)
+    [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcuts" >&2; exit 2; }
+    list_shortcuts
     exit 0
     ;;
   -h|--help)

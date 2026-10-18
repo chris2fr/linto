@@ -50,22 +50,22 @@ groups:
   bibtex: default
   launch: default
   linto:
-    short-stubs: false
+    shortcuts: false
   quarto:
-    short-stubs: false
+    shortcuts: false
   utils: default
   old:
     enable: false
 ```
 
-- `GROUP: default` enables a group and uses the defaults: `short-stubs: true`.
+- `GROUP: default` enables a group and uses the default `shortcuts: true`.
 - A group mapping may set `enable: false` to keep its directory but hide it from
   Linto, help, completions, and generated stubs.
-- `short-stubs: true` adds `linto-COMMAND` stubs for commands that are unique
-  across enabled groups. Group-qualified stubs (`linto-GROUP-COMMAND`) remain
-  available. The command form `linto COMMAND` is also supported for unique
-  command names.
-- Omitted mapping options default to `enable: true` and `short-stubs: true`.
+- `shortcuts: true` enables `linto-COMMAND` stubs and `linto COMMAND` for
+  commands unique across all active groups. `shortcuts: false` disables those
+  unqualified forms for that group's commands; `linto GROUP COMMAND` and
+  `linto-GROUP-COMMAND` remain available.
+- Omitted mapping options default to `enable: true` and `shortcuts: true`.
 
 Refresh generated command stubs, Fish completions, and the active-group list in
 the man page after changing configuration or scripts:

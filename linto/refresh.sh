@@ -8,8 +8,8 @@ Usage: refresh.sh [-h|--help]
 Refresh generated group/command wrappers, shell completions, and man pages.
 The dispatcher man page's active-group list and topic man pages are generated
 from config.yml and linto-guide/*.md. Group options default to enable: true and
-short-stubs: true. Short command stubs are generated only when a command name is
-unique among enabled groups.
+shortcuts: true. Short command stubs are generated only when the command name is
+unique among active groups and its group enables shortcuts.
 EOF
 }
 
@@ -45,7 +45,7 @@ fi
 
 mapfile -t groups < <("$linto" --list-groups)
 declare -a names=() groups_for_stub=() commands_for_stub=() kinds=()
-declare -A desired=() owners=()
+declare -A desired=() owners=() shortcut_owners=()
 
 add_stub() {
   local name=$1 group=$2 command=$3 kind=$4
@@ -59,15 +59,16 @@ add_stub() {
 for group in "${groups[@]}"; do
   add_stub "linto-$group" "$group" '' group
   mapfile -t opts < <(python3 "$config_tool" "$config" options "$group")
-  short_stubs=${opts[1]:-true}
+  shortcuts=${opts[1]:-true}
   mapfile -t commands < <("$linto" --list-commands "$group")
   for command in "${commands[@]}"; do
     case "$group/$command" in
       linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
     esac
     add_stub "linto-$group-$command" "$group" "$command" group-command
-    if [[ "$short_stubs" == true ]]; then
-      owners["$command"]+="$group "
+    owners["$command"]+="$group "
+    if [[ "$shortcuts" == true ]]; then
+      shortcut_owners["$command"]+="$group "
     fi
   done
 done
@@ -75,6 +76,7 @@ done
 for command in "${!owners[@]}"; do
   read -r -a command_owners <<< "${owners[$command]}"
   if (( ${#command_owners[@]} == 1 )) &&
+     [[ -n "${shortcut_owners[$command]:-}" ]] &&
      ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" &&
      [[ "$command" != help && "$command" != completion ]]; then
     add_stub "linto-$command" "${command_owners[0]}" "$command" short-command
@@ -141,7 +143,7 @@ cat > "$completion_dir/linto.fish" <<'FISH_HEADER'
 set -g linto_bin (realpath (dirname (status filename))/../bin/linto)
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null)'
-complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null | while read -l group; $linto_bin --list-commands $group 2>/dev/null; end | sort -u)'
+complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-shortcuts 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 FISH_HEADER
 for group in "${groups[@]}"; do
@@ -152,7 +154,7 @@ EOF
 done
 cat >> "$completion_dir/linto.fish" <<'FISH_FOOTER'
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null)'
-complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null | while read -l group; $linto_bin --list-commands $group 2>/dev/null; end | sort -u)'
+complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-shortcuts 2>/dev/null)'
 complete -c linto -l help -s h -d 'Show help'
 FISH_FOOTER
 
