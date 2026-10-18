@@ -144,10 +144,10 @@ case "$shortcuts" in
     *bibyml2bib*) ;;
     *) fail "shortcut missing for a group with shortcuts enabled" ;;
 esac
-if "$root/bin/linto" quarto-render --help >"$tmpdir/unqualified.out" 2>&1; then
+if "$root/bin/linto" render --help >"$tmpdir/unqualified.out" 2>&1; then
     fail "command from a shortcuts-disabled group ran unqualified"
 fi
-assert_output 'Usage: quarto-render.sh [-h|--help] [fichier.qmd ...]
+assert_output 'Usage: render.sh [-h|--help] [fichier.qmd ...]
 
 Régénère les bibliographies (bibyml2bib.sh) puis rend chaque document
 Quarto avec `quarto render`. Sans argument, tous les *.qmd du dossier
@@ -158,7 +158,7 @@ Doit être lancé depuis la racine du projet, où se trouvent les fichiers .qmd.
 
 Options:
   -h, --help   Affiche cette aide et quitte.' \
-    "$root/bin/linto" quarto quarto-render --help
+    "$root/bin/linto" quarto render --help
 
 python3 -m unittest discover -s "$root/tests" -p 'test_*.py'
 

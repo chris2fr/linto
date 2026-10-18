@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# quarto-render.sh -- rebuild bibliographies, then render Quarto documents.
+# render.sh -- rebuild bibliographies, then render Quarto documents.
 #
 # Run from the project root where the .qmd files, fr.bib and transcripts live:
 #
-#     linto quarto-render [-h|--help] [fichier.qmd ...]
+#     linto quarto render [-h|--help] [fichier.qmd ...]
 #
 # Steps:
 #   1. biblio/bibyml2bib.sh regenerates the pieces-*.bib files from the
@@ -23,7 +23,7 @@ set -eu
 
 usage() {
   cat <<EOF
-Usage: quarto-render.sh [-h|--help] [fichier.qmd ...]
+Usage: render.sh [-h|--help] [fichier.qmd ...]
 
 Régénère les bibliographies (bibyml2bib.sh) puis rend chaque document
 Quarto avec \`quarto render\`. Sans argument, tous les *.qmd du dossier

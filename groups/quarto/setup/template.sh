@@ -12,11 +12,11 @@ help_arg=${3-}
 
 case "$name" in
   document)
-    usage_name=quarto-setup-document.sh
+    usage_name=setup-document.sh
     description='Create a Quarto document from the chris2fr/quarto/document template.'
     ;;
   lettre)
-    usage_name=quarto-setup-lettre.sh
+    usage_name=setup-lettre.sh
     description='Create a Quarto document from the chris2fr/quarto/lettre template.'
     ;;
   *) echo "error: unsupported setup template: $name" >&2; exit 2 ;;
