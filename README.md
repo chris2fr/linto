@@ -45,17 +45,28 @@ help`.
 policy. It uses a YAML mapping:
 
 ```yaml
+configdata:
+  markdown-viewer:
+    - md-tui
+    - cat
 groups:
   beta: default
   biblio: default
   launch: default
   linto:
-    aliases:
+    configdata:
       aliases:
-        zz: "linto launch zed"
-      unaliases:
-        - something-to-delete-from-aliases
-  quarto: default
+        aliases:
+          zz: "linto launch zed"
+        unaliases:
+          - something-to-delete-from-aliases
+  quarto:
+    configdata:
+      extension: "chris2fr/quarto"
+    commands:
+      render:
+        enable: true
+        configdata: {}
   utils: default
   old:
     enable: false
@@ -69,13 +80,15 @@ shortcuts:
 - `GROUP: default` enables a group. A group mapping may set `enable: false` to
   keep its directory but hide it from Linto, help, completions, and generated
   stubs. Omitted group options default to `enable: true`.
-- Group-specific settings live under `groups.GROUP`. Shared defaults may be
-  placed in [`lib/defaults.yml`](lib/defaults.yml); groups can provide defaults
-  in `GROUP/lib/defaults.yml`. With `quarto: default`, the extension is read
-  from [`quarto/lib/defaults.yml`](quarto/lib/defaults.yml); set
-  `groups.quarto.extension` to override it. Shell-alias defaults come from
-  [`linto/lib/aliases.yml`](linto/lib/aliases.yml); values in
-  `groups.linto.aliases` override or extend them.
+- `enable` remains at the group or command level. Group settings belong under
+  `groups.GROUP.configdata`; command settings belong under
+  `groups.GROUP.commands.COMMAND.configdata`. Configdata defaults are read from
+  [`lib/default.yml`](lib/default.yml), `GROUP/lib/default.yml`, and
+  `GROUP/lib/COMMAND.yml`, respectively, then overridden by `config.yml` at the
+  matching level. The shipped Quarto extension default is in
+  [`quarto/lib/default.yml`](quarto/lib/default.yml); shell-alias defaults are
+  in [`linto/lib/default.yml`](linto/lib/default.yml). Root settings such as
+  `markdown-viewer` are under top-level `configdata`.
 - Each entry in the top-level `shortcuts` mapping defines an explicit alias:
   the key is the shortcut name, and its value is `"GROUP COMMAND"`. For example,
   `prettyprint: "utils prettyprint"` makes both `linto prettyprint` and

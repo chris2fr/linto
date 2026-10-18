@@ -32,17 +32,20 @@ to list a group's commands.
 
 ## Shell aliases
 
-`linto linto aliases` installs or updates the shell aliases configured under
-`groups.linto.aliases` in [`config.yml`](../config.yml). For example:
+`linto linto aliases` installs or updates the shell aliases in
+`groups.linto.configdata.aliases`. Group-specific values go in
+[`config.yml`](../config.yml); defaults are in [`linto/lib/default.yml`](../linto/lib/default.yml).
+For example:
 
 ```yaml
 groups:
   linto:
-    aliases:
+    configdata:
       aliases:
-        zz: "linto launch zed"
-      unaliases:
-        - old-alias
+        aliases:
+          zz: "linto launch zed"
+        unaliases:
+          - old-alias
 ```
 
 By default, the command detects the shell from `$SHELL`, then tries the parent
