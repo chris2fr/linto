@@ -37,16 +37,30 @@ list_groups_and_commands() {
 
 list_shortcuts() {
   for group in $(list_groups); do
+    printf 'group\t%s\n' "$group"
     options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$group") || continue
     shortcuts=$(printf '%s\n' "$options" | sed -n '2p')
-    [ "$shortcuts" = true ] || continue
     list_group_commands "$group" | while IFS= read -r command_name; do
       case "$group/$command_name" in
         linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
       esac
-      printf '%s\t%s\n' "$command_name" "$group"
+      printf 'command\t%s\t%s\n' "$command_name" "$shortcuts"
     done
-  done | awk -F '\t' '{ count[$1]++; owner[$1] = $2 } END { for (command in count) if (count[command] == 1) print command }' | LC_ALL=C sort
+  done | awk -F '\t' '
+    $1 == "group" { groups[$2] = 1; next }
+    $1 == "command" {
+      count[$2]++
+      if ($3 == "true") shortcut_count[$2]++
+    }
+    END {
+      for (command in count) {
+        if (count[command] == 1 && shortcut_count[command] == 1 &&
+            !groups[command] && command != "help" && command != "completion") {
+          print command
+        }
+      }
+    }
+  ' | LC_ALL=C sort
 }
 
 group_exists() {
@@ -182,7 +196,7 @@ Commands:
   --list-shortcuts        Print unique unqualified command shortcuts.
   GROUP [COMMAND...]      Run a command in GROUP or list its commands.
   linto-GROUP [COMMAND]   Group alias; linto-GROUP-COMMAND runs a tool directly.
-  COMMAND [ARGUMENTS...]  Run a tool by its command name.
+  COMMAND [ARGUMENTS...]  Run a tool by name when its group enables shortcuts.
 
 Groups:
 EOF

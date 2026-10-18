@@ -31,9 +31,11 @@ With no arguments or with
 .B linto
 prints the available groups and their commands. Running a group by itself
 lists its commands. Each command can be run as
-.B "linto GROUP COMMAND"
-or as the shorthand
-.BR "linto COMMAND" .
+.B "linto GROUP COMMAND" .
+The unqualified form
+.B "linto COMMAND"
+is available only when its group enables shortcuts and the command name is
+unique across active groups.
 .SH GROUPS
 The currently active groups are:
 .\" BEGIN GENERATED GROUPS
@@ -50,7 +52,7 @@ Run a group by itself to list its commands. The
 group contains the Zed launcher. Use a group followed by a command to run a
 tool explicitly, for example
 .BR "linto utils prettyprint" .
-All commands can also be invoked without the group when their names are unique.
+Commands from groups with shortcuts disabled must be invoked with the group.
 .SH COMMANDS
 .TP
 .B help [PAGE|GROUP [COMMAND]]
@@ -71,7 +73,7 @@ or
 This prints instructions; it does not modify shell configuration files.
 .TP
 .I command [arguments ...]
-Run a tool by its command name, optionally without its group.
+Run a tool by its command name without the group only when its group enables shortcuts and its name is unique.
 .TP
 .I group command [arguments ...]
 Run a tool from the specified group. The tool's standard input, output, error,
@@ -87,7 +89,7 @@ runs
 Print the usage summary when given as the first argument. To request help for a
 specific tool, use
 .B "linto COMMAND --help"
-or
+when an unqualified shortcut is enabled, or use
 .BR "linto help GROUP COMMAND" .
 .SH EXIT STATUS
 The dispatcher exits with status 0 when it successfully prints its own help or

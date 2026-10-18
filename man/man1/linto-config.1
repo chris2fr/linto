@@ -6,7 +6,7 @@ The repository's \fBconfig\.yml\fP controls active command groups,
 generated command stubs, the Quarto extension default, and Markdown viewer
 preferences\.
 
-.SS "Groups and command stubs"
+.SS "Groups and shortcuts"
 .PP
 The \fBgroups\fP mapping accepts the \fBdefault\fP shorthand or a mapping of options:
 .RS
@@ -17,9 +17,9 @@ groups:
   biblo: default
   launch: default
   linto:
-    short\-stubs: false
+    shortcuts: false
   quarto:
-    short\-stubs: false
+    shortcuts: false
   utils: default
   old:
     enable: false
@@ -28,11 +28,13 @@ groups:
 .RE
 .PP
 \fBdefault\fP enables a group and uses the defaults \fBenable: true\fP and
-\fBshort\-stubs: true\fP\. A mapping may set \fBenable: false\fP to leave a directory in
-the checkout while making Linto ignore it for dispatch, help, completions, and
-stubs\. \fBshort\-stubs: true\fP adds \fBlinto\-COMMAND\fP stubs for command names unique
-across enabled groups\. Group\-qualified calls such as \fBlinto GROUP COMMAND\fP and
-stubs such as \fBlinto\-GROUP\-COMMAND\fP remain available\.
+\fBshortcuts: true\fP\. A mapping may set \fBenable: false\fP to leave a directory in the
+checkout while making Linto ignore it for dispatch, help, completions, and
+stubs\. With \fBshortcuts: true\fP, a command gets the unqualified forms \fBlinto
+COMMAND\fP and (when unique across all active groups) \fBlinto\-COMMAND\fP\. With
+\fBshortcuts: false\fP, commands from that group are available only as \fBlinto GROUP
+COMMAND\fP or \fBlinto\-GROUP\-COMMAND\fP\. Group commands remain available in either
+case\. Omitted mapping options default to \fBenable: true\fP and \fBshortcuts: true\fP\.
 
 .SS "Markdown viewer"
 .PP
