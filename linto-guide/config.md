@@ -34,8 +34,10 @@ shortcuts:
 `default` enables a group. A group mapping may set `enable: false` to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
 completions, and stubs. Omitted group options default to `enable: true`.
-Group-specific defaults are in [`lib/defaults.yml`](../lib/defaults.yml):
-`groups.quarto.extension` defaults to `chris2fr/quarto`. Shell-alias defaults
+Shared defaults are in [`lib/defaults.yml`](../lib/defaults.yml), and a group
+can also supply defaults in `GROUP/lib/defaults.yml`. Quarto's
+`groups.quarto.extension` default (`chris2fr/quarto`) is in
+[`quarto/lib/defaults.yml`](../quarto/lib/defaults.yml). Shell-alias defaults
 come from [`linto/lib/aliases.yml`](../linto/lib/aliases.yml); values in
 `groups.linto.aliases` override or extend those defaults.
 

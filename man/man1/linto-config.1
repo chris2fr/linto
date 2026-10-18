@@ -38,10 +38,12 @@ shortcuts:
 \fBdefault\fP enables a group\. A group mapping may set \fBenable: false\fP to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
 completions, and stubs\. Omitted group options default to \fBenable: true\fP\.
-Group\-specific defaults are in \fBlib/defaults\.yml\fP:
-\fBgroups\.quarto\.extension\fP defaults to \fBchris2fr/quarto\fP, and
-\fBgroups\.linto\.aliases\fP defaults to empty alias and unalias collections\. Values
-in \fBconfig\.yml\fP override these defaults\.
+Shared defaults are in \fBlib/defaults\.yml\fP, and a group
+can also supply defaults in \fBGROUP/lib/defaults\.yml\fP\. Quarto's
+\fBgroups\.quarto\.extension\fP default (\fBchris2fr/quarto\fP) is in
+\fBquarto/lib/defaults\.yml\fP\. Shell\-alias defaults
+come from \fBlinto/lib/aliases\.yml\fP; values in
+\fBgroups\.linto\.aliases\fP override or extend those defaults\.
 .PP
 The top\-level \fBshortcuts\fP mapping defines explicit aliases\. Each key is the
 shortcut name, and each value is a \fB"GROUP COMMAND"\fP target\. For example,
