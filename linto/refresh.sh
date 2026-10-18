@@ -8,8 +8,8 @@ Usage: refresh.sh [-h|--help]
 Refresh generated group/command wrappers, shell completions, and man pages.
 The dispatcher man page's active-group list and topic man pages are generated
 from config.yml and linto-guide/*.md. Group options default to enable: true and
-shortcuts: true. Short command stubs are generated only when the command name is
-unique among active groups and its group enables shortcuts.
+shortcuts: true. Short command stubs are generated only for selected commands
+whose names are unique among active groups.
 EOF
 }
 
@@ -67,7 +67,20 @@ for group in "${groups[@]}"; do
     esac
     add_stub "linto-$group-$command" "$group" "$command" group-command
     owners["$command"]+="$group "
-    if [[ "$shortcuts" == true ]]; then
+    shortcut_enabled=false
+    case "$shortcuts" in
+      true) shortcut_enabled=true ;;
+      false) ;;
+      list)
+        for selected_command in "${opts[@]:2}"; do
+          if [[ "$selected_command" == "$command" ]]; then
+            shortcut_enabled=true
+            break
+          fi
+        done
+        ;;
+    esac
+    if [[ "$shortcut_enabled" == true ]]; then
       shortcut_owners["$command"]+="$group "
     fi
   done

@@ -8,8 +8,12 @@ groups:
   linto:
     shortcuts: false
   quarto:
-    shortcuts: false
-  utils: default
+    shortcuts:
+      - guillemets2quotes
+  utils:
+    shortcuts:
+      - prettyprint
+      - stripaccents
   old:
     enable: false
 quarto:
