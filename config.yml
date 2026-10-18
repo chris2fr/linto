@@ -4,9 +4,9 @@ groups:
   biblo: default
   launch: default
   linto:
-    short-stubs: false
+    shortcuts: false
   quarto:
-    short-stubs: false
+    shortcuts: false
   utils: default
   old:
     enable: false

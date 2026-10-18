@@ -24,13 +24,13 @@ def load(path: Path) -> dict:
             continue
         if not isinstance(options, dict):
             raise ValueError(f"group {name!r} must be 'default' or a mapping")
-        unknown = set(options) - {"enable", "short-stubs"}
+        unknown = set(options) - {"enable", "shortcuts"}
         if unknown:
             raise ValueError(f"unknown option(s) for group {name!r}: {', '.join(sorted(unknown))}")
         if "enable" in options and not isinstance(options["enable"], bool):
             raise ValueError(f"group {name!r}: enable must be true or false")
-        if "short-stubs" in options and not isinstance(options["short-stubs"], bool):
-            raise ValueError(f"group {name!r}: short-stubs must be true or false")
+        if "shortcuts" in options and not isinstance(options["shortcuts"], bool):
+            raise ValueError(f"group {name!r}: shortcuts must be true or false")
     return data
 
 
@@ -46,9 +46,9 @@ def enabled_groups(data: dict, root: Path) -> list[str]:
 
 def group_options(data: dict, name: str) -> dict:
     value = data["groups"].get(name, "default")
-    return {"enable": True, "short-stubs": True} if value == "default" else {
+    return {"enable": True, "shortcuts": True} if value == "default" else {
         "enable": value.get("enable", True),
-        "short-stubs": value.get("short-stubs", True),
+        "shortcuts": value.get("shortcuts", True),
     }
 
 
@@ -109,7 +109,7 @@ def main() -> int:
         elif args.action == "options":
             options = group_options(data, args.group)
             print("true" if options["enable"] else "false")
-            print("true" if options["short-stubs"] else "false")
+            print("true" if options["shortcuts"] else "false")
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
         elif args.action == "markdown-viewer":

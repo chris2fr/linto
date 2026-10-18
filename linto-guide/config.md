@@ -4,7 +4,7 @@ The repository's [`config.yml`](../config.yml) controls active command groups,
 generated command stubs, the Quarto extension default, and Markdown viewer
 preferences.
 
-## Groups and command stubs
+## Groups and shortcuts
 
 The `groups` mapping accepts the `default` shorthand or a mapping of options:
 
@@ -14,9 +14,9 @@ groups:
   biblo: default
   launch: default
   linto:
-    short-stubs: false
+    shortcuts: false
   quarto:
-    short-stubs: false
+    shortcuts: false
   utils: default
   old:
     enable: false
@@ -24,11 +24,13 @@ groups:
 ```
 
 `default` enables a group and uses the defaults `enable: true` and
-`short-stubs: true`. A mapping may set `enable: false` to leave a directory in
-the checkout while making Linto ignore it for dispatch, help, completions, and
-stubs. `short-stubs: true` adds `linto-COMMAND` stubs for command names unique
-across enabled groups. Group-qualified calls such as `linto GROUP COMMAND` and
-stubs such as `linto-GROUP-COMMAND` remain available.
+`shortcuts: true`. A mapping may set `enable: false` to leave a directory in the
+checkout while making Linto ignore it for dispatch, help, completions, and
+stubs. With `shortcuts: true`, a command gets the unqualified forms `linto
+COMMAND` and (when unique across all active groups) `linto-COMMAND`. With
+`shortcuts: false`, commands from that group are available only as `linto GROUP
+COMMAND` or `linto-GROUP-COMMAND`. Group commands remain available in either
+case. Omitted mapping options default to `enable: true` and `shortcuts: true`.
 
 ## Markdown viewer
 

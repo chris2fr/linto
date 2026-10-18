@@ -17,7 +17,7 @@ _linto_complete() {
 
   if [[ $COMP_CWORD -eq 1 ]]; then
     groups=$("$linto_bin" --list-groups 2>/dev/null)
-    commands=$("$linto_bin" --help 2>/dev/null | awk '/^Available commands/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')
+    commands=$("$linto_bin" --list-shortcuts 2>/dev/null)
     aliases=$(printf '%s\n' "$groups" | sed 's#^#linto-#')
     grouped_commands=$(printf '%s\n' "$groups" | sed 's#^#linto #')
     COMPREPLY=( $(compgen -W "help completion $groups $grouped_commands $aliases $commands" -- "$cur") )
@@ -43,7 +43,7 @@ _linto_complete() {
   if [[ $first == help ]]; then
     if [[ $COMP_CWORD -eq 2 ]]; then
       groups=$("$linto_bin" --list-groups 2>/dev/null)
-      commands=$("$linto_bin" --help 2>/dev/null | awk '/^Available commands/ { in_commands=1; next } /^Examples:/ { in_commands=0 } in_commands && /^  [[:alnum:]_-]+$/ { print $1 }')
+      commands=$("$linto_bin" --list-shortcuts 2>/dev/null)
       COMPREPLY=( $(compgen -W "$groups $commands" -- "$cur") )
     elif [[ $COMP_CWORD -eq 3 ]]; then
       commands=$("$linto_bin" --list-commands "$prev" 2>/dev/null)

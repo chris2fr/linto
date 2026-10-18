@@ -7,13 +7,16 @@ run them from any current working directory. Common forms are:
 linto --help                         # active groups and commands
 linto GROUP                          # show a guide page, then list group commands
 linto GROUP COMMAND [ARGUMENTS...]   # explicitly select a group
-linto COMMAND [ARGUMENTS...]         # use a unique command name
+linto COMMAND [ARGUMENTS...]         # only when its group enables shortcuts
 linto-GROUP-COMMAND [ARGUMENTS...]   # generated group-qualified stub
 ```
 
-When enabled by the group's `short-stubs` setting, unique commands also have a
-`linto-COMMAND` stub. A command's own help is generally available through
-`linto COMMAND --help` or `linto help GROUP COMMAND`.
+`linto GROUP COMMAND` and `linto-GROUP-COMMAND` always address a command in a
+specific group. Unqualified `linto COMMAND` and `linto-COMMAND` are available
+only when that command's group has `shortcuts: true` and the name is unique
+across active groups. The `shortcuts` setting defaults to `true`. A command's
+help is available through `linto help GROUP COMMAND`; `linto COMMAND --help`
+works only when the command has an enabled unqualified shortcut.
 
 `linto help` displays the guide index. Use `linto help PAGE` to read a guide
 topic, or `linto help page PAGE` when the topic name is also an active group

@@ -10,7 +10,7 @@ _linto() {
     linto_bin="${commands[linto]:A}"
   fi
   groups=(${(f)"$("$linto_bin" --list-groups 2>/dev/null)"})
-  commands=(${(f)"$("$linto_bin" --help 2>/dev/null | sed -n '/^Available commands/,/^$/p' | sed '1d' | sed 's/^  //')"})
+  commands=(${(f)"$("$linto_bin" --list-shortcuts 2>/dev/null)"})
 
   if [[ "$words[1]" == linto && "$words[2]" == zed && $CURRENT -ge 3 ]]; then
     _files
