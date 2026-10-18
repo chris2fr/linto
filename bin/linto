@@ -39,10 +39,22 @@ list_shortcuts() {
   for shortcut_group in $(list_groups); do
     printf 'group\t%s\n' "$shortcut_group"
     shortcut_options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$shortcut_group") || continue
-    shortcut_enabled=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
+    shortcut_mode=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
     list_group_commands "$shortcut_group" | while IFS= read -r shortcut_command; do
       case "$shortcut_group/$shortcut_command" in
         linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
+      esac
+      case "$shortcut_mode" in
+        true) shortcut_enabled=true ;;
+        false) shortcut_enabled=false ;;
+        list)
+          if printf '%s\n' "$shortcut_options" | sed '1,2d' | grep -Fxq -- "$shortcut_command"; then
+            shortcut_enabled=true
+          else
+            shortcut_enabled=false
+          fi
+          ;;
+        *) continue ;;
       esac
       printf 'command\t%s\t%s\n' "$shortcut_command" "$shortcut_enabled"
     done
