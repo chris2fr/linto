@@ -52,8 +52,11 @@ groups:
   linto:
     shortcuts: false
   quarto:
-    shortcuts: false
-  utils: default
+    shortcuts:
+      - guillemets2quotes
+  utils:
+    shortcuts:
+      - prettyprint
   old:
     enable: false
 ```
@@ -64,8 +67,11 @@ groups:
 - `shortcuts: true` enables `linto-COMMAND` stubs and `linto COMMAND` for
   commands unique across all active groups. `shortcuts: false` disables those
   unqualified forms for the group. A list enables shortcuts only for the named
-  commands, for example `shortcuts: [prettyprint]`. `linto GROUP COMMAND` and
-  `linto-GROUP-COMMAND` remain available in all cases.
+  commands, as in the `quarto` and `utils` examples above. A command must still
+  be defined by exactly one active group to get an unqualified shortcut; a
+  collision suppresses it even if only one group selected it. `linto GROUP
+  COMMAND` and `linto-GROUP-COMMAND` remain available regardless of shortcut
+  settings.
 - Omitted mapping options default to `enable: true` and `shortcuts: true`.
 
 Refresh generated command stubs, Fish completions, and the active-group list in
