@@ -46,9 +46,11 @@ groups:
 .fi
 .RE
 .PP
-Names in a list still need to be unique across active groups to have an
-unqualified form\. Group\-qualified commands remain available in every mode\.
-Omitted mapping options default to \fBenable: true\fP and \fBshortcuts: true\fP\.
+An unqualified shortcut is available only when exactly one active group defines
+that command\. A collision suppresses it even if only one group enables or lists
+the command; \fBshortcuts: true\fP does not override a collision\. Group\-qualified
+commands remain available in every mode\. Omitted mapping options default to
+\fBenable: true\fP and \fBshortcuts: true\fP\.
 
 .SS "Markdown viewer"
 .PP
