@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# linto-complete: opt -p,--projectdir dir
+# linto-complete: opt -u,--userdatadir dir
+# linto-complete: flag -r,--reuse,-n,--new
+# linto-complete: arg 1 file
 set -euo pipefail
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)

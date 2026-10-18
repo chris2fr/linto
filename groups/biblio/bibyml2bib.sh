@@ -1,4 +1,7 @@
 #!/bin/sh
+# linto-complete: opt -o,--output-file *.bib
+# linto-complete: arg 1 *.bib
+# linto-complete: arg 2 *.yml,*.yaml
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)

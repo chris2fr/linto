@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# linto-complete: arg 1 dir
 set -euo pipefail
 
 usage() {

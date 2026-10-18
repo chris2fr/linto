@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# linto-complete: opt --shell choices:zsh,bash,fish,ksh,sh
+# linto-complete: flag --man
 set -euo pipefail
 
 usage() {

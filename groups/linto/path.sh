@@ -1,4 +1,5 @@
 #!/bin/sh
+# linto-complete: none
 set -eu
 
 if [ "$#" -gt 0 ]; then

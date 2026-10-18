@@ -1,4 +1,6 @@
 #!/bin/sh
+# linto-complete: flag -i,-i.bak
+# linto-complete: arg 1 *.json
 set -eu
 
 usage() {

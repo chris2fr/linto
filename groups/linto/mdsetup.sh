@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# linto-complete: none
 set -euo pipefail
 
 usage() {

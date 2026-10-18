@@ -1,4 +1,8 @@
 #!/bin/sh
+# linto-complete: opt -j,--json *.json
+# linto-complete: opt -o,--output *.json
+# linto-complete: flag -i,-i.bak
+# linto-complete: arg 1 *.bib
 set -eu
 
 usage() {

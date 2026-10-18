@@ -1,4 +1,9 @@
 #!/bin/sh
+# linto-complete: opt -f,--file file
+# linto-complete: opt -d,--dir dir
+# linto-complete: opt --min value
+# linto-complete: opt --max value
+# linto-complete: arg * value
 # Transliterate UTF-8 text to an ASCII slug, or rename a file to a slugified
 # filename. File mode preserves the extension and refuses to overwrite a target.
 

@@ -1,4 +1,8 @@
 #!/bin/sh
+# linto-complete: opt --group value
+# linto-complete: opt --command value
+# linto-complete: opt --editor value
+# linto-complete: flag --edit,--effective
 set -eu
 
 usage() {

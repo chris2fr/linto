@@ -1,4 +1,7 @@
 #!/bin/sh
+# linto-complete: opt -t,--theme value
+# linto-complete: opt -f,--format choices:csv,sed,bibs
+# linto-complete: arg 1 *.bib
 set -eu
 
 usage() {

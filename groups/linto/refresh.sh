@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# linto-complete: none
 set -euo pipefail
 
 usage() {
@@ -138,6 +139,7 @@ mv -- "$wrapper_dir/owned.tmp" "$owned"
 
 {
   printf "set -g linto_bin '%s'\n" "$linto"
+  printf "source '%s/completions/linto-args.fish'\n" "${linto%/bin/linto}"
   cat <<'FISH_HEADER'
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null)'
@@ -147,7 +149,7 @@ FISH_HEADER
 } > "$completion_dir/linto.fish"
 for group in "${groups[@]}"; do
   cat >> "$completion_dir/linto.fish" <<EOF
-complete -c linto -f -n '__fish_seen_subcommand_from $group linto-$group' -a '(\$linto_bin --list-commands $group 2>/dev/null)'
+complete -c linto -f -n '__fish_seen_subcommand_from $group linto-$group; and __linto_needs_command' -a '(\$linto_bin --list-commands $group 2>/dev/null)'
 
 EOF
 done

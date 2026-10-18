@@ -238,6 +238,44 @@ find_tool() {
   return 1
 }
 
+# Find the script a completion request is about. The words are those typed
+# after "linto", ending with the one under the cursor. Prints the script and
+# how many leading words named it, and fails while the cursor is still on the
+# group or command name.
+complete_target() {
+  target_first=$1
+  target_words=1
+  case "$target_first" in
+    linto-*)
+      target_encoded=${target_first#linto-}
+      if list_shortcuts | grep -Fxq -- "$target_encoded"; then
+        target_first=$target_encoded
+      else
+        case "$target_encoded" in
+          *-*)
+            target_group=${target_encoded%%-*}
+            target_command=${target_encoded#*-}
+            group_exists "$target_group" || return 1
+            target_tool=$(find_group_command "$target_group" "$target_command") || return 1
+            printf '%s\t1\n' "$target_tool"
+            return 0
+            ;;
+          *) group_exists "$target_encoded" && target_first=$target_encoded ;;
+        esac
+      fi
+      ;;
+  esac
+  if group_exists "$target_first"; then
+    [ "$#" -ge 2 ] || return 1
+    target_tool=$(find_group_command "$target_first" "$2") || return 1
+    target_words=2
+  else
+    target_tool=$(find_tool "$target_first" "") || return 1
+  fi
+  [ -x "$target_tool" ] || return 1
+  printf '%s\t%s\n' "$target_tool" "$target_words"
+}
+
 usage() {
   cat <<EOF
 Usage: linto [--help] [COMMAND [arguments...]]
@@ -255,6 +293,7 @@ Commands:
   --list-commands GROUP   Print commands in GROUP, one per line.
   --list-shortcuts        Print configured shortcut names.
   --list-shortcut-aliases Print shortcut names and group-command targets.
+  --complete WORD...      Print how to complete the last of WORD... (for shell completion).
   GROUP [COMMAND...]      Run a command in GROUP or list its commands.
   linto-GROUP [COMMAND]   Group alias; linto-GROUP-COMMAND runs a tool directly.
   SHORTCUT [ARGUMENTS...] Run the configured shortcut target.
@@ -316,6 +355,16 @@ case "$1" in
     [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcuts" >&2; exit 2; }
     list_shortcuts
     exit 0
+    ;;
+  --complete)
+    shift
+    [ "$#" -ge 2 ] || exit 0
+    target=$(complete_target "$@") || exit 0
+    tool=${target%%"$tab"*}
+    consumed=${target#*"$tab"}
+    [ "$#" -gt "$consumed" ] || exit 0
+    shift "$consumed"
+    exec python3 "$script_dir/lib/complete.py" "$tool" "$@"
     ;;
   --list-shortcut-aliases)
     [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcut-aliases" >&2; exit 2; }

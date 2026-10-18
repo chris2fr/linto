@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# linto-complete: opt -o,--order value
+# linto-complete: flag -i,-i.bak
+# linto-complete: arg 1 *.bib
 #
 # bib-order-props.sh -- sort BibTeX fields within every supported entry.
 #

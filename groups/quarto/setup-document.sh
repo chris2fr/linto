@@ -1,4 +1,5 @@
 #!/bin/sh
+# linto-complete: none
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)

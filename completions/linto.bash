@@ -1,5 +1,7 @@
 _linto_complete() {
   local linto_bin cur prev first groups commands aliases group
+  local -a reply globs
+  local kind patterns entry pattern matched
   linto_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd -P)/linto"
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -23,6 +25,44 @@ _linto_complete() {
     grouped_commands=$(printf '%s\n' "$groups" | sed 's#^#linto #')
     COMPREPLY=( $(compgen -W "help completion $groups $grouped_commands $aliases $commands" -- "$cur") )
     return
+  fi
+
+  # Past the command name, ask the dispatcher what the command's arguments
+  # look like (see lib/complete.py); it prints nothing while the cursor is still
+  # on a group or command name.
+  if [[ $COMP_CWORD -ge 2 && $first != help && $first != completion ]]; then
+    mapfile -t reply < <("$linto_bin" --complete "${COMP_WORDS[@]:1:COMP_CWORD}" 2>/dev/null)
+    if (( ${#reply[@]} )); then
+      kind=${reply[0]%%$'\t'*}
+      patterns=
+      [[ ${reply[0]} == *$'\t'* ]] && patterns=${reply[0]#*$'\t'}
+      case $kind in
+        files|dirs)
+          compopt -o filenames 2>/dev/null
+          while IFS= read -r entry; do
+            [[ -n $entry ]] || continue
+            if [[ -d $entry ]]; then
+              COMPREPLY+=("$entry")
+            elif [[ $kind == files ]]; then
+              matched=
+              if [[ -z $patterns ]]; then
+                matched=1
+              else
+                IFS=, read -ra globs <<< "$patterns"
+                for pattern in "${globs[@]}"; do
+                  [[ ${entry##*/} == $pattern ]] && matched=1
+                done
+              fi
+              [[ -n $matched ]] && COMPREPLY+=("$entry")
+            fi
+          done < <(compgen -f -- "$cur")
+          ;;
+        words)
+          COMPREPLY=( $(compgen -W "$(printf '%s\n' "${reply[@]:1}")" -- "$cur") )
+          ;;
+      esac
+      return
+    fi
   fi
 
   if [[ $first == linto-* && $COMP_CWORD -eq 2 ]]; then
@@ -54,7 +94,7 @@ _linto_complete() {
   fi
 
   if [[ $COMP_CWORD -eq 2 ]]; then
-    if groups=$("$linto_bin" --list-groups 2>/dev/null) && [[ " $groups " == *" $first "* ]]; then
+    if groups=$("$linto_bin" --list-groups 2>/dev/null) && [[ $'\n'$groups$'\n' == *$'\n'"$first"$'\n'* ]]; then
       commands=$("$linto_bin" --list-commands "$first" 2>/dev/null)
       COMPREPLY=( $(compgen -W "$commands -h --help" -- "$cur") )
     else

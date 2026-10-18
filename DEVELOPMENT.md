@@ -30,6 +30,16 @@ Run refresh after changing configuration or adding or removing executable
 scripts. Like `addgroup` and `rmgroup`, `refresh` and `addman` are removed from
 the Nix package, which provides its own completions and wrappers.
 
+## Argument completion
+
+`linto --complete WORD...` reports how to complete the last word, using the
+`# linto-complete:` comments in the command's script (`lib/complete.py` parses
+them; the format is described in `linto help completion`). `completions/`
+contains thin Bash, Zsh and Fish front ends that call it, so the logic lives in
+one place. Fish's argument rules are in `completions/linto-args.fish`, which
+`linto.fish` and the file written by `linto linto refresh` both source. Add a
+`# linto-complete:` line to every new command that takes arguments.
+
 ## Tests
 
 ```sh

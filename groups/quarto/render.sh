@@ -1,4 +1,5 @@
 #!/bin/sh
+# linto-complete: arg * *.qmd,*.md
 #
 # render.sh -- rebuild bibliographies, then render Quarto documents.
 #

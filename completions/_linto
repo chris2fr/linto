@@ -3,6 +3,8 @@
 _linto() {
   local -a commands groups group_commands aliases
   local group linto_bin completion_file
+  local -a reply
+  local kind patterns
   completion_file=${${funcsourcetrace[1]%%:*}:A}
   if [[ "$completion_file" == */completions/_linto ]]; then
     linto_bin="${completion_file:h:h}/bin/linto"
@@ -13,9 +15,32 @@ _linto() {
   commands=(${(f)"$("$linto_bin" --list-shortcuts 2>/dev/null)"})
 
 
-  if [[ "$words[1]" == linto && "$words[2]" == zed && $CURRENT -ge 3 ]]; then
-    _files
-  elif (( CURRENT == 2 )); then
+  # Past the command name, ask the dispatcher what the command's arguments
+  # look like (see lib/complete.py); it prints nothing while the cursor is still
+  # on a group or command name.
+  if (( CURRENT >= 3 )) && [[ $words[2] != (help|completion) ]]; then
+    reply=("${(@f)$("$linto_bin" --complete "${(@)words[2,CURRENT]}" 2>/dev/null)}")
+    if [[ -n $reply[1] ]]; then
+      kind=${reply[1]%%$'\t'*}
+      patterns=
+      [[ $reply[1] == *$'\t'* ]] && patterns=${reply[1]#*$'\t'}
+      case $kind in
+        files)
+          if [[ -n $patterns ]]; then
+            _files -g "${patterns//,/ }"
+          else
+            _files
+          fi
+          ;;
+        dirs) _files -/ ;;
+        words) compadd -- "${(@)reply[2,-1]}" ;;
+        *) return 1 ;;
+      esac
+      return
+    fi
+  fi
+
+  if (( CURRENT == 2 )); then
     aliases=(linto-${^groups} linto-${^commands})
     _describe 'linto command' commands
     _describe 'linto group' groups

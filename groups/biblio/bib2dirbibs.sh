@@ -1,4 +1,5 @@
 #!/bin/sh
+# linto-complete: arg 1 *.bib
 #
 # bib2dirbibs.sh -- split a BibTeX file into one file per entry.
 #

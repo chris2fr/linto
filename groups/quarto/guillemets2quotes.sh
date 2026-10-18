@@ -1,4 +1,5 @@
 #!/bin/sh
+# linto-complete: arg 1 file
 
 usage() {
     cat <<EOF
