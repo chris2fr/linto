@@ -41,8 +41,9 @@ help`.
 
 ## Group configuration
 
-[`config.yml`](config.yml) is the source of truth for active groups and stub
-policy. It uses a YAML mapping:
+[`config.yml`](config.yml) is the installation baseline for active groups and
+stub policy. Optional system and user files can override it. The YAML mapping
+looks like this:
 
 ```yaml
 configdata:
@@ -82,8 +83,9 @@ shortcuts:
   `groups.GROUP.commands.COMMAND.configdata`. Configdata defaults are read from
   [`lib/default.yml`](lib/default.yml), `GROUP/lib/default.yml`, and
   `GROUP/lib/COMMAND.yml`, respectively. Each defaults file stores values under
-  `configdata`; corresponding entries in `config.yml` override them. The shipped
-  Quarto extension default is in
+  `configdata`; corresponding entries in `config.yml` override them. Runtime
+  overrides are then merged from `/etc/linto/linto.yml` and `~/.linto.yml` (user
+  settings win). The shipped Quarto extension default is in
   [`quarto/lib/default.yml`](quarto/lib/default.yml); shell-alias defaults are
   in [`linto/lib/default.yml`](linto/lib/default.yml). Root settings such as
   `markdown-viewer` are under top-level `configdata`.

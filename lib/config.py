@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from collections.abc import Iterable
 
 import yaml
 
@@ -172,17 +173,29 @@ def validate(data: dict, defaults: dict) -> dict:
     return data
 
 
-def load(path: Path) -> dict:
+def config_overlays(home: Path | None = None) -> list[Path]:
+    """Return system then user configuration paths, in increasing precedence."""
+    home = home or Path.home()
+    return [Path("/etc/linto/linto.yml"), home / ".linto.yml"]
+
+
+def load(
+    path: Path,
+    defaults_root: Path | None = None,
+    overlays: Iterable[Path] = (),
+) -> dict:
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = read_yaml_mapping(path, "configuration")
+        for overlay_path in overlays:
+            if overlay_path.is_file():
+                data = merge_mappings(data, read_yaml_mapping(overlay_path, "configuration overlay"))
     except (OSError, yaml.YAMLError) as exc:
         raise ValueError(f"cannot read configuration {path}: {exc}") from exc
-    if not isinstance(data, dict):
-        raise ValueError("config must contain a mapping")
-    defaults = load_defaults(path.parent)
+    root = defaults_root or path.parent
+    defaults = load_defaults(root)
     validate(data, defaults)
     data["_defaults"] = defaults
-    data["_root"] = path.parent
+    data["_root"] = root
     return data
 
 
@@ -299,10 +312,15 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        data = load(args.config)
-        data["_root"] = args.config.parent
+        installation_root = Path(__file__).resolve().parent.parent
+        overlays = () if args.action in {"add", "remove"} else config_overlays()
+        data = load(
+            args.config,
+            defaults_root=installation_root,
+            overlays=overlays,
+        )
         if args.action == "list":
-            for group in enabled_groups(data, args.config.parent):
+            for group in enabled_groups(data, installation_root):
                 print(group)
         elif args.action == "options":
             print("true" if group_options(data, args.group)["enable"] else "false")
