@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read and update Linto's groups configuration."""
+"""Read and update Linto's command and configdata configuration."""
 
 from __future__ import annotations
 
@@ -10,52 +10,49 @@ from pathlib import Path
 import yaml
 
 
-def load_defaults() -> dict:
-    defaults_path = Path(__file__).with_name("defaults.yml")
-    try:
-        defaults = yaml.safe_load(defaults_path.read_text())
-    except (OSError, yaml.YAMLError) as exc:
-        raise ValueError(f"cannot read defaults {defaults_path}: {exc}") from exc
-    if not isinstance(defaults, dict) or not isinstance(defaults.get("groups"), dict):
-        raise ValueError("defaults.yml must contain a 'groups' mapping")
-    repo_root = defaults_path.parent.parent
-    for group_defaults_path in repo_root.glob("*/lib/defaults.yml"):
-        group_name = group_defaults_path.parent.parent.name
-        try:
-            group_defaults = yaml.safe_load(group_defaults_path.read_text())
-        except (OSError, yaml.YAMLError) as exc:
-            raise ValueError(f"cannot read group defaults {group_defaults_path}: {exc}") from exc
-        if not isinstance(group_defaults, dict):
-            raise ValueError(f"group defaults {group_defaults_path} must be a mapping")
-        current = defaults["groups"].setdefault(group_name, {})
-        if not isinstance(current, dict):
-            raise ValueError(f"defaults.yml group {group_name!r} must be a mapping")
-        current.update(group_defaults)
+NAME_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
 
-    alias_defaults_path = repo_root / "linto" / "lib" / "aliases.yml"
-    if alias_defaults_path.is_file():
-        try:
-            alias_defaults = yaml.safe_load(alias_defaults_path.read_text())
-        except (OSError, yaml.YAMLError) as exc:
-            raise ValueError(f"cannot read alias defaults {alias_defaults_path}: {exc}") from exc
-        validate_shell_aliases(alias_defaults, "linto/lib/aliases.yml")
-        defaults["groups"].setdefault("linto", {})["aliases"] = alias_defaults
-    else:
-        defaults["groups"].setdefault("linto", {}).setdefault(
-            "aliases", {"aliases": {}, "unaliases": []}
-        )
-    for name, options in defaults["groups"].items():
-        if not isinstance(name, str) or not isinstance(options, dict):
-            raise ValueError("defaults.yml group entries must be mappings")
-    quarto = defaults["groups"].get("quarto", {})
-    if "extension" in quarto and (
-        not isinstance(quarto["extension"], str) or not quarto["extension"].strip()
-    ):
-        raise ValueError("quarto/lib/defaults.yml extension must be a non-empty string")
-    linto = defaults["groups"].get("linto", {})
-    if "aliases" in linto:
-        validate_shell_aliases(linto["aliases"], "defaults.yml groups.linto.aliases")
-    return defaults
+
+def read_yaml_mapping(path: Path, label: str) -> dict:
+    try:
+        value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ValueError(f"cannot read {label} {path}: {exc}") from exc
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} {path} must contain a mapping")
+    return value
+
+
+def merge_mappings(base: dict, override: dict) -> dict:
+    """Deep-merge mappings; values other than mappings are replaced."""
+    result = dict(base)
+    for key, value in override.items():
+        if isinstance(result.get(key), dict) and isinstance(value, dict):
+            result[key] = merge_mappings(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def load_defaults(root: Path) -> dict:
+    root_defaults_path = root / "lib" / "default.yml"
+    root_configdata = read_yaml_mapping(root_defaults_path, "root defaults")
+    groups = {}
+    for group_defaults_path in root.glob("*/lib/default.yml"):
+        group_name = group_defaults_path.parent.parent.name
+        groups[group_name] = read_yaml_mapping(group_defaults_path, "group defaults")
+    return {"configdata": root_configdata, "groups": groups}
+
+
+def valid_name(value: object) -> bool:
+    return isinstance(value, str) and bool(value) and all(char in NAME_CHARS for char in value)
+
+
+def validate_configdata(value: object, label: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a mapping")
 
 
 def validate_shell_aliases(value: object, label: str) -> None:
@@ -75,115 +72,205 @@ def validate_shell_aliases(value: object, label: str) -> None:
         raise ValueError(f"{label}.unaliases must be a list of alias names")
 
 
-def load(path: Path) -> dict:
-    try:
-        data = yaml.safe_load(path.read_text())
-    except (OSError, yaml.YAMLError) as exc:
-        raise ValueError(f"cannot read configuration {path}: {exc}") from exc
-    if not isinstance(data, dict) or not isinstance(data.get("groups"), dict):
+def validate(data: dict, defaults: dict) -> dict:
+    if not isinstance(data.get("groups"), dict):
         raise ValueError("config must contain a 'groups' mapping")
     if "quarto" in data:
-        raise ValueError("move Quarto settings to groups.quarto")
-    default_groups = load_defaults()["groups"]
-    for name, options in data["groups"].items():
-        if not isinstance(name, str) or not name or not all(c.isalnum() or c in "_-" for c in name):
-            raise ValueError(f"invalid group name: {name!r}")
-        if options == "default":
-            continue
-        if not isinstance(options, dict):
-            raise ValueError(f"group {name!r} must be 'default' or a mapping")
-        allowed_options = {"enable", *default_groups.get(name, {}).keys()}
-        unknown = set(options) - allowed_options
-        if unknown:
-            raise ValueError(f"unknown option(s) for group {name!r}: {', '.join(sorted(unknown))}")
-        if "enable" in options and not isinstance(options["enable"], bool):
-            raise ValueError(f"group {name!r}: enable must be true or false")
-        if name == "quarto" and "extension" in options:
-            extension = options["extension"]
-            if not isinstance(extension, str) or not extension.strip():
-                raise ValueError("groups.quarto.extension must be a non-empty string")
-        if name == "linto" and "aliases" in options:
-            validate_shell_aliases(options["aliases"], "groups.linto.aliases")
+        raise ValueError("move Quarto settings to groups.quarto.configdata")
+    if "markdown-viewer" in data:
+        raise ValueError("move 'markdown-viewer' to configdata.markdown-viewer")
 
-    aliases = data.get("shortcuts", {})
-    if not isinstance(aliases, dict):
+    unknown_root = set(data) - {"version", "groups", "shortcuts", "configdata"}
+    if unknown_root:
+        raise ValueError(f"unknown top-level configuration key(s): {', '.join(sorted(unknown_root))}")
+    validate_configdata(data.get("configdata", {}), "configdata")
+
+    for group_name, group in data["groups"].items():
+        if not valid_name(group_name):
+            raise ValueError(f"invalid group name: {group_name!r}")
+        if group == "default":
+            continue
+        if not isinstance(group, dict):
+            raise ValueError(f"group {group_name!r} must be 'default' or a mapping")
+        unknown_options = set(group) - {"enable", "configdata", "commands"}
+        if unknown_options:
+            raise ValueError(
+                f"unknown option(s) for group {group_name!r}: "
+                f"{', '.join(sorted(unknown_options))}"
+            )
+        if "enable" in group and not isinstance(group["enable"], bool):
+            raise ValueError(f"group {group_name!r}: enable must be true or false")
+        if "configdata" in group:
+            validate_configdata(group["configdata"], f"groups.{group_name}.configdata")
+        commands = group.get("commands", {})
+        if not isinstance(commands, dict):
+            raise ValueError(f"groups.{group_name}.commands must be a mapping")
+        for command_name, command in commands.items():
+            if not valid_name(command_name):
+                raise ValueError(f"invalid command name in group {group_name!r}: {command_name!r}")
+            if not isinstance(command, dict):
+                raise ValueError(f"groups.{group_name}.commands.{command_name} must be a mapping")
+            unknown_command_options = set(command) - {"enable", "configdata"}
+            if unknown_command_options:
+                raise ValueError(
+                    f"unknown option(s) for command {group_name} {command_name}: "
+                    f"{', '.join(sorted(unknown_command_options))}"
+                )
+            if "enable" in command and not isinstance(command["enable"], bool):
+                raise ValueError(
+                    f"groups.{group_name}.commands.{command_name}.enable must be true or false"
+                )
+            if "configdata" in command:
+                validate_configdata(
+                    command["configdata"],
+                    f"groups.{group_name}.commands.{command_name}.configdata",
+                )
+
+    shortcuts = data.get("shortcuts", {})
+    if not isinstance(shortcuts, dict):
         raise ValueError("'shortcuts' must be a mapping of alias names to 'GROUP COMMAND' targets")
-    for alias, target in aliases.items():
-        if not isinstance(alias, str) or not alias or not all(
-            char.isalnum() or char in "_-" for char in alias
-        ):
+    for alias, target in shortcuts.items():
+        if not valid_name(alias):
             raise ValueError(f"invalid shortcut alias name: {alias!r}")
         if alias in {"help", "completion"} or alias in data["groups"]:
             raise ValueError(f"shortcut alias name is reserved: {alias!r}")
         if not isinstance(target, str):
             raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
         parts = target.split()
-        if len(parts) != 2 or not all(
-            part and all(char.isalnum() or char in "_-" for char in part)
-            for part in parts
-        ):
+        if len(parts) != 2 or not all(valid_name(part) for part in parts):
             raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
         if parts[0] not in data["groups"]:
             raise ValueError(f"shortcuts.{alias} references unknown group {parts[0]!r}")
+
+    # Validate effective configdata for the settings with a known schema.
+    root_configdata = merge_mappings(defaults["configdata"], data.get("configdata", {}))
+    if "markdown-viewer" in root_configdata:
+        markdown_viewers({"configdata": root_configdata})
+    for group_name, group_defaults in defaults["groups"].items():
+        if not isinstance(group_defaults, dict):
+            raise ValueError(f"defaults for group {group_name!r} must be a mapping")
+        if group_name == "linto" and "aliases" in group_defaults:
+            validate_shell_aliases(group_defaults["aliases"], "linto/lib/default.yml aliases")
+        if group_name == "quarto" and "extension" in group_defaults:
+            extension = group_defaults["extension"]
+            if not isinstance(extension, str) or not extension.strip():
+                raise ValueError("quarto/lib/default.yml extension must be a non-empty string")
+    for group_name in data["groups"]:
+        group_configdata = merge_mappings(
+            defaults["groups"].get(group_name, {}),
+            data["groups"][group_name].get("configdata", {})
+            if isinstance(data["groups"][group_name], dict)
+            else {},
+        )
+        if group_name == "linto" and "aliases" in group_configdata:
+            validate_shell_aliases(group_configdata["aliases"], "groups.linto.configdata.aliases")
+        if group_name == "quarto" and "extension" in group_configdata:
+            extension = group_configdata["extension"]
+            if not isinstance(extension, str) or not extension.strip():
+                raise ValueError("groups.quarto.configdata.extension must be a non-empty string")
     return data
+
+
+def load(path: Path) -> dict:
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ValueError(f"cannot read configuration {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("config must contain a mapping")
+    defaults = load_defaults(path.parent)
+    validate(data, defaults)
+    data["_defaults"] = defaults
+    data["_root"] = path.parent
+    return data
+
+
+def defaults_for(data: dict) -> dict:
+    defaults = data.get("_defaults")
+    if defaults is None:
+        defaults = load_defaults(Path(data.get("_root", Path.cwd())))
+    return defaults
+
+
+def group_options(data: dict, name: str) -> dict:
+    group = data["groups"].get(name, "default")
+    defaults = defaults_for(data)["groups"].get(name, {})
+    configdata = merge_mappings(defaults, group.get("configdata", {}) if isinstance(group, dict) else {})
+    return {
+        "enable": True if group == "default" else group.get("enable", True),
+        "configdata": configdata,
+        "commands": group.get("commands", {}) if isinstance(group, dict) else {},
+    }
+
+
+def command_options(data: dict, group_name: str, command_name: str) -> dict:
+    options = group_options(data, group_name)
+    group = data["groups"].get(group_name, "default")
+    group_commands = group.get("commands", {}) if isinstance(group, dict) else {}
+    command = group_commands.get(command_name, {})
+    root = Path(data.get("_root", Path.cwd()))
+    command_defaults_path = root / group_name / "lib" / f"{command_name}.yml"
+    command_defaults = read_yaml_mapping(command_defaults_path, "command defaults") if command_defaults_path.is_file() else {}
+    command_configdata = merge_mappings(
+        command_defaults,
+        command.get("configdata", {}) if isinstance(command, dict) else {},
+    )
+    return {
+        "enable": command.get("enable", True) if isinstance(command, dict) else True,
+        "configdata": merge_mappings(options["configdata"], command_configdata),
+    }
+
+
+def configdata(data: dict, group: str | None = None, command: str | None = None) -> dict:
+    defaults = defaults_for(data)
+    root_data = merge_mappings(
+        defaults["configdata"], data.get("configdata", {})
+    )
+    if group is None:
+        if command is not None:
+            raise ValueError("a group is required when requesting command configdata")
+        return root_data
+    group_data = command_options(data, group, command)["configdata"] if command else group_options(data, group)["configdata"]
+    return merge_mappings(root_data, group_data)
 
 
 def enabled_groups(data: dict, root: Path) -> list[str]:
     result = []
     reserved = {"bin", "completions", "man", "old", "tests", "lib"}
-    for name, options in data["groups"].items():
-        enabled = True if options == "default" else options.get("enable", True)
+    for name in data["groups"]:
+        enabled = group_options(data, name)["enable"]
         if name not in reserved and enabled and (root / name).is_dir():
             result.append(name)
     return result
 
 
-def group_options(data: dict, name: str) -> dict:
-    value = data["groups"].get(name, "default")
-    options = dict(load_defaults()["groups"].get(name, {}))
-    if value != "default":
-        for key, item in value.items():
-            if key == "aliases" and isinstance(options.get(key), dict) and isinstance(item, dict):
-                merged = dict(options[key])
-                if "aliases" in item:
-                    merged_aliases = dict(merged.get("aliases", {}))
-                    merged_aliases.update(item["aliases"])
-                    merged["aliases"] = merged_aliases
-                if "unaliases" in item:
-                    merged["unaliases"] = item["unaliases"]
-                options[key] = merged
-            else:
-                options[key] = item
-    options.setdefault("enable", True)
-    return options
-
-
 def markdown_viewers(data: dict) -> list[str]:
     """Return configured Markdown viewers in preference order."""
-    viewers = data.get("markdown-viewer", ["cat"])
+    viewers = configdata(data).get("markdown-viewer", ["cat"])
     if isinstance(viewers, str):
         viewers = [viewers]
     if not isinstance(viewers, list) or not viewers:
-        raise ValueError("'markdown-viewer' must be a non-empty string or list")
+        raise ValueError("'configdata.markdown-viewer' must be a non-empty string or list")
     result = []
     for viewer in viewers:
         if not isinstance(viewer, str) or not viewer.strip():
-            raise ValueError("'markdown-viewer' entries must be non-empty strings")
+            raise ValueError("'configdata.markdown-viewer' entries must be non-empty strings")
         result.append(viewer.strip())
     return result
 
 
 def quarto_extension(data: dict) -> str:
     """Return the configured Quarto extension repository."""
-    extension = group_options(data, "quarto").get("extension", "chris2fr/quarto")
+    extension = configdata(data, "quarto").get("extension", "chris2fr/quarto")
     if not isinstance(extension, str) or not extension.strip():
-        raise ValueError("groups.quarto.extension must be a non-empty string")
+        raise ValueError("groups.quarto.configdata.extension must be a non-empty string")
     return extension.strip()
 
 
 def dump(data: dict, path: Path) -> None:
+    data = {key: value for key, value in data.items() if key not in {"_defaults", "_root"}}
     text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
 
 
 def main() -> int:
@@ -193,6 +280,13 @@ def main() -> int:
     sub.add_parser("list")
     options_parser = sub.add_parser("options")
     options_parser.add_argument("group")
+    command_enabled_parser = sub.add_parser("command-enabled")
+    command_enabled_parser.add_argument("group")
+    command_enabled_parser.add_argument("command")
+    sub.add_parser("disabled-commands")
+    configdata_parser = sub.add_parser("configdata")
+    configdata_parser.add_argument("group", nargs="?")
+    configdata_parser.add_argument("command", nargs="?")
     sub.add_parser("aliases")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
@@ -205,12 +299,23 @@ def main() -> int:
 
     try:
         data = load(args.config)
+        data["_root"] = args.config.parent
         if args.action == "list":
             for group in enabled_groups(data, args.config.parent):
                 print(group)
         elif args.action == "options":
-            options = group_options(data, args.group)
-            print("true" if options["enable"] else "false")
+            print("true" if group_options(data, args.group)["enable"] else "false")
+        elif args.action == "command-enabled":
+            print("true" if command_options(data, args.group, args.command)["enable"] else "false")
+        elif args.action == "disabled-commands":
+            for group in data["groups"]:
+                options = group_options(data, group)
+                for command in options["commands"]:
+                    if not command_options(data, group, command)["enable"]:
+                        print(f"{group}/{command}")
+        elif args.action == "configdata":
+            result = configdata(data, args.group, args.command)
+            print(yaml.safe_dump(result, sort_keys=False, allow_unicode=True), end="")
         elif args.action == "aliases":
             for alias, target in data.get("shortcuts", {}).items():
                 group, command = target.split()

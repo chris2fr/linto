@@ -1,4 +1,4 @@
-"""Manage shell aliases from groups.linto.aliases and its YAML defaults."""
+"""Manage shell aliases from groups.linto.configdata.aliases."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def main() -> int:
 
     try:
         data = linto_config.load(repo_root / "config.yml")
-        alias_settings = linto_config.group_options(data, "linto").get("aliases", {})
+        alias_settings = linto_config.configdata(data, "linto").get("aliases", {})
     except (OSError, ValueError) as exc:
         print(f"error: failed to read Linto configuration: {exc}", file=sys.stderr)
         return 1
@@ -63,10 +63,10 @@ def main() -> int:
         not isinstance(name, str) or not isinstance(command, str)
         for name, command in aliases.items()
     ):
-        print("error: groups.linto.aliases.aliases must map names to command strings", file=sys.stderr)
+        print("error: groups.linto.configdata.aliases.aliases must map names to command strings", file=sys.stderr)
         return 1
     if not isinstance(unaliases, list) or any(not isinstance(name, str) for name in unaliases):
-        print("error: groups.linto.aliases.unaliases must be a list of alias names", file=sys.stderr)
+        print("error: groups.linto.configdata.aliases.unaliases must be a list of alias names", file=sys.stderr)
         return 1
 
     if not aliases and not unaliases:

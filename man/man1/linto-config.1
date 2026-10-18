@@ -8,24 +8,30 @@ preferences\.
 
 .SS "Groups and shortcuts"
 .PP
-The \fBgroups\fP mapping accepts the \fBdefault\fP shorthand or a mapping of options:
+The \fBgroups\fP mapping accepts the \fBdefault\fP shorthand or a mapping of options\.
+Settings are separated into \fBenable\fP, \fBconfigdata\fP, and \fBcommands\fP:
 .RS
 .PP
 .nf
+configdata:
+  markdown\-viewer:
+    \- md\-tui
+    \- cat
 groups:
-  beta: default
-  biblio: default
-  launch: default
   linto:
-    aliases:
+    configdata:
       aliases:
-        zz: "linto launch zed"
-      unaliases:
-        \- something\-to\-delete\-from\-aliases
-  quarto: default
-  utils: default
-  old:
-    enable: false
+        aliases:
+          zz: "linto launch zed"
+        unaliases:
+          \- something\-to\-delete\-from\-aliases
+  quarto:
+    configdata:
+      extension: "chris2fr/quarto"
+    commands:
+      render:
+        enable: true
+        configdata: {}
 shortcuts:
   prettyprint: "utils prettyprint"
   stripaccents: "utils stripaccents"
@@ -36,14 +42,18 @@ shortcuts:
 .PP
 \fBdefault\fP enables a group\. A group mapping may set \fBenable: false\fP to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
-completions, and stubs\. Omitted group options default to \fBenable: true\fP\.
-Shared defaults may be placed in \fBlib/defaults\.yml\fP,
-and groups can also supply defaults in \fBGROUP/lib/defaults\.yml\fP\. With
-\fBquarto: default\fP, the extension comes from
-\fBquarto/lib/defaults\.yml\fP; set
-\fBgroups\.quarto\.extension\fP to override it\. Shell\-alias defaults come from
-\fBlinto/lib/aliases\.yml\fP; values in
-\fBgroups\.linto\.aliases\fP override or extend those defaults\.
+completions, and stubs\. Omitted group and command \fBenable\fP options default to
+\fBtrue\fP; command enable values live at
+\fBgroups\.GROUP\.commands\.COMMAND\.enable\fP\.
+.PP
+Group\-specific settings live under \fBgroups\.GROUP\.configdata\fP, and command\-
+specific settings under \fBgroups\.GROUP\.commands\.COMMAND\.configdata\fP\. Defaults
+are layered from \fBlib/default\.yml\fP (root), \fBGROUP/lib/default\.yml\fP (group), and
+\fBGROUP/lib/COMMAND\.yml\fP (command); values in \fBconfig\.yml\fP override defaults at
+the matching level\. The Markdown viewer is root configdata, while the shipped
+Quarto extension and Linto shell\-alias defaults are in
+\fBquarto/lib/default\.yml\fP and
+\fBlinto/lib/default\.yml\fP, respectively\.
 .PP
 The top\-level \fBshortcuts\fP mapping defines explicit aliases\. Each key is the
 shortcut name, and each value is a \fB"GROUP COMMAND"\fP target\. For example,
@@ -56,18 +66,19 @@ any alias entry\.
 
 .SS "Markdown viewer"
 .PP
-\fBmarkdown\-viewer\fP accepts one command name or an ordered YAML list\. Linto tries
+\fBconfigdata\.markdown\-viewer\fP accepts one command name or an ordered YAML list\. Linto tries
 the entries from top to bottom and runs the first installed supported viewer\.
 For example:
 .RS
 .PP
 .nf
-markdown\-viewer:
-  \- mdless
-  \- mdcat
-  \- glow
-  \- bat
-  \- cat
+configdata:
+  markdown\-viewer:
+    \- mdless
+    \- mdcat
+    \- glow
+    \- bat
+    \- cat
 .fi
 .RE
 .PP

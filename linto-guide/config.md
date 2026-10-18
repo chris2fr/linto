@@ -6,23 +6,29 @@ preferences.
 
 ## Groups and shortcuts
 
-The `groups` mapping accepts the `default` shorthand or a mapping of options:
+The `groups` mapping accepts the `default` shorthand or a mapping of options.
+Settings are separated into `enable`, `configdata`, and `commands`:
 
 ```yaml
+configdata:
+  markdown-viewer:
+    - md-tui
+    - cat
 groups:
-  beta: default
-  biblio: default
-  launch: default
   linto:
-    aliases:
+    configdata:
       aliases:
-        zz: "linto launch zed"
-      unaliases:
-        - something-to-delete-from-aliases
-  quarto: default
-  utils: default
-  old:
-    enable: false
+        aliases:
+          zz: "linto launch zed"
+        unaliases:
+          - something-to-delete-from-aliases
+  quarto:
+    configdata:
+      extension: "chris2fr/quarto"
+    commands:
+      render:
+        enable: true
+        configdata: {}
 shortcuts:
   prettyprint: "utils prettyprint"
   stripaccents: "utils stripaccents"
@@ -32,14 +38,18 @@ shortcuts:
 
 `default` enables a group. A group mapping may set `enable: false` to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
-completions, and stubs. Omitted group options default to `enable: true`.
-Shared defaults may be placed in [`lib/defaults.yml`](../lib/defaults.yml),
-and groups can also supply defaults in `GROUP/lib/defaults.yml`. With
-`quarto: default`, the extension comes from
-[`quarto/lib/defaults.yml`](../quarto/lib/defaults.yml); set
-`groups.quarto.extension` to override it. Shell-alias defaults come from
-[`linto/lib/aliases.yml`](../linto/lib/aliases.yml); values in
-`groups.linto.aliases` override or extend those defaults.
+completions, and stubs. Omitted group and command `enable` options default to
+`true`; command enable values live at
+`groups.GROUP.commands.COMMAND.enable`.
+
+Group-specific settings live under `groups.GROUP.configdata`, and command-
+specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
+are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
+`GROUP/lib/COMMAND.yml` (command); values in `config.yml` override defaults at
+the matching level. The Markdown viewer is root configdata, while the shipped
+Quarto extension and Linto shell-alias defaults are in
+[`quarto/lib/default.yml`](../quarto/lib/default.yml) and
+[`linto/lib/default.yml`](../linto/lib/default.yml), respectively.
 
 The top-level `shortcuts` mapping defines explicit aliases. Each key is the
 shortcut name, and each value is a `"GROUP COMMAND"` target. For example,
@@ -52,17 +62,18 @@ any alias entry.
 
 ## Markdown viewer
 
-`markdown-viewer` accepts one command name or an ordered YAML list. Linto tries
+`configdata.markdown-viewer` accepts one command name or an ordered YAML list. Linto tries
 the entries from top to bottom and runs the first installed supported viewer.
 For example:
 
 ```yaml
-markdown-viewer:
-  - mdless
-  - mdcat
-  - glow
-  - bat
-  - cat
+configdata:
+  markdown-viewer:
+    - mdless
+    - mdcat
+    - glow
+    - bat
+    - cat
 ```
 
 Supported choices include `md-tui`, `inlyne`, `mdcat`, `mandown`, `glow`,

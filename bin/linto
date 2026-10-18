@@ -19,12 +19,37 @@ list_groups() {
   python3 "$script_dir/lib/config.py" "$script_dir/config.yml" list
 }
 
+command_states_loaded=
+disabled_command_states=
+
+load_command_states() {
+  [ "$command_states_loaded" = yes ] && return 0
+  if [ -f "$script_dir/config.yml" ]; then
+    loaded_command_states=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" disabled-commands) || return 1
+    disabled_command_states=$(printf '%s\n' "$loaded_command_states" | tr '\n' ' ')
+  fi
+  command_states_loaded=yes
+}
+
+command_enabled() {
+  load_command_states || return 1
+  case " $disabled_command_states " in
+    *" $1/$2 "*) return 1 ;;
+  esac
+  return 0
+}
+
 list_group_commands() {
   list_command_group=$1
+  load_command_states || return 1
   for tool in "$script_dir/$list_command_group"/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
-    printf '%s\n' "${name%.sh}"
+    name=${name%.sh}
+    case " $disabled_command_states " in
+      *" $list_command_group/$name "*) continue ;;
+    esac
+    printf '%s\n' "$name"
   done
 }
 
@@ -65,6 +90,7 @@ group_exists() {
 find_group_command() {
   group=$1
   command_name=$2
+  command_enabled "$group" "$command_name" || return 1
   for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
     if [ -f "$candidate" ]; then
       printf '%s\n' "$candidate"
@@ -153,13 +179,8 @@ find_tool() {
     fi
   fi
   if [ -n "$tool_group" ]; then
-    for candidate in "$script_dir/$tool_group/$command_name" "$script_dir/$tool_group/$command_name.sh"; do
-      if [ -f "$candidate" ]; then
-        printf '%s\n' "$candidate"
-        return 0
-      fi
-    done
-    return 1
+    find_group_command "$tool_group" "$command_name"
+    return $?
   fi
 
   for candidate in "$script_dir/$command_name" "$script_dir/$command_name.sh"; do

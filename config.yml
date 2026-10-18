@@ -4,11 +4,12 @@ groups:
   biblio: default
   launch: default
   linto:
-    aliases:
+    configdata:
       aliases:
-        zz: "linto launch zed"
-      unaliases:
-        - something-to-delete-from-aliases
+        aliases:
+          zz: "linto launch zed"
+        unaliases:
+          - something-to-delete-from-aliases
   quarto: default
   utils: default
   old:
@@ -18,25 +19,3 @@ shortcuts:
   stripaccents: "utils stripaccents"
   slug: "utils stripaccents"
   guillemets2quotes: "quarto guillemets2quotes"
-
-# markdown-viewer: md-tui
-markdown-viewer:
-  - md-tui
-  - mdless
-  - frogmouth
-  - mdcat
-  - mandown
-  - glow
-  - inlyne
-  - bat
-  - cat
-  - mdfried
-  - ghostwriter
-  - marktext
-  - zeditor
-  - apostrophe
-  - marknote
-  - marker
-  - md-reader
-  - md-viewer
-  - blink

@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import textwrap
 import unittest
 
 
@@ -11,52 +12,109 @@ config = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(config)
 
 
-class GroupDefaultsTests(unittest.TestCase):
-    def load_config(self, text: str) -> dict:
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "config.yml"
-            path.write_text(text, encoding="utf-8")
-            return config.load(path)
-
-    def test_quarto_extension_comes_from_defaults(self):
-        data = self.load_config(
-            "groups:\n  quarto: default\n  linto: default\n"
-        )
+class ConfigdataTests(unittest.TestCase):
+    def test_shipped_defaults_are_loaded_at_each_level(self):
+        data = config.load(ROOT / "config.yml")
         self.assertEqual(config.quarto_extension(data), "chris2fr/quarto")
+        self.assertEqual(config.markdown_viewers(data)[0], "md-tui")
         self.assertEqual(
-            config.group_options(data, "linto")["aliases"],
+            config.configdata(data, "linto")["aliases"],
             {
                 "aliases": {"zz": "linto launch zed"},
                 "unaliases": ["something-to-delete-from-aliases"],
             },
         )
 
-    def test_group_values_override_defaults(self):
-        data = self.load_config(
-            "groups:\n"
-            "  quarto:\n"
-            "    extension: example.org/custom\n"
-            "  linto:\n"
-            "    aliases:\n"
-            "      aliases:\n"
-            "        zz: custom command\n"
-            "        extra: linto launch zed\n"
-        )
-        self.assertEqual(config.quarto_extension(data), "example.org/custom")
-        self.assertEqual(
-            config.group_options(data, "linto")["aliases"],
-            {
-                "aliases": {"zz": "custom command", "extra": "linto launch zed"},
-                "unaliases": ["something-to-delete-from-aliases"],
-            },
-        )
-
-    def test_legacy_top_level_quarto_setting_is_rejected(self):
-        with self.assertRaises(ValueError):
-            self.load_config(
-                "groups:\n  quarto: default\n"
-                "quarto:\n  extension: example.org/legacy\n"
+    def test_configdata_merge_and_command_enable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "lib").mkdir()
+            (root / "demo" / "lib").mkdir(parents=True)
+            (root / "lib" / "default.yml").write_text(
+                "shared: default\nnested:\n  root: default\n", encoding="utf-8"
             )
+            (root / "demo" / "lib" / "default.yml").write_text(
+                "nested:\n  group: default\n", encoding="utf-8"
+            )
+            (root / "demo" / "lib" / "run.yml").write_text(
+                "nested:\n  command: default\n", encoding="utf-8"
+            )
+            config_path = root / "config.yml"
+            config_path.write_text(
+                textwrap.dedent(
+                    """\
+                    configdata:
+                      shared: configured
+                    groups:
+                      demo:
+                        configdata:
+                          nested:
+                            group: configured
+                        commands:
+                          run:
+                            enable: false
+                            configdata:
+                              nested:
+                                command: configured
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            data = config.load(config_path)
+            self.assertEqual(
+                config.configdata(data, "demo", "run"),
+                {
+                    "shared": "configured",
+                    "nested": {
+                        "root": "default",
+                        "group": "configured",
+                        "command": "configured",
+                    },
+                },
+            )
+            self.assertFalse(config.command_options(data, "demo", "run")["enable"])
+            self.assertTrue(config.command_options(data, "demo", "other")["enable"])
+            self.assertEqual(config.configdata(data)["shared"], "configured")
+
+    def test_alias_defaults_are_extended_and_overridden(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "lib").mkdir()
+            (root / "linto" / "lib").mkdir(parents=True)
+            (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
+            (root / "linto" / "lib" / "default.yml").write_text(
+                "aliases:\n  aliases:\n    zz: default\n    keep: default\n  unaliases: [old]\n",
+                encoding="utf-8",
+            )
+            config_path = root / "config.yml"
+            config_path.write_text(
+                "groups:\n  linto:\n    configdata:\n      aliases:\n"
+                "        aliases:\n          zz: custom\n          new: custom\n",
+                encoding="utf-8",
+            )
+            data = config.load(config_path)
+            self.assertEqual(
+                config.configdata(data, "linto")["aliases"],
+                {
+                    "aliases": {"zz": "custom", "keep": "default", "new": "custom"},
+                    "unaliases": ["old"],
+                },
+            )
+
+    def test_legacy_configuration_locations_are_rejected(self):
+        for text in (
+            "groups:\n  quarto: default\nquarto:\n  extension: old/repo\n",
+            "groups:\n  quarto: default\nmarkdown-viewer: cat\n",
+        ):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "lib").mkdir()
+                (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
+                path = root / "config.yml"
+                path.write_text(text, encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    config.load(path)
 
 
 if __name__ == "__main__":

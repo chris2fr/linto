@@ -13,7 +13,10 @@ MODULE_PATH = ROOT / "lib" / "config.py"
 class ShortcutConfigTests(unittest.TestCase):
     def run_config(self, config: str, action: str, *args: str) -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "config.yml"
+            root = Path(directory)
+            (root / "lib").mkdir()
+            (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
+            path = root / "config.yml"
             path.write_text(config, encoding="utf-8")
             return subprocess.run(
                 [sys.executable, MODULE_PATH, path, action, *args],
@@ -59,10 +62,13 @@ class ShortcutConfigTests(unittest.TestCase):
             (root / "lib").mkdir()
             shutil.copy2(ROOT / "bin" / "linto", root / "bin" / "linto")
             shutil.copy2(MODULE_PATH, root / "lib" / "config.py")
-            shutil.copy2(ROOT / "lib" / "defaults.yml", root / "lib" / "defaults.yml")
+            shutil.copy2(ROOT / "lib" / "default.yml", root / "lib" / "default.yml")
             (root / "config.yml").write_text(
                 "groups:\n"
-                "  alpha: default\n"
+                "  alpha:\n"
+                "    commands:\n"
+                "      hidden:\n"
+                "        enable: false\n"
                 "  beta: default\n"
                 "  gamma:\n"
                 "    enable: false\n"
@@ -71,7 +77,8 @@ class ShortcutConfigTests(unittest.TestCase):
                 "  collision_alias: alpha collision\n"
                 "  hyphen-name: alpha listed\n"
                 "  beta_alias: beta other\n"
-                "  disabled_alias: gamma disabled\n",
+                "  disabled_alias: gamma disabled\n"
+                "  hidden_alias: alpha hidden\n",
                 encoding="utf-8",
             )
 
@@ -116,7 +123,21 @@ class ShortcutConfigTests(unittest.TestCase):
                 check=True,
             )
             self.assertEqual(qualified.stdout.strip(), "beta-collision")
-            for command in ("listed", "collision", "other", "disabled_alias"):
+            listed_commands = subprocess.run(
+                [dispatcher, "--list-commands", "alpha"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertNotIn("hidden", listed_commands.stdout.splitlines())
+            hidden = subprocess.run(
+                [dispatcher, "alpha", "hidden"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(hidden.returncode, 2)
+            for command in ("listed", "collision", "other", "disabled_alias", "hidden_alias"):
                 with self.subTest(command=command):
                     result = subprocess.run(
                         [dispatcher, command], capture_output=True, text=True, check=False
