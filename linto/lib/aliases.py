@@ -1,4 +1,4 @@
-"""Manage and install shell aliases configured under groups.linto.aliases."""
+"""Manage shell aliases from groups.linto.aliases and its YAML defaults."""
 
 from __future__ import annotations
 
