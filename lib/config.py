@@ -43,6 +43,25 @@ def load(path: Path) -> dict:
             )
         if len(shortcuts) != len(set(shortcuts)):
             raise ValueError(f"group {name!r}: shortcuts list contains duplicate command names")
+
+    aliases = data.get("shortcuts", {})
+    if not isinstance(aliases, dict):
+        raise ValueError("'shortcuts' must be a mapping of alias names to 'GROUP COMMAND' targets")
+    for alias, target in aliases.items():
+        if not isinstance(alias, str) or not alias or not all(
+            char.isalnum() or char in "_-" for char in alias
+        ):
+            raise ValueError(f"invalid shortcut alias name: {alias!r}")
+        if not isinstance(target, str):
+            raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
+        parts = target.split()
+        if len(parts) != 2 or not all(
+            part and all(char.isalnum() or char in "_-" for char in part)
+            for part in parts
+        ):
+            raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
+        if parts[0] not in data["groups"]:
+            raise ValueError(f"shortcuts.{alias} references unknown group {parts[0]!r}")
     return data
 
 
@@ -104,6 +123,7 @@ def main() -> int:
     sub.add_parser("list")
     options_parser = sub.add_parser("options")
     options_parser.add_argument("group")
+    sub.add_parser("aliases")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
     sub.add_parser("version")
@@ -128,6 +148,10 @@ def main() -> int:
                 print("list")
                 for command in shortcuts:
                     print(command)
+        elif args.action == "aliases":
+            for alias, target in data.get("shortcuts", {}).items():
+                group, command = target.split()
+                print(f"{alias}\t{group}\t{command}")
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
         elif args.action == "markdown-viewer":
@@ -151,6 +175,9 @@ def main() -> int:
             current = data["groups"].get(args.group)
             if current == "default":
                 del data["groups"][args.group]
+                for alias, target in list(data.get("shortcuts", {}).items()):
+                    if target.split()[0] == args.group:
+                        del data["shortcuts"][alias]
             elif isinstance(current, dict):
                 current["enable"] = False
             else:
