@@ -24,7 +24,7 @@ esac
 [[ $# -eq 1 ]] || { usage >&2; exit 2; }
 name=$1
 case "$name" in
-  ''|.*|bin|completions|man|old|tests|lib|*[!a-zA-Z0-9_-]*)
+  ''|.*|bin|completions|man|tests|lib|*[!a-zA-Z0-9_-]*)
     fail "invalid or reserved group name: $name"
     ;;
 esac

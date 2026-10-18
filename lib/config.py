@@ -306,7 +306,7 @@ def configdata(data: dict, group: str | None = None, command: str | None = None)
 
 def enabled_groups(data: dict, root: Path, data_root: Path | None = None) -> list[str]:
     result = []
-    reserved = {"bin", "completions", "man", "old", "tests", "lib"}
+    reserved = {"bin", "completions", "man", "tests", "lib"}
     user_groups = (data_root or Path(data.get("_data_root", data_directory()))) / "groups"
     for name in data["groups"]:
         enabled = group_options(data, name)["enable"]

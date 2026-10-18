@@ -34,7 +34,7 @@ user_groups="$data_home/linto/groups"
 
 name=${source_dir##*/}
 case "$name" in
-  ''|.*|bin|completions|man|old|tests|lib|*[!a-zA-Z0-9_-]*)
+  ''|.*|bin|completions|man|tests|lib|*[!a-zA-Z0-9_-]*)
     fail "invalid or reserved group name: $name"
     ;;
 esac
