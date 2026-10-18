@@ -163,21 +163,26 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
                 printf 'zed: refusing to remove unmarked local data path: %s (move it manually, or initialize from a clean .zed directory)\n' "$local_path" >&2
                 exit 1
             fi
-            [[ -d "$shared_path" ]] || {
-                printf 'zed: shared Zed directory is missing: %s\n' "$shared_path" >&2
-                exit 1
-            }
-        done
-        printf 'Initializing shared Zed data in %s. Close the temporary Zed window to continue.\n' "$user_data_dir" >&2
-        (
-            cd "$project_dir"
-            if [[ -n "${file_basename:-}" ]]; then
-                zeditor --user-data-dir "$user_data_dir" --new --wait "$(pwd)" "$file_basename"
-            else
-                zeditor --user-data-dir "$user_data_dir" --new --wait "$(pwd)"
+            if [[ -e "$shared_path" ]] || true; then
+                # We will populate from shared_zed_dir directly below.
+                true
             fi
-        )
+        done
+        printf 'Initializing shared Zed data in %s from %s...\n' "$user_data_dir" "$shared_zed_dir" >&2
 
+        # Copy base configuration and state files from ~/.zed, excluding heavy/shared items
+        for item in "$shared_zed_dir"/*; do
+            item_name="$(basename "$item")"
+            if [[ "$item_name" == "languages" || "$item_name" == "extensions" ]]; then
+                continue
+            fi
+            target_item="$user_data_dir/$item_name"
+            if [[ ! -e "$target_item" ]]; then
+                cp -R "$item" "$target_item"
+            fi
+        done
+
+        # Symlink shared items
         for shared_item in languages extensions; do
             local_path="$user_data_dir/$shared_item"
             shared_path="$shared_zed_dir/$shared_item"
@@ -188,7 +193,7 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
             if [[ -d "$local_path" ]]; then
                 rm -rf -- "$local_path"
             fi
-            ln -s "$shared_path" "$local_path"
+            [[ -e "$shared_path" ]] && ln -s "$shared_path" "$local_path" || true
         done
 
         marker_tmp="$marker_file.tmp.$$"

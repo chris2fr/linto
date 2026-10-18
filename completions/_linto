@@ -3,12 +3,18 @@
 _linto() {
   local -a commands groups group_commands aliases
   local group linto_bin completion_file
-  completion_file=${funcsourcetrace[1]%%:*}
-  linto_bin="${completion_file:A:h:h}/bin/linto"
+  completion_file=${${funcsourcetrace[1]%%:*}:A}
+  if [[ "$completion_file" == */completions/_linto ]]; then
+    linto_bin="${completion_file:h:h}/bin/linto"
+  else
+    linto_bin="${commands[linto]:A}"
+  fi
   groups=(${(f)"$("$linto_bin" --list-groups 2>/dev/null)"})
   commands=(${(f)"$("$linto_bin" --help 2>/dev/null | sed -n '/^Available commands/,/^$/p' | sed '1d' | sed 's/^  //')"})
 
-  if (( CURRENT == 2 )); then
+  if [[ "$words[1]" == linto && "$words[2]" == zed && $CURRENT -ge 3 ]]; then
+    _files
+  elif (( CURRENT == 2 )); then
     aliases=(linto-${^groups})
     _describe 'linto command' commands
     _describe 'linto group' groups
@@ -40,6 +46,8 @@ _linto() {
     if (( CURRENT == 3 )); then
       group_commands=(${(f)"$("$linto_bin" --list-commands "$group" 2>/dev/null)"})
       _describe "$group command" group_commands
+    elif (( CURRENT > 3 )); then
+      _files
     else
       _arguments '(-h --help)'{-h,--help}'[Show help]'
     fi
