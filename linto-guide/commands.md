@@ -45,17 +45,22 @@ groups:
         zz: "linto launch zed"
 ```
 
-By default, the command detects the shell from `$SHELL`, then tries the parent
-process, and falls back to `sh` if it cannot identify one. Select a shell
+By default, the command detects the shell invoking Linto by walking the
+parent-process chain (skipping shell processes running Linto scripts), then
+falls back to shell environment variables and `$SHELL`. Select a shell
 explicitly with `-s` or `--shell`:
 
 ```sh
 linto linto aliases --shell fish
 linto linto aliases -s bash
+linto linto aliases --shell all
 ```
 
-Choices are `fish`, `zsh`, `bash`, `sh`, and `ksh`. Fish aliases are saved with
-Fish's `alias --save` mechanism. For Bash, Zsh, sh, and ksh, Linto replaces the
-managed alias block in `~/.bashrc`, `~/.zshrc`, `~/.profile`, or `~/.kshrc`,
-respectively. Start a new shell or reload your shell's configuration for the
-changes to take effect.
+Choices are `fish`, `zsh`, `bash`, `sh`, `ksh`, and `all`. `all` updates each
+of the five shells. Fish aliases are saved with Fish's `alias --save` mechanism.
+For Bash, Zsh, sh, and ksh, Linto replaces the managed alias block in
+`~/.bashrc`, `~/.zshrc` (or `$ZDOTDIR/.zshrc`), `~/.profile`, or `~/.kshrc`,
+respectively. Start a new shell or reload the relevant startup file for changes
+to take effect. Setup detects the invoking shell too; use
+`linto linto setup --shell SHELL` to override it. Setup supports Bash, Zsh, and
+Fish.

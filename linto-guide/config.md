@@ -52,6 +52,8 @@ These files may contain only the settings they override. The config command
 supports these inspection and editing modes:
 
 - `linto linto config` prints the user config directory and file path.
+- `linto linto config --init` copies the packaged `config.yml` there if no user
+  config exists; it refuses to overwrite an existing file.
 - `linto linto config --group quarto` shows effective configdata for a group;
   add `--command render` for command-level configdata.
 - `linto linto config --effective` prints the full configuration with defaults

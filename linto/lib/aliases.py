@@ -5,41 +5,85 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 
-def detect_current_shell() -> str:
-    # Check SHELL environment variable first
-    shell_env = os.environ.get("SHELL", "")
-    if shell_env:
-        name = Path(shell_env).name
-        if name in {"fish", "zsh", "bash", "sh", "ksh"}:
-            return name
+SHELLS = ("fish", "bash", "sh", "ksh", "zsh")
 
-    # Fallback to parent process or default
+
+def _process_info(pid: int) -> tuple[str, list[str], int] | None:
+    proc = Path("/proc") / str(pid)
     try:
-        import psutil
-        parent_name = Path(psutil.Process(os.getppid()).name()).name
-        if parent_name in {"fish", "zsh", "bash", "sh", "ksh"}:
-            return parent_name
-    except Exception:
-        pass
+        name = (proc / "comm").read_text(encoding="utf-8").strip()
+        argv = [part.decode(errors="replace") for part in (proc / "cmdline").read_bytes().split(b"\0") if part]
+        status = (proc / "status").read_text(encoding="utf-8")
+        parent = next(int(line.split()[1]) for line in status.splitlines() if line.startswith("PPid:"))
+    except (OSError, StopIteration, ValueError):
+        return None
+    return Path(name).name, argv, parent
 
-    return "sh"
+
+def _is_shell_script_process(argv: list[str]) -> bool:
+    for argument in argv[1:]:
+        if argument.startswith("-"):
+            continue
+        candidate = Path(argument)
+        try:
+            if candidate.is_file():
+                with candidate.open(encoding="utf-8", errors="ignore") as script:
+                    return script.readline().startswith("#!")
+        except OSError:
+            continue
+    return False
+
+
+def _canonical_shell(name: str) -> str:
+    name = Path(name).name.lstrip("-")
+    if name in {"ksh93", "mksh"}:
+        return "ksh"
+    return name
+
+
+def detect_current_shell() -> str:
+    """Find the invoking shell, skipping shell processes running Linto scripts."""
+    pid = os.getppid()
+    visited = set()
+    while pid > 1 and pid not in visited:
+        visited.add(pid)
+        info = _process_info(pid)
+        if info is None:
+            break
+        name, argv, parent = info
+        name = _canonical_shell(name)
+        if name in SHELLS and not _is_shell_script_process(argv):
+            return name
+        pid = parent
+
+    for variable, name in (
+        ("FISH_VERSION", "fish"),
+        ("ZSH_VERSION", "zsh"),
+        ("KSH_VERSION", "ksh"),
+        ("BASH_VERSION", "bash"),
+    ):
+        if os.environ.get(variable):
+            return name
+    shell_env = _canonical_shell(os.environ.get("SHELL", ""))
+    return shell_env if shell_env in SHELLS else "sh"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install Linto shell aliases.")
     parser.add_argument(
         "-s", "--shell",
-        choices=["fish", "zsh", "bash", "sh", "ksh"],
+        choices=[*SHELLS, "all"],
         default=detect_current_shell(),
-        help="Target shell to update aliases for (defaults to current shell)"
+        help="Target shell (defaults to the invoking shell; 'all' updates fish, bash, sh, ksh, and zsh)",
     )
     args = parser.parse_args()
-    target_shell = args.shell
+    target_shells = SHELLS if args.shell == "all" else (args.shell,)
 
     repo_root = Path(__file__).resolve().parents[2]
     config_path = repo_root / "lib" / "config.py"
@@ -69,75 +113,106 @@ def main() -> int:
         return 1
 
     home = Path.home()
+    errors = []
+    for target_shell in target_shells:
+        try:
+            if target_shell == "fish":
+                update_fish_aliases(aliases)
+                destination = "Fish functions"
+            elif target_shell == "zsh":
+                zdotdir = Path(os.environ.get("ZDOTDIR", str(home)))
+                if not zdotdir.is_absolute():
+                    zdotdir = home
+                update_sh_aliases(zdotdir / ".zshrc", aliases)
+                destination = str(zdotdir / ".zshrc")
+            elif target_shell == "bash":
+                update_sh_aliases(home / ".bashrc", aliases)
+                destination = str(home / ".bashrc")
+            elif target_shell == "sh":
+                update_sh_aliases(home / ".profile", aliases)
+                destination = str(home / ".profile")
+            else:
+                update_sh_aliases(home / ".kshrc", aliases)
+                update_ksh_profile(home / ".profile")
+                destination = f"{home / '.kshrc'} (ENV set in .profile)"
+            print(f"Aliases updated for {target_shell}: {destination}")
+        except (OSError, RuntimeError) as exc:
+            errors.append(f"{target_shell}: {exc}")
 
-    if target_shell == "fish":
-        update_fish_aliases(aliases)
-        print("Aliases updated successfully for fish.")
-    elif target_shell == "zsh":
-        update_sh_aliases(home / ".zshrc", aliases)
-        print("Aliases updated successfully for zsh (~/.zshrc).")
-    elif target_shell == "bash":
-        update_sh_aliases(home / ".bashrc", aliases)
-        print("Aliases updated successfully for bash (~/.bashrc).")
-    elif target_shell == "sh":
-        update_sh_aliases(home / ".profile", aliases)
-        print("Aliases updated successfully for sh (~/.profile).")
-    elif target_shell == "ksh":
-        update_sh_aliases(home / ".kshrc", aliases)
-        print("Aliases updated successfully for ksh (~/.kshrc).")
-    else:
-        print(f"error: unsupported shell: {target_shell}", file=sys.stderr)
+    if errors:
+        for error in errors:
+            print(f"error updating aliases for {error}", file=sys.stderr)
         return 1
-
     return 0
 
 
-def update_sh_aliases(rc_path: Path, aliases: dict[str, str]) -> None:
-    begin_marker = "# >>> linto aliases begin >>>"
-    end_marker = "# >>> linto aliases end >>>"
-
-    lines = []
-    if rc_path.is_file():
-        lines = rc_path.read_text().splitlines()
-
-    # Filter out existing linto alias block
-    new_lines = []
-    skip = False
+def _replace_managed_block(
+    path: Path, begin_marker: str, end_marker: str, block: list[str]
+) -> None:
+    lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+    kept = []
+    skipping = False
     for line in lines:
         if line.strip() == begin_marker:
-            skip = True
+            skipping = True
             continue
         if line.strip() == end_marker:
-            skip = False
+            skipping = False
             continue
-        if not skip:
-            new_lines.append(line)
+        if not skipping:
+            kept.append(line)
+    if block:
+        if kept and kept[-1].strip():
+            kept.append("")
+        kept.extend([begin_marker, *block, end_marker])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(kept) + "\n", encoding="utf-8")
 
-    if aliases:
-        # Build new block
-        block = [begin_marker]
-        for name, cmd in aliases.items():
-            block.append(f"alias {name}='{cmd}'")
-        block.append(end_marker)
 
-        # Append block
-        if new_lines and new_lines[-1].strip() != "":
-            new_lines.append("")
-        new_lines.extend(block)
+def _shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\\''") + "'"
 
-    rc_path.write_text("\n".join(new_lines) + "\n")
+
+def update_sh_aliases(rc_path: Path, aliases: dict[str, str]) -> None:
+    block = [f"alias {name}={_shell_quote(command)}" for name, command in aliases.items()]
+    _replace_managed_block(
+        rc_path,
+        "# >>> linto aliases begin >>>",
+        "# >>> linto aliases end >>>",
+        block,
+    )
+
+
+def update_ksh_profile(profile: Path) -> None:
+    block = [
+        'if [ -z "${ENV:-}" ]; then',
+        '  ENV="$HOME/.kshrc"',
+        "  export ENV",
+        "fi",
+    ]
+    _replace_managed_block(
+        profile,
+        "# >>> linto ksh ENV begin >>>",
+        "# >>> linto ksh ENV end >>>",
+        block,
+    )
+
+
+def _fish_quote(value: str) -> str:
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 def update_fish_aliases(aliases: dict[str, str]) -> None:
-    if not any(Path(p).exists() for p in ["/usr/bin/fish", "/usr/local/bin/fish", "/bin/fish"]) and not subprocess.run(["which", "fish"], capture_output=True).returncode == 0:
-        print("warning: fish shell not found on system", file=sys.stderr)
-        return
-
-    for name, cmd in aliases.items():
-        try:
-            subprocess.run(["fish", "-c", f"alias --save {name} '{cmd}'"], capture_output=True, check=True)
-        except Exception as exc:
-            print(f"error saving fish alias {name}: {exc}", file=sys.stderr)
+    if shutil.which("fish") is None:
+        raise RuntimeError("fish executable was not found on PATH")
+    for name, command in aliases.items():
+        fish_command = f"alias --save {name} {_fish_quote(command)}"
+        result = subprocess.run(
+            ["fish", "-c", fish_command], capture_output=True, text=True, check=False
+        )
+        if result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise RuntimeError(f"could not save alias {name}: {detail}")
 
 
 if __name__ == "__main__":

@@ -65,6 +65,34 @@ class ShortcutConfigTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
 
+    def test_config_editor_remains_reachable_with_invalid_user_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "bin").mkdir()
+            (root / "linto").mkdir()
+            shutil.copy2(ROOT / "bin" / "linto", root / "bin" / "linto")
+            shutil.copy2(ROOT / "linto" / "config.sh", root / "linto" / "config.sh")
+            home = root / "home"
+            config_home = root / "xdg-config"
+            home.mkdir()
+            user_config = config_home / "linto" / "config.yml"
+            user_config.parent.mkdir(parents=True)
+            user_config.write_text(
+                'groups:\n  linto:\n    configdata:\n      aliases:\n        zz:"invalid yaml"\n',
+                encoding="utf-8",
+            )
+            environment = os.environ.copy()
+            environment.update(HOME=str(home), XDG_CONFIG_HOME=str(config_home))
+
+            result = subprocess.run(
+                [root / "bin" / "linto", "linto", "config"],
+                capture_output=True,
+                text=True,
+                env=environment,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(str(user_config), result.stdout)
+
     def test_dispatcher_uses_only_explicit_shortcut_aliases(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -107,9 +135,25 @@ class ShortcutConfigTests(unittest.TestCase):
                 tool.chmod(0o755)
 
             dispatcher = root / "bin" / "linto"
-            shortcuts = subprocess.run(
-                [dispatcher, "--list-shortcuts"], capture_output=True, text=True, check=True
+            home = root / "home"
+            home.mkdir()
+            environment = os.environ.copy()
+            environment.update(
+                HOME=str(home),
+                XDG_CONFIG_HOME=str(root / "xdg-config"),
+                XDG_DATA_HOME=str(root / "xdg-data"),
             )
+
+            def run_dispatcher(*arguments, check=False):
+                return subprocess.run(
+                    [dispatcher, *arguments],
+                    capture_output=True,
+                    text=True,
+                    check=check,
+                    env=environment,
+                )
+
+            shortcuts = run_dispatcher("--list-shortcuts", check=True)
             self.assertEqual(
                 shortcuts.stdout.splitlines(),
                 ["beta_alias", "collision_alias", "hyphen-name", "selected"],
@@ -121,37 +165,18 @@ class ShortcutConfigTests(unittest.TestCase):
                 ("linto-hyphen-name", "alpha-listed"),
             ):
                 with self.subTest(alias=alias):
-                    result = subprocess.run(
-                        [dispatcher, alias], capture_output=True, text=True, check=True
-                    )
+                    result = run_dispatcher(alias, check=True)
                     self.assertEqual(result.stdout.strip(), expected)
 
-            qualified = subprocess.run(
-                [dispatcher, "beta", "collision"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
+            qualified = run_dispatcher("beta", "collision", check=True)
             self.assertEqual(qualified.stdout.strip(), "beta-collision")
-            listed_commands = subprocess.run(
-                [dispatcher, "--list-commands", "alpha"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
+            listed_commands = run_dispatcher("--list-commands", "alpha", check=True)
             self.assertNotIn("hidden", listed_commands.stdout.splitlines())
-            hidden = subprocess.run(
-                [dispatcher, "alpha", "hidden"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            hidden = run_dispatcher("alpha", "hidden")
             self.assertEqual(hidden.returncode, 2)
             for command in ("listed", "collision", "other", "disabled_alias", "hidden_alias"):
                 with self.subTest(command=command):
-                    result = subprocess.run(
-                        [dispatcher, command], capture_output=True, text=True, check=False
-                    )
+                    result = run_dispatcher(command)
                     self.assertEqual(result.returncode, 2)
 
 
