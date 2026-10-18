@@ -46,8 +46,8 @@ completions, and stubs\. Omitted group and command \fBenable\fP options default 
 .PP
 Group\-specific settings live under \fBgroups\.GROUP\.configdata\fP, and command\-
 specific settings under \fBgroups\.GROUP\.commands\.COMMAND\.configdata\fP\. Defaults
-are layered from \fBlib/default\.yml\fP (root), \fBGROUP/lib/default\.yml\fP (group), and
-\fBGROUP/lib/COMMAND\.yml\fP (command)\. Each defaults file stores values under
+are layered from \fBlib/default\.yml\fP (root), \fBgroups/GROUP/lib/default\.yml\fP (group), and
+\fBgroups/GROUP/lib/COMMAND\.yml\fP (command)\. Each defaults file stores values under
 \fBconfigdata\fP, and matching entries in the installation's \fBconfig\.yml\fP override
 them\. At runtime, \fB/etc/linto/linto\.yml\fP is merged next, then \fB~/\.linto\.yml\fP, so
 user settings have the highest precedence\. These config files may contain only
@@ -55,8 +55,8 @@ the settings they override\. Defaults are located relative to the Linto
 installation, not the current working directory\. The Markdown viewer is root
 configdata, while the shipped
 Quarto extension and Linto shell\-alias defaults are in
-\fBquarto/lib/default\.yml\fP and
-\fBlinto/lib/default\.yml\fP, respectively\.
+\fBgroups/quarto/lib/default\.yml\fP and
+\fBgroups/linto/lib/default\.yml\fP, respectively\.
 .PP
 The top\-level \fBshortcuts\fP mapping defines explicit aliases\. Each key is the
 shortcut name, and each value is a \fB"GROUP COMMAND"\fP target\. For example,

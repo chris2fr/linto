@@ -34,7 +34,7 @@ to list a group's commands.
 
 `linto linto aliases` installs or updates the shell aliases in
 `groups.linto.configdata.aliases`. Group-specific values go in
-[`config.yml`](../config.yml); defaults are in [`linto/lib/default.yml`](../linto/lib/default.yml).
+[`config.yml`](../config.yml); defaults are in [`groups/linto/lib/default.yml`](../groups/linto/lib/default.yml).
 For example:
 
 ```yaml

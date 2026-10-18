@@ -88,7 +88,7 @@ case "$shell_name" in
   *) fail "unsupported shell '$shell_name' (supported: zsh, bash, fish)" ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
 case "${XDG_DATA_HOME:-}" in
@@ -168,7 +168,7 @@ fi
 append_once "$path_line"
 
 if [[ "$install_man" == true ]]; then
-  "$script_dir/linto/addman.sh"
+  "$script_dir/groups/linto/addman.sh"
 fi
 
 printf 'Configured Linto for %s in %s\n' "$shell_name" "$config_file"

@@ -27,6 +27,38 @@ reload the relevant configuration file. Install the `linto(1)` man page too
 with `linto linto setup --man`. See
 [`linto help install`](linto-guide/install.md) for details.
 
+## Nix and NixOS
+
+This repository provides a flake package for `x86_64-linux` and `aarch64-linux`:
+
+```sh
+nix profile install .#linto
+nix run .#linto -- --help
+```
+
+When building from a Git checkout, ensure the flake files are tracked or staged;
+Nix excludes untracked files from Git flake sources.
+
+For a NixOS flake, add this checkout as an input (for a local checkout,
+`inputs.linto.url = "path:/path/to/linto";`) and import its module:
+
+```nix
+imports = [ inputs.linto.nixosModules.default ];
+programs.linto = {
+  enable = true;
+  settings.groups.quarto.configdata.extension = "chris2fr/quarto";
+};
+```
+
+The module installs the package and optionally writes `settings` to
+`/etc/linto/linto.yml`; user config still takes precedence. Override
+`programs.linto.package` if needed. The package includes the shell/Python
+utilities used by Linto and installs Bash, Fish, and Zsh completions. Quarto,
+Zed, `xdg-open`, and optional Markdown viewers remain separate packages; add the
+ones needed by your workflow to your system configuration. User configuration
+and generated data stay in the XDG locations noted below, outside the immutable
+Nix store.
+
 ## Running commands
 
 ```sh
@@ -79,22 +111,25 @@ shortcuts:
   guillemets2quotes: "quarto guillemets2quotes"
 ```
 
-- `GROUP: default` enables a group. A group mapping may set `enable: false` to
+- Built-in group implementations live under `groups/GROUP/`, separate from
+  the repository's root-level configuration, dispatcher, and support code.
+  `GROUP: default` enables a group. A group mapping may set `enable: false` to
   keep its directory but hide it from Linto, help, completions, and generated
   stubs. Omitted group options default to `enable: true`.
 - `enable` remains at the group or command level. Group settings belong under
   `groups.GROUP.configdata`; command settings belong under
   `groups.GROUP.commands.COMMAND.configdata`. Configdata defaults are read from
-  [`lib/default.yml`](lib/default.yml), `GROUP/lib/default.yml`, and
-  `GROUP/lib/COMMAND.yml`, respectively. Each defaults file stores values under
-  `configdata`; corresponding entries in `config.yml` override them. Runtime
+  [`lib/default.yml`](lib/default.yml), `groups/GROUP/lib/default.yml`, and
+  `groups/GROUP/lib/COMMAND.yml`, respectively. Each defaults file stores values
+  under `configdata`; corresponding entries in `config.yml` override them. Runtime
   overrides are then merged from `/etc/linto/linto.yml` and
   `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml` (user settings win). A legacy
   `~/.linto.yml` is also read below the XDG config. The shipped Quarto extension
   default is in
-  [`quarto/lib/default.yml`](quarto/lib/default.yml); shell-alias defaults are
-  in [`linto/lib/default.yml`](linto/lib/default.yml). Root settings such as
-  `markdown-viewer` are under top-level `configdata`. Writable per-user data,
+  [`groups/quarto/lib/default.yml`](groups/quarto/lib/default.yml); shell-alias
+  defaults are in [`groups/linto/lib/default.yml`](groups/linto/lib/default.yml).
+  Root settings such as `markdown-viewer` are under top-level `configdata`.
+  Writable per-user data,
   including custom groups and generated wrappers/completions/man pages, lives in
   `${XDG_DATA_HOME:-~/.local/share}/linto`.
 - Each entry in the top-level `shortcuts` mapping defines an explicit alias:

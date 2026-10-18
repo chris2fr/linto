@@ -90,7 +90,7 @@ case "${XDG_CONFIG_HOME:-}" in
 esac
 config_dir="$config_home/linto"
 config_file="$config_dir/config.yml"
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)
 
 if [ "$init" = true ] && { [ "$edit" = true ] || [ "$show_effective" = true ] || [ -n "$group" ] || [ -n "$command" ]; }; then
   echo 'config: --init cannot be combined with other actions' >&2

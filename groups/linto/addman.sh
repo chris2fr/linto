@@ -16,7 +16,7 @@ case "${1-}" in
 esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
   *) data_home=$HOME/.local/share ;;
@@ -26,7 +26,7 @@ source_man="$linto_data/man/man1/linto.1"
 man_dir="$data_home/man/man1"
 link_path="$man_dir/linto.1"
 
-"$repo_root/linto/refresh.sh"
+"$repo_root/groups/linto/refresh.sh"
 if [ ! -f "$source_man" ]; then
   printf 'error: generated man page not found: %s\n' "$source_man" >&2
   exit 1

@@ -74,7 +74,7 @@ def load_defaults(root: Path, data_root: Path | None = None) -> dict:
     root_defaults_path = root / "lib" / "default.yml"
     root_configdata = read_default_configdata(root_defaults_path, "root defaults")
     groups = {}
-    group_roots = [root]
+    group_roots = [root / "groups"]
     if data_root is not None:
         group_roots.append(data_root / "groups")
     for group_root in group_roots:
@@ -180,11 +180,11 @@ def validate(data: dict, defaults: dict) -> dict:
         if not isinstance(group_defaults, dict):
             raise ValueError(f"defaults for group {group_name!r} must be a mapping")
         if group_name == "linto" and "aliases" in group_defaults:
-            validate_aliases(group_defaults["aliases"], "linto/lib/default.yml configdata.aliases")
+            validate_aliases(group_defaults["aliases"], "groups/linto/lib/default.yml configdata.aliases")
         if group_name == "quarto" and "extension" in group_defaults:
             extension = group_defaults["extension"]
             if not isinstance(extension, str) or not extension.strip():
-                raise ValueError("quarto/lib/default.yml extension must be a non-empty string")
+                raise ValueError("groups/quarto/lib/default.yml extension must be a non-empty string")
     for group_name in data["groups"]:
         group_configdata = merge_mappings(
             defaults["groups"].get(group_name, {}),
@@ -264,7 +264,7 @@ def command_configdata(data: dict, group_name: str, command_name: str) -> dict:
     data_root = Path(data.get("_data_root", data_directory()))
     command_defaults = {}
     for command_defaults_path in (
-        root / group_name / "lib" / f"{command_name}.yml",
+        root / "groups" / group_name / "lib" / f"{command_name}.yml",
         data_root / "groups" / group_name / "lib" / f"{command_name}.yml",
     ):
         if command_defaults_path.is_file():
@@ -310,7 +310,7 @@ def enabled_groups(data: dict, root: Path, data_root: Path | None = None) -> lis
     user_groups = (data_root or Path(data.get("_data_root", data_directory()))) / "groups"
     for name in data["groups"]:
         enabled = group_options(data, name)["enable"]
-        exists = (root / name).is_dir() or (user_groups / name).is_dir()
+        exists = (root / "groups" / name).is_dir() or (user_groups / name).is_dir()
         if name not in reserved and enabled and exists:
             result.append(name)
     return result
@@ -338,7 +338,7 @@ def effective_config(data: dict) -> dict:
         configured_commands = group.get("commands", {}) if isinstance(group, dict) else {}
         command_names = set(configured_commands)
         for command_lib in (
-            root / group_name / "lib",
+            root / "groups" / group_name / "lib",
             data_root / "groups" / group_name / "lib",
         ):
             if command_lib.is_dir():

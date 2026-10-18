@@ -42,8 +42,8 @@ completions, and stubs. Omitted group and command `enable` options default to
 
 Group-specific settings live under `groups.GROUP.configdata`, and command-
 specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
-are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
-`GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
+are layered from `lib/default.yml` (root), `groups/GROUP/lib/default.yml` (group), and
+`groups/GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
 `configdata`, and matching entries in the installation's `config.yml` override
 them. At runtime, `/etc/linto/linto.yml` is merged next, then
 `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`, so user settings have the
@@ -66,8 +66,8 @@ supports these inspection and editing modes:
 Defaults are located relative to the Linto installation, not the current working
 directory. The Markdown viewer is root configdata, while the shipped
 Quarto extension and Linto shell-alias defaults are in
-[`quarto/lib/default.yml`](../quarto/lib/default.yml) and
-[`linto/lib/default.yml`](../linto/lib/default.yml), respectively.
+[`groups/quarto/lib/default.yml`](../groups/quarto/lib/default.yml) and
+[`groups/linto/lib/default.yml`](../groups/linto/lib/default.yml), respectively.
 
 The top-level `shortcuts` mapping defines explicit aliases. Each key is the
 shortcut name, and each value is a `"GROUP COMMAND"` target. For example,

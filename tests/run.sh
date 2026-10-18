@@ -27,19 +27,19 @@ EOF
 assert_output '"zeta": 1
 "alpha": 2
 "beta": 3' \
-    "$root/quarto/citations.sh" "$tmpdir/citations.qmd"
+    "$root/groups/quarto/citations.sh" "$tmpdir/citations.qmd"
 assert_output '"alpha": 1
 "beta": 2
 "zeta": 3' \
-    "$root/quarto/citations.sh" --order-by key "$tmpdir/citations.qmd"
+    "$root/groups/quarto/citations.sh" --order-by key "$tmpdir/citations.qmd"
 assert_output '"zeta"
 "alpha"
 "beta"' \
-    "$root/quarto/citations.sh" --format csv "$tmpdir/citations.qmd"
+    "$root/groups/quarto/citations.sh" --format csv "$tmpdir/citations.qmd"
 assert_output '"zeta": 10
 "alpha": 11
 "beta": 12' \
-    "$root/quarto/citations.sh" --start 10 "$tmpdir/citations.qmd"
+    "$root/groups/quarto/citations.sh" --start 10 "$tmpdir/citations.qmd"
 
 cat > "$tmpdir/references.bib" <<'EOF'
 @article{first,
@@ -56,7 +56,7 @@ cat > "$tmpdir/references.bib" <<'EOF'
 }
 EOF
 
-"$root/bibtex/bib-order-props.sh" "$tmpdir/references.bib" >/dev/null
+"$root/groups/biblio/bib-order-props.sh" "$tmpdir/references.bib" >/dev/null
 expected=$(cat <<'EOF'
 @article{first,
   author = {A. Author},
@@ -83,7 +83,7 @@ cat > "$tmpdir/ordered.bib" <<'EOF'
   custom = {extra}
 }
 EOF
-"$root/bibtex/bib-order-props.sh" --order author --order title "$tmpdir/ordered.bib" >/dev/null
+"$root/groups/biblio/bib-order-props.sh" --order author --order title "$tmpdir/ordered.bib" >/dev/null
 expected=$(cat <<'EOF'
 @article{ordered,
   author = {A. Author},
@@ -99,9 +99,9 @@ actual=$(cat "$tmpdir/ordered.bib")
 for form in separated repeated attached; do
   cp "$tmpdir/ordered.bib" "$tmpdir/$form.bib"
   case "$form" in
-    separated) "$root/bibtex/bib-order-props.sh" -o title -o author,date "$tmpdir/$form.bib" >/dev/null ;;
-    repeated) "$root/bibtex/bib-order-props.sh" -o title -o author -o date "$tmpdir/$form.bib" >/dev/null ;;
-    attached) "$root/bibtex/bib-order-props.sh" -otitle,author,date "$tmpdir/$form.bib" >/dev/null ;;
+    separated) "$root/groups/biblio/bib-order-props.sh" -o title -o author,date "$tmpdir/$form.bib" >/dev/null ;;
+    repeated) "$root/groups/biblio/bib-order-props.sh" -o title -o author -o date "$tmpdir/$form.bib" >/dev/null ;;
+    attached) "$root/groups/biblio/bib-order-props.sh" -otitle,author,date "$tmpdir/$form.bib" >/dev/null ;;
   esac
 done
 cmp -s "$tmpdir/separated.bib" "$tmpdir/repeated.bib" || fail "comma-separated order equivalence"
@@ -115,7 +115,7 @@ cat > "$tmpdir/unsupported.bib" <<'EOF'
 }
 EOF
 cp "$tmpdir/unsupported.bib" "$tmpdir/unsupported.original"
-if "$root/bibtex/bib-order-props.sh" "$tmpdir/unsupported.bib" >/dev/null 2>&1; then
+if "$root/groups/biblio/bib-order-props.sh" "$tmpdir/unsupported.bib" >/dev/null 2>&1; then
   fail "unsupported multiline field was accepted"
 fi
 cmp -s "$tmpdir/unsupported.bib" "$tmpdir/unsupported.original" || fail "unsupported input was modified"
@@ -125,7 +125,7 @@ cat > "$tmpdir/unterminated.bib" <<'EOF'
   title = {Missing close}
 EOF
 cp "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original"
-if "$root/bibtex/bib-order-props.sh" "$tmpdir/unterminated.bib" >/dev/null 2>&1; then
+if "$root/groups/biblio/bib-order-props.sh" "$tmpdir/unterminated.bib" >/dev/null 2>&1; then
   fail "unterminated entry was accepted"
 fi
 cmp -s "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original" || fail "unterminated input was modified"
