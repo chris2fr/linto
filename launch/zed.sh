@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 userdatadir=""
 projectdir=""
 mode="reuse"
@@ -20,12 +21,17 @@ Options:
                            (overrides the directory derived from PATH).
   -u, --userdatadir DIR    Root directory above ".zed"; the user data dir is
                            always "$DIR/.zed". Defaults to the project directory.
+                           Projects using the same root share this Zed data.
   -r, --reuse              Open in an existing Zed window (default).
   -n, --new                Always open a new workspace.
   -h, --help               Show this help message and exit.
 
 Arguments:
   PATH                     File or directory to open (default: ./).
+
+For a non-default user-data root, the first launch opens a temporary Zed window
+and waits for you to close it while initializing shared languages and extensions.
+Projects opened with the same --userdatadir share those components.
 EOF
 }
 
@@ -110,13 +116,88 @@ else
 fi
 
 user_data_dir="$zed_root/.zed"
-
 mkdir -p "$user_data_dir"
+user_data_dir="$(cd "$zed_root" && pwd -P)/.zed"
 
 if [[ "$mode" == "reuse" ]]; then
     open_flag="--existing"
 else
     open_flag="--new"
+fi
+
+# User data may be shared between projects by choosing the same -u root. Keep
+# each project's Zed config directory intact; only share languages/extensions.
+shared_zed_dir="$HOME/.zed"
+marker_file="$user_data_dir/.linto-version"
+
+if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
+    linto_config="$script_dir/config.yml"
+    shared_version=$(python3 "$script_dir/lib/config.py" "$linto_config" version 2>/dev/null || true)
+    if [[ -z "$shared_version" ]]; then
+        echo "zed: Linto version is missing from config.yml; refusing shared-data initialization" >&2
+        exit 1
+    fi
+
+    marker_version=
+    if [[ -f "$marker_file" ]]; then
+        IFS= read -r marker_version < "$marker_file" || true
+    fi
+
+    if [[ "$marker_version" != "$shared_version" ]]; then
+        if [[ -e "$marker_file" && ! -f "$marker_file" ]]; then
+            printf 'zed: refusing to replace invalid marker path: %s\n' "$marker_file" >&2
+            exit 1
+        fi
+        for shared_item in languages extensions; do
+            local_path="$user_data_dir/$shared_item"
+            shared_path="$shared_zed_dir/$shared_item"
+            if [[ -e "$local_path" && ! -L "$local_path" && ! -d "$local_path" ]]; then
+                printf 'zed: refusing to replace non-directory data path: %s\n' "$local_path" >&2
+                exit 1
+            fi
+            if [[ -L "$local_path" && "$(readlink -f -- "$local_path" 2>/dev/null || true)" != "$(readlink -f -- "$shared_path" 2>/dev/null || true)" ]]; then
+                printf 'zed: refusing to replace existing symlink: %s\n' "$local_path" >&2
+                exit 1
+            fi
+            if [[ -e "$local_path" && ! -L "$local_path" && ! -f "$marker_file" ]]; then
+                printf 'zed: refusing to remove unmarked local data path: %s (move it manually, or initialize from a clean .zed directory)\n' "$local_path" >&2
+                exit 1
+            fi
+            [[ -d "$shared_path" ]] || {
+                printf 'zed: shared Zed directory is missing: %s\n' "$shared_path" >&2
+                exit 1
+            }
+        done
+        printf 'Initializing shared Zed data in %s. Close the temporary Zed window to continue.\n' "$user_data_dir" >&2
+        (
+            cd "$project_dir"
+            if [[ -n "${file_basename:-}" ]]; then
+                zeditor --user-data-dir "$user_data_dir" --new --wait "$(pwd)" "$file_basename"
+            else
+                zeditor --user-data-dir "$user_data_dir" --new --wait "$(pwd)"
+            fi
+        )
+
+        for shared_item in languages extensions; do
+            local_path="$user_data_dir/$shared_item"
+            shared_path="$shared_zed_dir/$shared_item"
+
+            if [[ -L "$local_path" ]]; then
+                continue
+            fi
+            if [[ -d "$local_path" ]]; then
+                rm -rf -- "$local_path"
+            fi
+            ln -s "$shared_path" "$local_path"
+        done
+
+        marker_tmp="$marker_file.tmp.$$"
+        if ! printf '%s\n' "$shared_version" > "$marker_tmp" || ! mv -f -- "$marker_tmp" "$marker_file"; then
+            rm -f -- "$marker_tmp"
+            echo "zed: failed to write shared-data marker: $marker_file" >&2
+            exit 1
+        fi
+    fi
 fi
 
 # Run from the project directory so pwd supplies the absolute project path to Zed.
