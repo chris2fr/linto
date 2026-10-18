@@ -4,8 +4,8 @@ Linto is a local command-line toolbox for bibliography work, Quarto projects,
 text processing, and development helpers. This guide is split into topic pages:
 
 - `install` — [Installation and shell setup](install.md)
-- `config` — [Group and Markdown-viewer configuration](config.md)
-- `commands` — Commands and invocation
+- `config` — [Group, Markdown-viewer, and Zed configuration](config.md)
+- `commands` — Commands and invocation, including shell alias setup
 - `biblio` — [BibTeX and bibliography workflow](biblio.md)
 - `quarto` — [Quarto workflow](quarto.md)
 - `completion` — [Shell completion and Markdown navigation](completion.md)

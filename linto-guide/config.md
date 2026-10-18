@@ -58,12 +58,20 @@ viewer.
 ## Zed data sharing
 
 The Zed launcher accepts `-u DIR`/`--userdatadir DIR`; projects using the same
-root use the same `DIR/.zed` user-data directory. Without this option, each
-project uses its own `.zed` directory. The launcher initializes a non-default
-`.zed` directory once per Linto `version` in `config.yml`: it opens a temporary
-Zed window, waits for you to close it, then links `languages` and `extensions`
-to the corresponding directories in `$HOME/.zed`. Other local Zed data,
-including project-specific configuration and themes, is left in place.
+root use the same `DIR/.zed` user-data directory. Without this option, a folder
+argument uses that folder as the user-data root. When opening a file, the user-
+data root defaults to the current working directory. `--projectdir DIR` sets the
+project directory explicitly.
+
+For a file argument, the project directory defaults to the current working
+directory if the file is inside it; otherwise it defaults to the file's parent
+directory. A folder argument opens that folder as the project.
+
+When initializing a non-default `.zed` directory, the launcher copies the
+non-shared contents of `$HOME/.zed` into it, then links `languages` and
+`extensions` back to `$HOME/.zed` when those shared directories exist. The
+initialization is headless; it does not open a temporary Zed window. Existing
+project-specific data in the destination is preserved.
 
 ## Refresh generated files
 

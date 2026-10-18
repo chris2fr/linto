@@ -21,6 +21,21 @@ Many tools expect to run from the project directory containing the relevant
 its exact arguments and whether it writes files in place. Back up important
 bibliography data before using tools that modify it.
 
+## Build a numbered references YAML from citations
+
+`linto biblio qmd2yml FILE.qmd` extracts unique Pandoc-style citation keys and
+writes a numbered YAML mapping. Use `-y`/`--yml` to extend an existing mapping:
+
+```sh
+linto biblio qmd2yml --yml references.yml report.qmd
+```
+
+The existing YAML is emitted first with empty lines removed. Keys already
+present in it are skipped; new keys are appended in citation order, numbered
+from one greater than the last mapping value. Use `--order-by key` to sort the
+new keys, or `--format csv` when you do not need to extend a YAML file. With no
+`--yml` input, `--start NUMBER` sets the first YAML number.
+
 ```mermaid
 flowchart LR
 biblio.bib --> bib2json --> biblio.json
