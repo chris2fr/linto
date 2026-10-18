@@ -30,7 +30,7 @@ linto --help                 # show active groups and commands
 linto utils prettyprint      # run a command through its group
 linto prettyprint            # omit the group when the name is unique
 linto-utils-prettyprint      # generated convenience stub, if enabled
-linto bibtex renumberyml in.yml
+linto yml-renumber in.yml
 ```
 
 Use `linto help PAGE` for a topic guide and `linto help GROUP` to list commands

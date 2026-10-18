@@ -28,3 +28,35 @@ precedence for \fBlinto help GROUP\fP\.
 The dispatcher also supports \fBslug\fP as an alias for \fBstripaccents\fP\. Run
 \fBlinto \-\-list\-groups\fP to list active groups and \fBlinto \-\-list\-commands GROUP\fP
 to list a group's commands\.
+
+.SS "Shell aliases"
+.PP
+\fBlinto launch aliases\fP installs or updates aliases declared in
+\fBlaunch/lib/aliases\.yml\fP for one shell\. For example:
+.RS
+.PP
+.nf
+aliases:
+  zz: "linto launch zed"
+unaliases:
+  \- old\-alias
+.fi
+.RE
+.PP
+By default, the command detects the shell from \fB$SHELL\fP, then tries the parent
+process, and falls back to \fBsh\fP if it cannot identify one\. Select a shell
+explicitly with \fB\-s\fP or \fB\-\-shell\fP:
+.RS
+.PP
+.nf
+linto launch aliases \-\-shell fish
+linto launch aliases \-s bash
+.fi
+.RE
+.PP
+Choices are \fBfish\fP, \fBzsh\fP, \fBbash\fP, \fBsh\fP, and \fBksh\fP\. Fish aliases are saved with
+Fish's \fBalias \-\-save\fP mechanism\. For Bash, Zsh, sh, and ksh, Linto replaces the
+managed alias block in \fB~/\.bashrc\fP, \fB~/\.zshrc\fP, \fB~/\.profile\fP, or \fB~/\.kshrc\fP,
+respectively\. Names listed in \fBunaliases\fP are omitted from the managed aliases;
+for Fish, Linto also erases the saved alias function\. Start a new shell or reload
+your shell's configuration for the changes to take effect\.

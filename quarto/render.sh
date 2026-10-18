@@ -7,7 +7,7 @@
 #     linto render [-h|--help] [fichier.qmd ...]
 #
 # Steps:
-#   1. bibtex/build-bib.sh regenerates the pieces-*.bib files from the
+#   1. biblio/bibyml2bib.sh regenerates the pieces-*.bib files from the
 #      _pieces-*.yml sources.
 #   2. Every *.qmd in the current directory is rendered with `quarto render`,
 #      unless explicit .qmd files are given on the command line.
@@ -25,7 +25,7 @@ usage() {
   cat <<EOF
 Usage: $0 [-h|--help] [fichier.qmd ...]
 
-Régénère les bibliographies (build-bib.sh) puis rend chaque document
+Régénère les bibliographies (bibyml2bib.sh) puis rend chaque document
 Quarto avec \`quarto render\`. Sans argument, tous les *.qmd du dossier
 courant sont rendus ; les fichiers .qmd passés en argument sont rendus
 à la place.
@@ -49,10 +49,10 @@ while [ $# -gt 0 ]; do
 done
 
 # Keep the caller's working directory as the project root; input and output
-# files are intentionally relative to it. Locate build-bib.sh relative to this
-# script so the renderer can be launched from any working directory.
+# files are intentionally relative to it. Locate the bibliography builder
+# relative to this script so the renderer can be launched from any directory.
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-"$script_dir/../bibtex/build-bib.sh"
+"$script_dir/../biblio/bibyml2bib.sh"
 
 # Render explicit arguments, or every *.qmd in the caller's project root.
 if [ "$#" -eq 0 ]; then

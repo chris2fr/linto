@@ -11,12 +11,12 @@ commands\. Typical tasks include:
 linto biblio bib2json \-\-help
 linto biblio json2bib \-\-help
 linto biblio bib\-order\-props \-\-help
-linto biblio build\-bib \-\-help
+linto bibyml2bib \-\-help
 linto biblio csv2qmd \-\-help
 linto biblio md2json \-\-help
-linto biblio mkbib \-\-help
+linto bib2dirbibs \-\-help
 linto biblio qmd2yml \-\-help
-linto biblio renumberyml \-\-help
+linto yml\-renumber \-\-help
 .fi
 .RE
 .PP
@@ -24,3 +24,46 @@ Many tools expect to run from the project directory containing the relevant
 \fB\.bib\fP, \fB\.qmd\fP, JSON, Markdown, or YAML files\. Check each command's \fB\-\-help\fP for
 its exact arguments and whether it writes files in place\. Back up important
 bibliography data before using tools that modify it\.
+
+.SS "Build BibTeX files from a YAML mapping"
+.PP
+\fBlinto bibyml2bib\fP selects entries from a BibTeX file using a YAML mapping of
+citation keys to numbers\. Pass the BibTeX file first and the YAML file second:
+.RS
+.PP
+.nf
+linto bibyml2bib biblio\.bib biblio\.yml
+.fi
+.RE
+.PP
+The YAML should contain only string keys and numeric values, for example:
+.RS
+.PP
+.nf
+"ref\-one": 1
+"ref\-two": 2
+.fi
+.RE
+.PP
+By default, the output is \fBbiblio\-numbered\.bib\fP; use \fB\-o FILE\fP or
+\fB\-\-output\-file FILE\fP to choose another output path\. Entries are written in YAML
+order with their \fBnumber\fP field set to the mapped value\. Missing keys are
+reported and skipped\. Calling \fBlinto bibyml2bib\fP with no arguments retains the
+legacy batch mode for \fB_pieces\-*\.yml\fP files and \fBfr\.bib\fP\.
+
+.SS "Build a numbered references YAML from citations"
+.PP
+\fBlinto biblio qmd2yml FILE\.qmd\fP extracts unique Pandoc\-style citation keys and
+writes a numbered YAML mapping\. Use \fB\-y\fP/\fB\-\-yml\fP to extend an existing mapping:
+.RS
+.PP
+.nf
+linto biblio qmd2yml \-\-yml references\.yml report\.qmd
+.fi
+.RE
+.PP
+The existing YAML is emitted first with empty lines removed\. Keys already
+present in it are skipped; new keys are appended in citation order, numbered
+from one greater than the last mapping value\. Use \fB\-\-order\-by key\fP to sort the
+new keys, or \fB\-\-format csv\fP when you do not need to extend a YAML file\. With no
+\fB\-\-yml\fP input, \fB\-\-start NUMBER\fP sets the first YAML number\.

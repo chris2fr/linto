@@ -1,12 +1,12 @@
 #!/bin/sh
 #
-# mkbib.sh -- split a BibTeX file into one file per entry.
+# bib2dirbibs.sh -- split a BibTeX file into one file per entry.
 #
 # Calls lib/mkbib.awk, which reads the given .bib file and writes each entry
 # to ./bib/<clé>.bib (the directory is created if missing).
 #
 # Usage:
-#   ./mkbib.sh [-h|--help] <fichier.bib>
+#   ./bib2dirbibs.sh [-h|--help] <fichier.bib>
 #
 # Options:
 #   -h, --help   Show this help and exit.
@@ -52,7 +52,7 @@ fi
 
 # --- Split the bibliography -------------------------------------------------
 # lib/mkbib.awk reads the input (given via -f) and writes ./bib/<clé>.bib.
-# Resolve it relative to this script so mkbib.sh works from any directory.
+# Resolve it relative to this script so bib2dirbibs.sh works from any directory.
 mkdir -p ./bib
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

@@ -8,18 +8,40 @@ commands. Typical tasks include:
 linto biblio bib2json --help
 linto biblio json2bib --help
 linto biblio bib-order-props --help
-linto biblio build-bib --help
+linto bibyml2bib --help
 linto biblio csv2qmd --help
 linto biblio md2json --help
-linto biblio mkbib --help
+linto bib2dirbibs --help
 linto biblio qmd2yml --help
-linto biblio renumberyml --help
+linto yml-renumber --help
 ```
 
 Many tools expect to run from the project directory containing the relevant
 `.bib`, `.qmd`, JSON, Markdown, or YAML files. Check each command's `--help` for
 its exact arguments and whether it writes files in place. Back up important
 bibliography data before using tools that modify it.
+
+## Build BibTeX files from a YAML mapping
+
+`linto bibyml2bib` selects entries from a BibTeX file using a YAML mapping of
+citation keys to numbers. Pass the BibTeX file first and the YAML file second:
+
+```sh
+linto bibyml2bib biblio.bib biblio.yml
+```
+
+The YAML should contain only string keys and numeric values, for example:
+
+```yaml
+"ref-one": 1
+"ref-two": 2
+```
+
+By default, the output is `biblio-numbered.bib`; use `-o FILE` or
+`--output-file FILE` to choose another output path. Entries are written in YAML
+order with their `number` field set to the mapped value. Missing keys are
+reported and skipped. Calling `linto bibyml2bib` with no arguments retains the
+legacy batch mode for `_pieces-*.yml` files and `fr.bib`.
 
 ## Build a numbered references YAML from citations
 
@@ -49,13 +71,13 @@ biblio.bib --> bib-order-props --> biblio.bib
 
 ```mermaid
 flowchart LR
-biblio.bib --> mkbib --> bibkeys.bib
+biblio.bib --> bib2dirbibs --> bibkeys.bib
 ```
 
 ```mermaid
 flowchart LR
-_pieces.yml & biblio.bib --> build-bib --> pieces.bib
-_pieces.yml --> renumberyml --> _pieces.yml
+_pieces.yml & biblio.bib --> bibyml2bib --> pieces.bib
+_pieces.yml --> yml-renumber --> _pieces.yml
 ```
 
 ```mermaid
