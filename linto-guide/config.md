@@ -11,7 +11,7 @@ The `groups` mapping accepts the `default` shorthand or a mapping of options:
 ```yaml
 groups:
   beta: default
-  biblo: default
+  biblio: default
   launch: default
   linto: default
   quarto: default
@@ -19,31 +19,24 @@ groups:
   old:
     enable: false
 shortcuts:
-  beta: false
-  biblo: false
-  linto: false
-  quarto:
-    - guillemets2quotes
-  utils:
-    - prettyprint
-    - stripaccents
+  prettyprint: "utils prettyprint"
+  stripaccents: "utils stripaccents"
+  guillemets2quotes: "quarto guillemets2quotes"
 ```
 
 `default` enables a group. A group mapping may set `enable: false` to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
-completions, and stubs. Omitted group options default to `enable: true`.
+completions, and generated stubs. Omitted group options default to
+`enable: true`.
 
-The top-level `shortcuts` mapping sets each group's unqualified shortcut policy.
-Groups omitted from it default to `true`. With `true`, all commands in that
-group may use `linto COMMAND` and, when unique across active groups,
-`linto-COMMAND`. With `false`, the group has no unqualified shortcuts. A list
-limits shortcuts to the named commands, as in the `quarto` and `utils` examples
-above.
-
-A shortcut is available only when exactly one active group defines the command.
-A collision suppresses it even if only one group enables or lists that command;
-`shortcuts: true` does not override a collision. Group-qualified commands remain
-available in every mode.
+The top-level `shortcuts` mapping defines explicit aliases. Each key is the
+shortcut name, and each value is a `"GROUP COMMAND"` target. For example,
+`prettyprint: "utils prettyprint"` makes both `linto prettyprint` and
+`linto-prettyprint` run the `utils prettyprint` command. Aliases are listed and
+usable only when their target group is active and the target command exists and
+is executable. This explicit mapping avoids ambiguous shortcuts when commands
+share a name across groups. Group-qualified commands remain available without
+any alias entry.
 
 ## Markdown viewer
 

@@ -5,11 +5,10 @@ usage() {
   cat <<'EOF'
 Usage: refresh.sh [-h|--help]
 
-Refresh generated group/command wrappers, shell completions, and man pages.
-The dispatcher man page's active-group list and topic man pages are generated
-from config.yml and linto-guide/*.md. Group options default to enable: true and
-shortcuts: true. Short command stubs are generated only for selected commands
-whose names are unique among active groups.
+Refresh generated group/command and shortcut-alias wrappers, shell completions,
+and man pages. The dispatcher man page's active-group list and topic man pages
+are generated from config.yml and linto-guide/*.md. Shortcut aliases come from
+the top-level shortcuts mapping in config.yml and target a specific GROUP COMMAND.
 EOF
 }
 
@@ -44,12 +43,9 @@ fi
 [[ -d "$root/linto-guide" ]] || { printf 'refresh: guide directory not found: %s\n' "$root/linto-guide" >&2; exit 1; }
 
 mapfile -t groups < <("$linto" --list-groups)
-mapfile -t shortcuts < <("$linto" --list-shortcuts)
+mapfile -t shortcut_aliases < <("$linto" --list-shortcut-aliases)
 declare -a names=() groups_for_stub=() commands_for_stub=() kinds=()
-declare -A desired=() owners=() selected_shortcuts=()
-for shortcut in "${shortcuts[@]}"; do
-  selected_shortcuts["$shortcut"]=1
-done
+declare -A desired=()
 
 add_stub() {
   local name=$1 group=$2 command=$3 kind=$4
@@ -68,18 +64,13 @@ for group in "${groups[@]}"; do
       linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
     esac
     add_stub "linto-$group-$command" "$group" "$command" group-command
-    owners["$command"]+="$group "
   done
 done
 
-for command in "${!owners[@]}"; do
-  read -r -a command_owners <<< "${owners[$command]}"
-  if (( ${#command_owners[@]} == 1 )) &&
-     [[ -n "${selected_shortcuts[$command]:-}" ]] &&
-     ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" &&
-     [[ "$command" != help && "$command" != completion ]]; then
-    add_stub "linto-$command" "${command_owners[0]}" "$command" short-command
-  fi
+for alias_entry in "${shortcut_aliases[@]}"; do
+  IFS=$'\t' read -r shortcut group command <<< "$alias_entry"
+  [[ -n "$shortcut" ]] || continue
+  add_stub "linto-$shortcut" "$group" "$command" shortcut-alias
 done
 
 mkdir -p -- "$wrapper_dir"
@@ -91,7 +82,7 @@ write_stub() {
     printf '%s\n' 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
     case "$kind" in
       group) printf 'exec "$bin_dir/linto" %q "$@"\n' "$group" ;;
-      group-command|short-command)
+      group-command|shortcut-alias)
         printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command"
         ;;
     esac

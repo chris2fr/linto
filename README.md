@@ -47,7 +47,7 @@ policy. It uses a YAML mapping:
 ```yaml
 groups:
   beta: default
-  biblo: default
+  biblio: default
   launch: default
   linto: default
   quarto: default
@@ -55,26 +55,21 @@ groups:
   old:
     enable: false
 shortcuts:
-  beta: false
-  biblo: false
-  linto: false
-  quarto:
-    - guillemets2quotes
-  utils:
-    - prettyprint
+  prettyprint: "utils prettyprint"
+  stripaccents: "utils stripaccents"
+  guillemets2quotes: "quarto guillemets2quotes"
 ```
 
 - `GROUP: default` enables a group. A group mapping may set `enable: false` to
   keep its directory but hide it from Linto, help, completions, and generated
   stubs. Omitted group options default to `enable: true`.
-- The top-level `shortcuts` mapping controls unqualified shortcuts by group.
-  An omitted group defaults to `true`; a value of `false` disables its
-  shortcuts, while a list enables only the named commands. For example, the
-  `quarto` and `utils` lists above enable selected commands.
-- A command must be defined by exactly one active group to get `linto-COMMAND`
-  and `linto COMMAND`; a collision suppresses the unqualified forms even if
-  only one group selected it. `linto GROUP COMMAND` and
-  `linto-GROUP-COMMAND` remain available regardless of shortcut settings.
+- Each entry in the top-level `shortcuts` mapping defines an explicit alias:
+  the key is the shortcut name, and its value is `"GROUP COMMAND"`. For example,
+  `prettyprint: "utils prettyprint"` makes both `linto prettyprint` and
+  `linto-prettyprint` run `utils prettyprint`. Aliases are available only when
+  their target group is active and the target command is executable.
+- Group-qualified `linto GROUP COMMAND` and `linto-GROUP-COMMAND` forms remain
+  available for active groups, whether or not an alias is configured.
 
 Refresh generated command stubs, Fish completions, and the active-group list in
 the man page after changing configuration or scripts:

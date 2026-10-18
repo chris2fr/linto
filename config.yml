@@ -1,25 +1,18 @@
 version: v0.1.0
 groups:
-  beta:
-    shortcuts: false
-  biblo:
-    shortcuts: false
+  beta: default
+  biblio: default
   launch: default
-  linto:
-    shortcuts: false
+  linto: default
   quarto:
-    shortcuts:
-      - guillemets2quotes
-  utils:
-    shortcuts:
-      - prettyprint
-      - stripaccents
+    extension: "chris2fr/quarto"
+  utils: default
   old:
     enable: false
 shortcuts:
-  "prettyprint2": "utils prettyprint"
-  "stripaccents2": "utils stripaccents"
-  "guillemets2quotes2": "quarto guillemets2quotes"
+  prettyprint: "utils prettyprint"
+  stripaccents: "utils stripaccents"
+  guillemets2quotes: "quarto guillemets2quotes"
 quarto:
   extension: chris2fr/quarto
 # markdown-viewer: md-tui
