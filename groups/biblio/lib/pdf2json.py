@@ -83,7 +83,7 @@ def qpdf_info(path):
         return {}
     entries = {}
     for key, value in info.items():
-        if isinstance(value, str) and value.startswith("u:"):
+        if isinstance(value, str) and value.startswith("u:") and value[2:].strip():
             entries[normalize_name(key.lstrip("/"))] = value[2:]
     return entries
 
@@ -178,10 +178,17 @@ def convert_file(path, layout, engine="pdftotext"):
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Convertit des fichiers PDF en JSON (clé, frontmatter, text)."
-    )
+def render_json(data):
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+
+
+def run_cli(description, suffix, render):
+    """Convert each PDF given on the command line and write `render(data)`.
+
+    Shared by pdf2json.py and pdf2md.py; `suffix` is the extension of the
+    output files, named after the PDF without `.pdf`.
+    """
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument("inputs", nargs="+", metavar="fichier.pdf", help="Fichier(s) PDF à convertir")
     parser.add_argument("-d", "--outdir", metavar="DOSSIER", help="Dossier de sortie (défaut : dossier courant)")
     parser.add_argument("-o", "--output", metavar="FICHIER", help="Fichier de sortie, ou - pour stdout (un seul PDF)")
@@ -212,11 +219,11 @@ def main():
             if not path.is_file():
                 raise RuntimeError("fichier PDF absent ou illisible")
             key, data = convert_file(path, args.layout, engine)
-            text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+            text = render(data)
             if args.output == "-":
                 sys.stdout.write(text)
                 continue
-            target = Path(args.output) if args.output else outdir / f"{key}.json"
+            target = Path(args.output) if args.output else outdir / f"{key}{suffix}"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(text, encoding="utf-8")
             print(target)
@@ -224,6 +231,10 @@ def main():
             print(f"{path}: {error}", file=sys.stderr)
             failed = True
     return 1 if failed else 0
+
+
+def main():
+    return run_cli("Convertit des fichiers PDF en JSON (clé, frontmatter, text).", ".json", render_json)
 
 
 if __name__ == "__main__":

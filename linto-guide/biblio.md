@@ -36,6 +36,7 @@ new file and the input is left unchanged.
 | `csv2qmd` | Turn semicolon-separated bibliography data into a Markdown annex | no |
 | `md2json` | Convert Markdown files to JSON | `-o` / `--outdir` |
 | `pdf2json` | Convert PDF files to JSON (text and metadata) | creates `KEY.json` |
+| `pdf2md` | Convert PDF files to Markdown with a YAML frontmatter | creates `KEY.md` |
 | `qmd2yml` | Number the citation keys used in a Quarto file | no |
 | `bibyml2bib` | Build a numbered BibTeX file from a YAML mapping | `-o` |
 | `yml-renumber` | Renumber a YAML mapping by line number | optional output file |
@@ -131,6 +132,27 @@ Use `-d DIR` to choose the output directory, or `-o FILE` (`-o -` for standard
 output) when converting a single PDF. A file that cannot be converted is
 reported and the others still are. `pdfinfo` (poppler) is required for the
 metadata, and one of `pdftotext` or `pdf2txt` for the text.
+
+`linto biblio pdf2md FILE.pdf...` does the same but writes `KEY.md`: a YAML
+frontmatter at the top (`key`, then the same metadata as `frontmatter` above),
+followed by the text as Markdown. It takes the same `-d`, `-o`, `--engine` and
+`--layout` options.
+
+```markdown
+---
+key: my article
+title: My article
+author: Ada
+pages: 12
+---
+
+First paragraph of the text...
+```
+
+The text is laid out in paragraphs: lines broken by the page layout are joined
+(a line that stops short of the margin ends its paragraph) and bullets become
+list items. Headings, hyphenation and tables are not detected, and lines that
+would read as Markdown syntax (`# `, `1. `) are escaped.
 
 ## Convert Markdown to JSON
 
