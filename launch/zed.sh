@@ -92,27 +92,48 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Default to the current directory when no argument is given.
-target="${target:-./}"
+# Default to the directory from which the script/launcher is invoked (OLDPWD or PWD)
+# Note: since zed.sh is invoked via wrapper/linto, pwd at invocation time is preserved or passed,
+# but let's check how launch scripts capture the invocation directory. Usually $PWD when the command is run.
+# Wait, if we want the directory from which the user launched `linto launch zed`, let's check if the caller preserves PWD.
+# In bash/sh, PWD is the directory where the shell was when the command started.
+target="${target:-$PWD}"
 
-# Determine the project directory: explicit -p wins, else derive from target.
+# Determine the project directory and zed root according to target type:
+# - If PATH is a file:
+#   - project_dir defaults to the current directory ($PWD) unless the file's parent directory is outside/different from $PWD.
+#   - zed_root defaults to the current directory ($PWD).
+# - If PATH is a directory:
+#   - project_dir is that directory.
+#   - zed_root defaults to the project directory if no explicit -u is given.
 if [[ -n "$projectdir" ]]; then
     project_dir="$(cd "$projectdir" && pwd)"
 else
     if [[ -f "$target" ]]; then
         file_basename="$(basename "$target")"
-        project_dir="$(cd "$(dirname "$target")" && pwd)"
+        file_parent_dir="$(cd "$(dirname "$target")" && pwd)"
+        # If the file is inside or equal to $PWD, use $PWD as the project directory,
+        # otherwise use the file's parent directory.
+        if [[ "$file_parent_dir" == "$PWD" || "$file_parent_dir" == "$PWD/"* ]]; then
+            project_dir="$PWD"
+        else
+            project_dir="$file_parent_dir"
+        fi
     else
         file_basename=""
         project_dir="$(cd "$target" && pwd)"
     fi
 fi
 
-# Determine the ".zed" root: explicit -u wins, else default to project dir.
+# Determine the ".zed" root: explicit -u wins, else default to project dir (or $PWD when target is a file).
 if [[ -n "$userdatadir" ]]; then
     zed_root="$(cd "$userdatadir" && pwd)"
 else
-    zed_root="$project_dir"
+    if [[ -f "$target" ]]; then
+        zed_root="$PWD"
+    else
+        zed_root="$project_dir"
+    fi
 fi
 
 user_data_dir="$zed_root/.zed"
