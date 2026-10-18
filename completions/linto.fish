@@ -5,6 +5,8 @@ complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-shortcuts
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 complete -c linto -f -n '__fish_seen_subcommand_from beta linto-beta' -a '($linto_bin --list-commands beta 2>/dev/null)'
 
+complete -c linto -f -n '__fish_seen_subcommand_from biblio linto-biblio' -a '($linto_bin --list-commands biblio 2>/dev/null)'
+
 complete -c linto -f -n '__fish_seen_subcommand_from launch linto-launch' -a '($linto_bin --list-commands launch 2>/dev/null)'
 
 complete -c linto -f -n '__fish_seen_subcommand_from linto linto-linto' -a '($linto_bin --list-commands linto 2>/dev/null)'
