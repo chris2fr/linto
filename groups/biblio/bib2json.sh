@@ -3,54 +3,73 @@ set -eu
 
 usage() {
   cat <<EOF
-Usage: $0 [-h|--help] <fichier.bib> [entrée.json [sortie.json]]
-       $0 [-h|--help] -i[.bak] <fichier.bib> <entrée.json>
+Usage: $0 [-h|--help] [-j|--json entrée.json] [-o|--output sortie.json]
+          [-i[.bak]] [--] <fichier.bib>
 
 Injecte les entrées BibTeX dans le champ bibtex des clés JSON existantes et
 crée une clé pour chaque entrée BibTeX absente du JSON (bibtex et frontmatter).
 
-Sans entrée.json (ou avec « - »), on part d'un JSON vide : toutes les entrées
-BibTeX sont créées. Sans sortie.json, le résultat est écrit sur stdout et la
-liste des clés créées sur stderr.
-
-Avec -i, remplace le fichier JSON d'entrée. -i.bak conserve une copie
-précédente dans un fichier suffixé par .bak.
+Options :
+  -j, --json FICHIER    JSON d'entrée à compléter. Sans cette option, on part
+                        d'un JSON vide : toutes les entrées BibTeX sont créées.
+  -o, --output FICHIER  Écrit le résultat dans FICHIER. Sans cette option (ou
+                        avec « -o - »), le résultat va sur stdout et la liste
+                        des clés créées sur stderr.
+  -i                    Remplace le JSON d'entrée (-j est requis; incompatible
+                        avec -o).
+  -i.bak                Comme -i, en conservant une copie dans <entrée.json>.bak.
+  -h, --help            Affiche cette aide et quitte.
 EOF
+}
+
+fail_usage() {
+  echo "$0: $1" >&2
+  usage >&2
+  exit 2
 }
 
 in_place=0
 backup_suffix=
-case "${1-}" in
-  -h|--help) usage; exit 0 ;;
-  -i) in_place=1; shift ;;
-  -i.bak) in_place=1; backup_suffix=.bak; shift ;;
-  --) shift ;;
-  -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
-esac
+json_in=
+json_out=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -i) in_place=1; shift ;;
+    -i.bak) in_place=1; backup_suffix=.bak; shift ;;
+    -j|--json|-o|--output)
+      [ "$#" -ge 2 ] || fail_usage "l'option $1 requiert un argument"
+      case "$1" in -j|--json) json_in=$2 ;; *) json_out=$2 ;; esac
+      shift 2
+      ;;
+    --json=*) json_in=${1#*=}; shift ;;
+    --output=*) json_out=${1#*=}; shift ;;
+    -j?*) json_in=${1#-j}; shift ;;
+    -o?*) json_out=${1#-o}; shift ;;
+    --) shift; break ;;
+    -?*) fail_usage "option inconnue : $1" ;;
+    *) break ;;
+  esac
+done
 
-if [ "$in_place" -eq 1 ]; then
-  [ "$#" -eq 2 ] || { usage >&2; exit 2; }
-else
-  [ "$#" -ge 1 ] && [ "$#" -le 3 ] || { usage >&2; exit 2; }
-fi
-
+[ "$#" -eq 1 ] || fail_usage "un seul fichier BibTeX est attendu"
 bib=$1
-json_in=${2--}
+[ "$json_out" != - ] || json_out=
+
 if [ "$in_place" -eq 1 ]; then
-  [ "$json_in" != - ] || { usage >&2; exit 2; }
+  [ -n "$json_in" ] || fail_usage "-i requiert -j/--json"
+  [ -z "$json_out" ] || fail_usage "-i et -o/--output sont incompatibles"
   json_out=$json_in
-else
-  json_out=${3--}
 fi
 [ -f "$bib" ] && [ -r "$bib" ] || { echo "$0: fichier BibTeX absent ou illisible : $bib" >&2; exit 1; }
-if [ "$json_in" != - ]; then
+if [ -n "$json_in" ]; then
   [ -f "$json_in" ] && [ -r "$json_in" ] || { echo "$0: fichier JSON absent ou illisible : $json_in" >&2; exit 1; }
 fi
 if [ "$in_place" -eq 1 ] && [ -L "$json_in" ]; then
   echo "$0: refus de remplacer un lien symbolique : $json_in" >&2
   exit 1
 fi
-if [ "$in_place" -eq 0 ] && [ "$json_in" != - ] && [ "$json_out" != - ] && [ "$json_in" -ef "$json_out" ]; then
+if [ "$in_place" -eq 0 ] && [ -n "$json_in" ] && [ -n "$json_out" ] && [ "$json_in" -ef "$json_out" ]; then
   echo "$0: entrée et sortie JSON sont le même fichier; utilisez -i" >&2
   exit 2
 fi
@@ -85,7 +104,7 @@ with open(bib_path) as f:
 
 by_id = {entry['ID']: entry for entry in bib.entries}
 
-if json_in == '-':
+if not json_in:
     data = {}
 else:
     with open(json_in) as f:
@@ -110,7 +129,7 @@ for key, bib_entry in by_id.items():
         data[key] = {'bibtex': fields, 'frontmatter': fields.copy()}
         created.append(key)
 
-to_stdout = json_out == '-'
+to_stdout = not json_out
 if to_stdout:
     json.dump(data, sys.stdout, indent=2, ensure_ascii=False)
     sys.stdout.write('\n')

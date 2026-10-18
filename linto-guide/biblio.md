@@ -55,22 +55,24 @@ inside an entry, duplicate fields, or unbalanced delimiters.
 
 ## Keep BibTeX and JSON in step
 
-`linto biblio bib2json FILE.bib [INPUT.json [OUTPUT.json]]` injects each BibTeX
-entry into the `bibtex` field of the matching key in the JSON file, and creates
-a key (with `bibtex` and `frontmatter`) for every entry the JSON lacks. Both
-JSON files are optional:
+`linto biblio bib2json [-j INPUT.json] [-o OUTPUT.json] FILE.bib` injects each
+BibTeX entry into the `bibtex` field of the matching key in the JSON file, and
+creates a key (with `bibtex` and `frontmatter`) for every entry the JSON lacks.
+The BibTeX file is the only positional argument; both JSON files are options:
 
-- without `INPUT.json` (or with `-` in its place), it starts from an empty
-  object, so every entry is created;
-- without `OUTPUT.json`, the JSON goes to standard output and the list of
-  created keys to standard error, so the output stays valid JSON;
-- with `-i` (or `-i.bak`), `INPUT.json` is required and replaced.
+- `-j`/`--json INPUT.json` is the JSON to complete. Without it, the command
+  starts from an empty object, so every entry is created;
+- `-o`/`--output OUTPUT.json` is where the result goes. Without it (or with
+  `-o -`), the JSON goes to standard output and the list of created keys to
+  standard error, so the output stays valid JSON;
+- `-i` (or `-i.bak`, which keeps `INPUT.json.bak`) replaces the `-j` file. It
+  requires `-j` and cannot be combined with `-o`.
 
 ```sh
-linto biblio bib2json refs.bib > refs.json          # new JSON from scratch
-linto biblio bib2json refs.bib refs.json            # merged result on stdout
-linto biblio bib2json refs.bib - refs.json          # from scratch, to a file
-linto biblio bib2json -i.bak refs.bib refs.json     # update refs.json in place
+linto biblio bib2json refs.bib > refs.json                 # new JSON from scratch
+linto biblio bib2json -j refs.json refs.bib                # merged result on stdout
+linto biblio bib2json -j refs.json -o merged.json refs.bib # merged result in a file
+linto biblio bib2json -i.bak -j refs.json refs.bib         # update refs.json in place
 ```
 
 `linto biblio json2bib INPUT.json` does the reverse: it rebuilds a BibTeX file
