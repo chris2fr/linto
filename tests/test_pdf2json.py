@@ -29,18 +29,27 @@ XMP = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <?xpacket end="w"?>"""
 
 
-def minimal_pdf(path, info):
-    """Write a one-page PDF whose text is 'Bonjour PDF' and whose Info is `info`."""
+def minimal_pdf(path, info, lines=None):
+    """Write a one-page PDF whose Info is `info` and whose text is 'Bonjour PDF',
+    or `lines`, a list of (font size, text), one line below the other."""
     objects = [
         "<< /Type /Catalog /Pages 2 0 R >>",
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Contents 4 0 R "
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /Contents 4 0 R "
         "/Resources << /Font << /F1 5 0 R >> >> >>",
         None,
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
         "<< " + " ".join(f"/{key} ({value})" for key, value in info.items()) + " >>",
     ]
-    stream = "BT /F1 12 Tf 20 50 Td (Bonjour PDF) Tj ET"
+    if lines is None:
+        stream = "BT /F1 12 Tf 20 50 Td (Bonjour PDF) Tj ET"
+    else:
+        position = 380
+        parts = []
+        for size, text in lines:
+            parts.append(f"BT /F1 {size} Tf 20 {position} Td ({text}) Tj ET")
+            position -= size + 8
+        stream = "\n".join(parts)
     objects[3] = f"<< /Length {len(stream)} >>\nstream\n{stream}\nendstream"
     body = b"%PDF-1.4\n"
     offsets = []

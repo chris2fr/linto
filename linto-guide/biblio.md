@@ -128,6 +128,34 @@ non-standard entry of the PDF's Info dictionary (such as a place) when `qpdf` is
 installed, and the fields of the document's XMP metadata. If XMP gives a
 different value for a field already present, it is kept as `xmp_FIELD`.
 
+### Fields found in the text
+
+When the metadata lacks them, `title`, `author`, `date`, `organization`, `url`
+and `note` are looked for in the first page of the document and added to the
+frontmatter (at the top, in that order). The fields found this way are listed in
+`guessed`, since they are heuristics:
+
+- `title`: the largest text at the top of the first page (a metadata title such
+  as `Microsoft Word - report.docx` is treated as missing and kept as
+  `title_metadata`);
+- `author`: a line such as `Par ...`, `By ...` or `Authors: ...`, otherwise a
+  line of personal names just after the title (a junk author such as `admin` is
+  kept as `author_metadata`);
+- `date`: a date in the first lines, in ISO form (`2026-03-12`, `2026-03` or
+  `2026`), preferring one announced by `Date :`, `Paris, le`, `Published`…;
+  French and English months and `dd/mm/yyyy` are understood;
+- `organization`: a header or footer line naming an université, ministère,
+  association, Inc., GmbH…;
+- `url`: the first web address of the first page;
+- `note`: a `Note :` or `Remarque :` line, or a status such as `Brouillon`,
+  `Draft` or `Version 2`.
+
+Metadata always wins, with one exception: a PDF's own date is when the file was
+made, not when the document was written, so a date found in the text replaces
+it and the PDF's date moves to `created`. Metadata stored under another name
+(`company`, `publisher`, `comments`, `source`…) fills `organization`, `note` and
+`url` directly. Use `--no-guess` to turn the search off.
+
 Use `-d DIR` to choose the output directory, or `-o FILE` (`-o -` for standard
 output) when converting a single PDF. A file that cannot be converted is
 reported and the others still are. `pdfinfo` (poppler) is required for the

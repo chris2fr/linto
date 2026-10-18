@@ -11,6 +11,10 @@ Pour chaque FICHIER.pdf, écrit CLÉ.json où CLÉ est le nom du fichier sans
       "text": "texte extrait"
     }
 
+Les champs title, author, date, organization, url et note qui manquent aux
+métadonnées sont cherchés dans le texte (voir pdfguess.py) et listés dans
+`guessed`; --no-guess désactive cette recherche.
+
 Le texte vient de pdftotext (ou de pdf2txt, de pdfminer.six, avec
 --engine pdf2txt) et les métadonnées de pdfinfo (champs standards),
 de qpdf (autres entrées du dictionnaire Info, si qpdf est installé) et du flux
@@ -26,6 +30,10 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+# Allow importing the sibling module however this file was loaded.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pdfguess  # noqa: E402
+
 RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 XML = "http://www.w3.org/XML/1998/namespace"
 
@@ -36,7 +44,7 @@ BOOLEANS = {
     "encrypted", "tagged", "form_is_xfa", "userproperties", "suspects",
     "javascript", "optimized", "custom_metadata", "metadata_stream",
 }
-FIRST = ("title", "author", "date")
+FIRST = ("title", "author", "date", "organization", "url", "note")
 
 
 def run(command):
@@ -131,8 +139,12 @@ def build_frontmatter(path):
             frontmatter[name] = value
         elif frontmatter[name] != value:
             frontmatter.setdefault(f"xmp_{name}", value)
-    ordered = {name: frontmatter.pop(name) for name in FIRST if name in frontmatter}
-    ordered.update(frontmatter)
+    return frontmatter
+
+
+def order_frontmatter(frontmatter):
+    ordered = {name: frontmatter[name] for name in FIRST if name in frontmatter}
+    ordered.update({name: value for name, value in frontmatter.items() if name not in ordered})
     return ordered
 
 
@@ -169,12 +181,18 @@ def extract_text(path, layout, engine="pdftotext"):
     return run([*command, str(path), "-"]).strip()
 
 
-def convert_file(path, layout, engine="pdftotext"):
+def convert_file(path, layout, engine="pdftotext", guess=True):
     key = path.name[:-4] if path.name.lower().endswith(".pdf") else path.name
+    frontmatter = build_frontmatter(path)
+    text = extract_text(path, layout, engine)
+    if guess:
+        guessed = pdfguess.fill_frontmatter(frontmatter, text, pdfguess.first_page_lines(path), key)
+        if guessed:
+            frontmatter["guessed"] = guessed
     return key, {
         "key": key,
-        "frontmatter": build_frontmatter(path),
-        "text": extract_text(path, layout, engine),
+        "frontmatter": order_frontmatter(frontmatter),
+        "text": text,
     }
 
 
@@ -198,6 +216,11 @@ def run_cli(description, suffix, render):
         help="Extracteur de texte : pdftotext (poppler) ou pdf2txt (pdfminer.six). "
              "Par défaut, pdftotext s'il est installé, sinon pdf2txt.",
     )
+    parser.add_argument(
+        "--no-guess", action="store_true",
+        help="Ne cherche pas dans le texte les champs absents des métadonnées "
+             "(title, author, date, organization, url, note)",
+    )
     args = parser.parse_args()
 
     if args.output and (len(args.inputs) != 1 or args.outdir):
@@ -218,7 +241,7 @@ def run_cli(description, suffix, render):
         try:
             if not path.is_file():
                 raise RuntimeError("fichier PDF absent ou illisible")
-            key, data = convert_file(path, args.layout, engine)
+            key, data = convert_file(path, args.layout, engine, not args.no_guess)
             text = render(data)
             if args.output == "-":
                 sys.stdout.write(text)

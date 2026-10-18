@@ -3,6 +3,7 @@
 # linto-complete: opt -o,--output *.json Output file, or - for stdout (one PDF)
 # linto-complete: opt --engine choices:auto,pdftotext,pdf2txt Text extractor (default: pdftotext if installed)
 # linto-complete: flag --layout Keep the page layout of the text (pdftotext only)
+# linto-complete: flag --no-guess Do not look in the text for fields the metadata lacks
 # linto-complete: arg * *.pdf
 set -eu
 
