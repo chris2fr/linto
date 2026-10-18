@@ -158,19 +158,20 @@ def validate(data: dict, defaults: dict) -> dict:
 
     shortcuts = data.get("shortcuts", {})
     if not isinstance(shortcuts, dict):
-        raise ValueError("'shortcuts' must be a mapping of alias names to 'GROUP COMMAND' targets")
+        raise ValueError("'shortcuts' must be a mapping of alias names to group/command mappings")
     for alias, target in shortcuts.items():
         if not valid_name(alias):
             raise ValueError(f"invalid shortcut alias name: {alias!r}")
         if alias in {"help", "completion"} or alias in data["groups"]:
             raise ValueError(f"shortcut alias name is reserved: {alias!r}")
-        if not isinstance(target, str):
-            raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
-        parts = target.split()
-        if len(parts) != 2 or not all(valid_name(part) for part in parts):
-            raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
-        if parts[0] not in data["groups"]:
-            raise ValueError(f"shortcuts.{alias} references unknown group {parts[0]!r}")
+        if not isinstance(target, dict) or set(target) != {"group", "command"}:
+            raise ValueError(f"shortcuts.{alias} must contain exactly 'group' and 'command'")
+        group = target["group"]
+        command = target["command"]
+        if not valid_name(group) or not valid_name(command):
+            raise ValueError(f"shortcuts.{alias}.group and .command must be valid names")
+        if group not in data["groups"]:
+            raise ValueError(f"shortcuts.{alias} references unknown group {group!r}")
 
     # Validate effective configdata for the settings with a known schema.
     root_configdata = merge_mappings(defaults["configdata"], data.get("configdata", {}))
@@ -430,6 +431,7 @@ def main() -> int:
     configdata_parser.add_argument("command", nargs="?")
     sub.add_parser("effective")
     sub.add_parser("aliases")
+    sub.add_parser("dispatcher-data")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
     sub.add_parser("version")
@@ -473,8 +475,15 @@ def main() -> int:
             print(yaml.safe_dump(effective_config(data), sort_keys=False, allow_unicode=True), end="")
         elif args.action == "aliases":
             for alias, target in data.get("shortcuts", {}).items():
-                group, command = target.split()
-                print(f"{alias}\t{group}\t{command}")
+                print(f"{alias}\t{target['group']}\t{target['command']}")
+        elif args.action == "dispatcher-data":
+            for group in enabled_groups(data, installation_root, user_data):
+                print(f"group\t{group}")
+            for group in data["groups"]:
+                options = group_options(data, group)
+                for command in options["commands"]:
+                    if not command_options(data, group, command)["enable"]:
+                        print(f"disabled\t{group}/{command}")
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
         elif args.action == "markdown-viewer":

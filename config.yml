@@ -12,7 +12,18 @@ groups:
   old:
     enable: false
 shortcuts:
-  prettyprint: "utils prettyprint"
-  stripaccents: "utils stripaccents"
-  slug: "utils stripaccents"
-  guillemets2quotes: "quarto guillemets2quotes"
+  prettyprint:
+    group: utils
+    command: prettyprint
+  stripaccents:
+    group: utils
+    command: stripaccents
+  slug:
+    group: utils
+    command: stripaccents
+  guillemets2quotes:
+    group: quarto
+    command: guillemets2quotes
+  zz:
+    group: launch
+    command: zed
