@@ -47,32 +47,34 @@ policy. It uses a YAML mapping:
 ```yaml
 groups:
   beta: default
-  bibtex: default
+  biblo: default
   launch: default
-  linto:
-    shortcuts: false
-  quarto:
-    shortcuts:
-      - guillemets2quotes
-  utils:
-    shortcuts:
-      - prettyprint
+  linto: default
+  quarto: default
+  utils: default
   old:
     enable: false
+shortcuts:
+  beta: false
+  biblo: false
+  linto: false
+  quarto:
+    - guillemets2quotes
+  utils:
+    - prettyprint
 ```
 
-- `GROUP: default` enables a group and uses the default `shortcuts: true`.
-- A group mapping may set `enable: false` to keep its directory but hide it from
-  Linto, help, completions, and generated stubs.
-- `shortcuts: true` enables `linto-COMMAND` stubs and `linto COMMAND` for
-  commands unique across all active groups. `shortcuts: false` disables those
-  unqualified forms for the group. A list enables shortcuts only for the named
-  commands, as in the `quarto` and `utils` examples above. A command must still
-  be defined by exactly one active group to get an unqualified shortcut; a
-  collision suppresses it even if only one group selected it. `linto GROUP
-  COMMAND` and `linto-GROUP-COMMAND` remain available regardless of shortcut
-  settings.
-- Omitted mapping options default to `enable: true` and `shortcuts: true`.
+- `GROUP: default` enables a group. A group mapping may set `enable: false` to
+  keep its directory but hide it from Linto, help, completions, and generated
+  stubs. Omitted group options default to `enable: true`.
+- The top-level `shortcuts` mapping controls unqualified shortcuts by group.
+  An omitted group defaults to `true`; a value of `false` disables its
+  shortcuts, while a list enables only the named commands. For example, the
+  `quarto` and `utils` lists above enable selected commands.
+- A command must be defined by exactly one active group to get `linto-COMMAND`
+  and `linto COMMAND`; a collision suppresses the unqualified forms even if
+  only one group selected it. `linto GROUP COMMAND` and
+  `linto-GROUP-COMMAND` remain available regardless of shortcut settings.
 
 Refresh generated command stubs, Fish completions, and the active-group list in
 the man page after changing configuration or scripts:

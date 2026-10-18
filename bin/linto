@@ -35,30 +35,50 @@ list_groups_and_commands() {
   done
 }
 
+configured_alias_targets() {
+  alias_rows=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" aliases) || return 1
+  tab=$(printf '\t')
+  while IFS="$tab" read -r alias_name alias_group alias_command; do
+    [ -n "$alias_name" ] || continue
+    group_exists "$alias_group" || continue
+    alias_tool=$(find_group_command "$alias_group" "$alias_command") || continue
+    [ -x "$alias_tool" ] || continue
+    printf '%s\t%s\t%s\n' "$alias_name" "$alias_group" "$alias_command"
+  done <<EOF
+$alias_rows
+EOF
+}
+
 list_shortcuts() {
-  for shortcut_group in $(list_groups); do
-    printf 'group\t%s\n' "$shortcut_group"
-    shortcut_options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$shortcut_group") || continue
-    shortcut_mode=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
-    list_group_commands "$shortcut_group" | while IFS= read -r shortcut_command; do
-      case "$shortcut_group/$shortcut_command" in
-        linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
-      esac
-      case "$shortcut_mode" in
-        true) shortcut_enabled=true ;;
-        false) shortcut_enabled=false ;;
-        list)
-          if printf '%s\n' "$shortcut_options" | sed '1,2d' | grep -Fxq -- "$shortcut_command"; then
-            shortcut_enabled=true
-          else
-            shortcut_enabled=false
-          fi
-          ;;
-        *) continue ;;
-      esac
-      printf 'command\t%s\t%s\n' "$shortcut_command" "$shortcut_enabled"
+  {
+    for shortcut_group in $(list_groups); do
+      printf 'group\t%s\n' "$shortcut_group"
+      shortcut_options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$shortcut_group") || continue
+      shortcut_mode=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
+      list_group_commands "$shortcut_group" | while IFS= read -r shortcut_command; do
+        case "$shortcut_group/$shortcut_command" in
+          linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
+        esac
+        case "$shortcut_mode" in
+          true) shortcut_enabled=true ;;
+          false) shortcut_enabled=false ;;
+          list)
+            if printf '%s\n' "$shortcut_options" | sed '1,2d' | grep -Fxq -- "$shortcut_command"; then
+              shortcut_enabled=true
+            else
+              shortcut_enabled=false
+            fi
+            ;;
+          *) continue ;;
+        esac
+        printf 'command\t%s\t%s\n' "$shortcut_command" "$shortcut_enabled"
+      done
     done
-  done | awk -F '\t' '
+    configured_alias_targets | while IFS="$(printf '\t')" read -r alias_name _ alias_command; do
+      [ -n "$alias_name" ] || continue
+      printf 'command\t%s\ttrue\n' "$alias_name"
+    done
+  } | awk -F '\t' '
     $1 == "group" { groups[$2] = 1; next }
     $1 == "command" {
       count[$2]++
@@ -73,6 +93,15 @@ list_shortcuts() {
       }
     }
   ' | LC_ALL=C sort
+}
+
+list_shortcut_aliases() {
+  allowed_shortcuts=$(list_shortcuts) || return 1
+  configured_alias_targets | while IFS="$(printf '\t')" read -r alias_name alias_group alias_command; do
+    [ -n "$alias_name" ] || continue
+    printf '%s\n' "$allowed_shortcuts" | grep -Fxq -- "$alias_name" || continue
+    printf '%s\t%s\t%s\n' "$alias_name" "$alias_group" "$alias_command"
+  done
 }
 
 group_exists() {
@@ -161,6 +190,15 @@ EOF
 find_tool() {
   command_name=$1
   tool_group=${2-}
+  if [ -z "$tool_group" ]; then
+    alias_target=$(list_shortcut_aliases | awk -F '\t' -v name="$command_name" '$1 == name { print $2 "\t" $3; exit }')
+    if [ -n "$alias_target" ]; then
+      alias_group=${alias_target%%"$(printf '\t')"*}
+      alias_command=${alias_target#*"$(printf '\t')"}
+      find_group_command "$alias_group" "$alias_command"
+      return $?
+    fi
+  fi
   if [ -n "$tool_group" ]; then
     for candidate in "$script_dir/$tool_group/$command_name" "$script_dir/$tool_group/$command_name.sh"; do
       if [ -f "$candidate" ]; then

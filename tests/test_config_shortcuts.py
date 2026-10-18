@@ -11,10 +11,10 @@ MODULE_PATH = ROOT / "lib" / "config.py"
 
 
 class ShortcutConfigTests(unittest.TestCase):
-    def run_options(self, groups: str, group: str) -> subprocess.CompletedProcess:
+    def run_options(self, config: str, group: str) -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yml"
-            path.write_text(f"groups:\n{groups}", encoding="utf-8")
+            path.write_text(config, encoding="utf-8")
             return subprocess.run(
                 [sys.executable, MODULE_PATH, path, "options", group],
                 capture_output=True,
@@ -25,21 +25,35 @@ class ShortcutConfigTests(unittest.TestCase):
     def test_shortcuts_default_to_true(self):
         for group in ("tools", "mapped"):
             with self.subTest(group=group):
-                result = self.run_options("  tools: default\n  mapped: {}\n", group)
+                result = self.run_options(
+                    "groups:\n  tools: default\n  mapped: {}\n", group
+                )
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stdout.strip(), "true\ntrue")
 
     def test_shortcuts_list_selects_named_commands(self):
         result = self.run_options(
-            "  tools:\n    shortcuts:\n      - first-command\n      - second_command\n",
+            "groups:\n  tools: default\n"
+            "shortcuts:\n  tools:\n    - first-command\n    - second_command\n",
             "tools",
         )
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout.strip(), "true\nlist\nfirst-command\nsecond_command")
 
+    def test_group_mappings_no_longer_accept_shortcuts(self):
+        result = self.run_options(
+            "groups:\n  tools:\n    shortcuts: false\n", "tools"
+        )
+        self.assertEqual(result.returncode, 2)
+
     def test_shortcuts_accept_boolean_values(self):
-        enabled = self.run_options("  enabled:\n    shortcuts: true\n", "enabled")
-        disabled = self.run_options("  disabled:\n    shortcuts: false\n", "disabled")
+        enabled = self.run_options(
+            "groups:\n  enabled: default\nshortcuts:\n  enabled: true\n", "enabled"
+        )
+        disabled = self.run_options(
+            "groups:\n  disabled: default\nshortcuts:\n  disabled: false\n",
+            "disabled",
+        )
         self.assertEqual(enabled.stdout.strip(), "true\ntrue")
         self.assertEqual(disabled.stdout.strip(), "true\nfalse")
 
@@ -47,7 +61,8 @@ class ShortcutConfigTests(unittest.TestCase):
         for shortcuts in ("[42]", "[bad/name]", "[same, same]"):
             with self.subTest(shortcuts=shortcuts):
                 result = self.run_options(
-                    f"  tools:\n    shortcuts: {shortcuts}\n", "tools"
+                    f"groups:\n  tools: default\nshortcuts:\n  tools: {shortcuts}\n",
+                    "tools",
                 )
                 self.assertEqual(result.returncode, 2)
 
@@ -60,12 +75,13 @@ class ShortcutConfigTests(unittest.TestCase):
             shutil.copy2(MODULE_PATH, root / "lib" / "config.py")
             (root / "config.yml").write_text(
                 "groups:\n"
-                "  alpha:\n"
-                "    shortcuts: [listed, collision]\n"
-                "  beta:\n"
-                "    shortcuts: [other]\n"
-                "  gamma:\n"
-                "    shortcuts: false\n",
+                "  alpha: default\n"
+                "  beta: default\n"
+                "  gamma: default\n"
+                "shortcuts:\n"
+                "  alpha: [listed, collision]\n"
+                "  beta: [other]\n"
+                "  gamma: false\n",
                 encoding="utf-8",
             )
 

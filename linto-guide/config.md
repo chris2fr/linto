@@ -13,38 +13,37 @@ groups:
   beta: default
   biblo: default
   launch: default
-  linto:
-    shortcuts: false
-  quarto:
-    shortcuts: false
+  linto: default
+  quarto: default
   utils: default
   old:
     enable: false
-  biblio: default
-```
-
-`default` enables a group and uses the defaults `enable: true` and
-`shortcuts: true`. A mapping may set `enable: false` to leave a directory in the
-checkout while making Linto ignore it for dispatch, help, completions, and
-stubs. With `shortcuts: true`, all commands in the group may use the unqualified
-forms `linto COMMAND` and (when unique across all active groups)
-`linto-COMMAND`. With `shortcuts: false`, commands from that group are available
-only as `linto GROUP COMMAND` or `linto-GROUP-COMMAND`. A list limits
-unqualified shortcuts to the listed commands:
-
-```yaml
-groups:
+shortcuts:
+  beta: false
+  biblo: false
+  linto: false
   quarto:
-    shortcuts:
-      - quarto-render
-      - quarto-github
+    - guillemets2quotes
+  utils:
+    - prettyprint
+    - stripaccents
 ```
 
-An unqualified shortcut is available only when exactly one active group defines
-that command. A collision suppresses it even if only one group enables or lists
-the command; `shortcuts: true` does not override a collision. Group-qualified
-commands remain available in every mode. Omitted mapping options default to
-`enable: true` and `shortcuts: true`.
+`default` enables a group. A group mapping may set `enable: false` to leave a
+directory in the checkout while making Linto ignore it for dispatch, help,
+completions, and stubs. Omitted group options default to `enable: true`.
+
+The top-level `shortcuts` mapping sets each group's unqualified shortcut policy.
+Groups omitted from it default to `true`. With `true`, all commands in that
+group may use `linto COMMAND` and, when unique across active groups,
+`linto-COMMAND`. With `false`, the group has no unqualified shortcuts. A list
+limits shortcuts to the named commands, as in the `quarto` and `utils` examples
+above.
+
+A shortcut is available only when exactly one active group defines the command.
+A collision suppresses it even if only one group enables or lists that command;
+`shortcuts: true` does not override a collision. Group-qualified commands remain
+available in every mode.
 
 ## Markdown viewer
 
