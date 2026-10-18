@@ -55,6 +55,16 @@ The `linto linto mdsetup` command reports the selected viewer and attempts to
 install Markdown prerequisites when needed. It does not install every optional
 viewer.
 
+## Zed data sharing
+
+The Zed launcher accepts `-u DIR`/`--userdatadir DIR`; projects using the same
+root use the same `DIR/.zed` user-data directory. Without this option, each
+project uses its own `.zed` directory. The launcher initializes a non-default
+`.zed` directory once per Linto `version` in `config.yml`: it opens a temporary
+Zed window, waits for you to close it, then links `languages` and `extensions`
+to the corresponding directories in `$HOME/.zed`. Other local Zed data,
+including project-specific configuration and themes, is left in place.
+
 ## Refresh generated files
 
 After editing configuration or adding/removing executable scripts, run:

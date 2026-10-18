@@ -94,6 +94,7 @@ def main() -> int:
     options_parser.add_argument("group")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
+    sub.add_parser("version")
     add_parser = sub.add_parser("add")
     add_parser.add_argument("group")
     rm_parser = sub.add_parser("remove")
@@ -114,6 +115,11 @@ def main() -> int:
         elif args.action == "markdown-viewer":
             for viewer in markdown_viewers(data):
                 print(viewer)
+        elif args.action == "version":
+            version = data.get("version")
+            if not isinstance(version, str) or not version.strip():
+                raise ValueError("'version' must be a non-empty string")
+            print(version.strip())
         elif args.action == "add":
             current = data["groups"].get(args.group)
             if current == "default":
