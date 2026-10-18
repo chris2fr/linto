@@ -14,43 +14,33 @@ The \fBgroups\fP mapping accepts the \fBdefault\fP shorthand or a mapping of opt
 .nf
 groups:
   beta: default
-  biblo: default
+  biblio: default
   launch: default
-  linto:
-    shortcuts: false
-  quarto:
-    shortcuts: false
+  linto: default
+  quarto: default
   utils: default
   old:
     enable: false
-  biblio: default
+shortcuts:
+  prettyprint: "utils prettyprint"
+  stripaccents: "utils stripaccents"
+  guillemets2quotes: "quarto guillemets2quotes"
 .fi
 .RE
 .PP
-\fBdefault\fP enables a group and uses the defaults \fBenable: true\fP and
-\fBshortcuts: true\fP\. A mapping may set \fBenable: false\fP to leave a directory in the
-checkout while making Linto ignore it for dispatch, help, completions, and
-stubs\. With \fBshortcuts: true\fP, all commands in the group may use the unqualified
-forms \fBlinto COMMAND\fP and (when unique across all active groups)
-\fBlinto\-COMMAND\fP\. With \fBshortcuts: false\fP, commands from that group are available
-only as \fBlinto GROUP COMMAND\fP or \fBlinto\-GROUP\-COMMAND\fP\. A list limits
-unqualified shortcuts to the listed commands:
-.RS
+\fBdefault\fP enables a group\. A group mapping may set \fBenable: false\fP to leave a
+directory in the checkout while making Linto ignore it for dispatch, help,
+completions, and generated stubs\. Omitted group options default to
+\fBenable: true\fP\.
 .PP
-.nf
-groups:
-  quarto:
-    shortcuts:
-      \- quarto\-render
-      \- quarto\-github
-.fi
-.RE
-.PP
-An unqualified shortcut is available only when exactly one active group defines
-that command\. A collision suppresses it even if only one group enables or lists
-the command; \fBshortcuts: true\fP does not override a collision\. Group\-qualified
-commands remain available in every mode\. Omitted mapping options default to
-\fBenable: true\fP and \fBshortcuts: true\fP\.
+The top\-level \fBshortcuts\fP mapping defines explicit aliases\. Each key is the
+shortcut name, and each value is a \fB"GROUP COMMAND"\fP target\. For example,
+\fBprettyprint: "utils prettyprint"\fP makes both \fBlinto prettyprint\fP and
+\fBlinto\-prettyprint\fP run the \fButils prettyprint\fP command\. Aliases are listed and
+usable only when their target group is active and the target command exists and
+is executable\. This explicit mapping avoids ambiguous shortcuts when commands
+share a name across groups\. Group\-qualified commands remain available without
+any alias entry\.
 
 .SS "Markdown viewer"
 .PP

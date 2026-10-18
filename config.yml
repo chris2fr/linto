@@ -4,8 +4,7 @@ groups:
   biblio: default
   launch: default
   linto: default
-  quarto:
-    extension: "chris2fr/quarto"
+  quarto: default
   utils: default
   old:
     enable: false

@@ -1,5 +1,16 @@
 linto-beta
 linto-beta-test
+linto-biblio
+linto-biblio-bib-order-props
+linto-biblio-bib2awk
+linto-biblio-bib2dirbibs
+linto-biblio-bib2json
+linto-biblio-bibyml2bib
+linto-biblio-csv2qmd
+linto-biblio-json2bib
+linto-biblio-md2json
+linto-biblio-qmd2yml
+linto-biblio-yml-renumber
 linto-guillemets2quotes
 linto-launch
 linto-launch-zed
@@ -23,4 +34,3 @@ linto-utils
 linto-utils-prettyprint
 linto-utils-stripaccents
 linto-utils-timezone
-linto-zed
