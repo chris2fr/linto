@@ -3,13 +3,18 @@ set -eu
 
 usage() {
   cat <<EOF
-Usage: $0 [-h|--help] [-i[.bak]] <fichier.bib> <entrée.json> [sortie.json]
-
-Avec -i, remplace le fichier JSON d'entrée. -i.bak conserve une copie
-précédente dans un fichier suffixé par .bak.
+Usage: $0 [-h|--help] <fichier.bib> [entrée.json [sortie.json]]
+       $0 [-h|--help] -i[.bak] <fichier.bib> <entrée.json>
 
 Injecte les entrées BibTeX dans le champ bibtex des clés JSON existantes et
 crée une clé pour chaque entrée BibTeX absente du JSON (bibtex et frontmatter).
+
+Sans entrée.json (ou avec « - »), on part d'un JSON vide : toutes les entrées
+BibTeX sont créées. Sans sortie.json, le résultat est écrit sur stdout et la
+liste des clés créées sur stderr.
+
+Avec -i, remplace le fichier JSON d'entrée. -i.bak conserve une copie
+précédente dans un fichier suffixé par .bak.
 EOF
 }
 
@@ -26,23 +31,26 @@ esac
 if [ "$in_place" -eq 1 ]; then
   [ "$#" -eq 2 ] || { usage >&2; exit 2; }
 else
-  [ "$#" -eq 3 ] || { usage >&2; exit 2; }
+  [ "$#" -ge 1 ] && [ "$#" -le 3 ] || { usage >&2; exit 2; }
 fi
 
 bib=$1
-json_in=$2
+json_in=${2--}
 if [ "$in_place" -eq 1 ]; then
+  [ "$json_in" != - ] || { usage >&2; exit 2; }
   json_out=$json_in
 else
-  json_out=$3
+  json_out=${3--}
 fi
 [ -f "$bib" ] && [ -r "$bib" ] || { echo "$0: fichier BibTeX absent ou illisible : $bib" >&2; exit 1; }
-[ -f "$json_in" ] && [ -r "$json_in" ] || { echo "$0: fichier JSON absent ou illisible : $json_in" >&2; exit 1; }
+if [ "$json_in" != - ]; then
+  [ -f "$json_in" ] && [ -r "$json_in" ] || { echo "$0: fichier JSON absent ou illisible : $json_in" >&2; exit 1; }
+fi
 if [ "$in_place" -eq 1 ] && [ -L "$json_in" ]; then
   echo "$0: refus de remplacer un lien symbolique : $json_in" >&2
   exit 1
 fi
-if [ "$in_place" -eq 0 ] && [ "$json_in" -ef "$json_out" ]; then
+if [ "$in_place" -eq 0 ] && [ "$json_in" != - ] && [ "$json_out" != - ] && [ "$json_in" -ef "$json_out" ]; then
   echo "$0: entrée et sortie JSON sont le même fichier; utilisez -i" >&2
   exit 2
 fi
@@ -77,10 +85,13 @@ with open(bib_path) as f:
 
 by_id = {entry['ID']: entry for entry in bib.entries}
 
-with open(json_in) as f:
-    data = json.load(f)
-if not isinstance(data, dict):
-    raise SystemExit(f"Le JSON doit contenir un objet indexé par clé : {json_in}")
+if json_in == '-':
+    data = {}
+else:
+    with open(json_in) as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise SystemExit(f"Le JSON doit contenir un objet indexé par clé : {json_in}")
 
 normalize = lambda entry: {k: v.replace('\\%', '%') if isinstance(v, str) else v
                            for k, v in entry.items() if k != 'ID'}
@@ -99,13 +110,19 @@ for key, bib_entry in by_id.items():
         data[key] = {'bibtex': fields, 'frontmatter': fields.copy()}
         created.append(key)
 
-with open(json_out, 'w') as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
+to_stdout = json_out == '-'
+if to_stdout:
+    json.dump(data, sys.stdout, indent=2, ensure_ascii=False)
+    sys.stdout.write('\n')
+else:
+    with open(json_out, 'w') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 if created:
-    print(f"Nouvelles clés créées depuis {bib_path} :")
+    report = sys.stderr if to_stdout else sys.stdout
+    print(f"Nouvelles clés créées depuis {bib_path} :", file=report)
     for key in created:
-        print("  -", key)
+        print("  -", key, file=report)
 PY
 
 if [ "$in_place" -eq 1 ]; then
