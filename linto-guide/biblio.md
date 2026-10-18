@@ -35,6 +35,7 @@ new file and the input is left unchanged.
 | `bib2awk` | Extract BibTeX fields as CSV, `sed` commands, or JSON files | `bibs` handler writes `./bib/` |
 | `csv2qmd` | Turn semicolon-separated bibliography data into a Markdown annex | no |
 | `md2json` | Convert Markdown files to JSON | `-o` / `--outdir` |
+| `pdf2json` | Convert PDF files to JSON (text and metadata) | creates `KEY.json` |
 | `qmd2yml` | Number the citation keys used in a Quarto file | no |
 | `bibyml2bib` | Build a numbered BibTeX file from a YAML mapping | `-o` |
 | `yml-renumber` | Renumber a YAML mapping by line number | optional output file |
@@ -101,6 +102,32 @@ The legacy numbers `1`, `2`, and `3` are still accepted for `-f`.
 `linto biblio csv2qmd [-f FORMAT] FILE.csv` converts the semicolon-separated
 output into a Markdown annex. `FORMAT` is the layout `1`, `2`, or `3`
 (default `1`). The first CSV record must be the header the AWK script expects.
+
+## Convert PDF files to JSON
+
+`linto biblio pdf2json FILE.pdf...` writes one `KEY.json` per PDF in the current
+directory, where `KEY` is the file name without `.pdf`:
+
+```json
+{
+  "key": "my article",
+  "frontmatter": { "title": "...", "author": "...", "date": "...", "pages": 12 },
+  "text": "The text of the PDF..."
+}
+```
+
+`text` comes from `pdftotext`; add `--layout` to keep the page layout.
+`frontmatter` gathers every piece of metadata available: the standard fields
+from `pdfinfo` (title, author, subject, keywords, creator, producer, `date` and
+`modified` as ISO dates, page count and size, PDF version, and so on), any
+non-standard entry of the PDF's Info dictionary (such as a place) when `qpdf` is
+installed, and the fields of the document's XMP metadata. If XMP gives a
+different value for a field already present, it is kept as `xmp_FIELD`.
+
+Use `-d DIR` to choose the output directory, or `-o FILE` (`-o -` for standard
+output) when converting a single PDF. A file that cannot be converted is
+reported and the others still are. `pdfinfo` and `pdftotext` (poppler) are
+required.
 
 ## Convert Markdown to JSON
 
