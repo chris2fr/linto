@@ -29,8 +29,20 @@ def load(path: Path) -> dict:
             raise ValueError(f"unknown option(s) for group {name!r}: {', '.join(sorted(unknown))}")
         if "enable" in options and not isinstance(options["enable"], bool):
             raise ValueError(f"group {name!r}: enable must be true or false")
-        if "shortcuts" in options and not isinstance(options["shortcuts"], bool):
-            raise ValueError(f"group {name!r}: shortcuts must be true or false")
+        shortcuts = options.get("shortcuts", True)
+        if isinstance(shortcuts, bool):
+            continue
+        if not isinstance(shortcuts, list) or any(
+            not isinstance(command, str)
+            or not command
+            or not all(char.isalnum() or char in "_-" for char in command)
+            for command in shortcuts
+        ):
+            raise ValueError(
+                f"group {name!r}: shortcuts must be true, false, or a list of command names"
+            )
+        if len(shortcuts) != len(set(shortcuts)):
+            raise ValueError(f"group {name!r}: shortcuts list contains duplicate command names")
     return data
 
 
@@ -109,7 +121,13 @@ def main() -> int:
         elif args.action == "options":
             options = group_options(data, args.group)
             print("true" if options["enable"] else "false")
-            print("true" if options["shortcuts"] else "false")
+            shortcuts = options["shortcuts"]
+            if isinstance(shortcuts, bool):
+                print("true" if shortcuts else "false")
+            else:
+                print("list")
+                for command in shortcuts:
+                    print(command)
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
         elif args.action == "markdown-viewer":

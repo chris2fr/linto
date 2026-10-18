@@ -1,7 +1,9 @@
 version: v0.1.0
 groups:
-  beta: default
-  biblo: default
+  beta:
+    shortcuts: false
+  biblo:
+    shortcuts: false
   launch: default
   linto:
     shortcuts: false
@@ -10,7 +12,6 @@ groups:
   utils: default
   old:
     enable: false
-  biblio: default
 quarto:
   extension: chris2fr/quarto
 # markdown-viewer: md-tui
