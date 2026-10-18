@@ -28,6 +28,7 @@ new file and the input is left unchanged.
 | Command | Purpose | Writes in place? |
 | --- | --- | --- |
 | `bib2json` | Inject BibTeX entries into a JSON file | `-i`, `-i.bak` |
+| `json2` | List the top-level properties of a JSON file | no |
 | `json2bib` | Rebuild BibTeX from the `bibtex` field of a JSON file | `-i`, `-i.bak` |
 | `bib-order-props` | Sort the fields of every BibTeX entry | `-i`, `-i.bak` |
 | `bib2dirbibs` | Split a BibTeX file into one file per entry in `./bib/` | creates files |
@@ -78,6 +79,10 @@ linto biblio bib2json -i.bak -j refs.json refs.bib         # update refs.json in
 
 `linto biblio json2bib INPUT.json` does the reverse: it rebuilds a BibTeX file
 from the `bibtex` fields, on standard output by default, or in place with `-i`.
+
+`linto biblio json2 [-s] [FILE.json]` lists the top-level properties of a JSON
+file (the record keys), one per line in file order, or sorted with `-s`. It
+reads standard input when no file is given.
 
 ## Split and extract
 
