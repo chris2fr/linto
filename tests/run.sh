@@ -136,6 +136,30 @@ timezone' "$root/bin/linto" --list-commands utils
 launch_output=$("$root/bin/linto-launch")
 [ "$launch_output" = "$(printf 'Commands in group launch:\n  zed')" ] || fail "launch group wrapper output: $launch_output"
 
+shortcuts=$("$root/bin/linto" --list-shortcuts)
+case "$shortcuts" in
+    *quarto-render*) fail "shortcut listed for a group with shortcuts disabled" ;;
+esac
+case "$shortcuts" in
+    *bibyml2bib*) ;;
+    *) fail "shortcut missing for a group with shortcuts enabled" ;;
+esac
+if "$root/bin/linto" quarto-render --help >"$tmpdir/unqualified.out" 2>&1; then
+    fail "command from a shortcuts-disabled group ran unqualified"
+fi
+assert_output 'Usage: quarto-render.sh [-h|--help] [fichier.qmd ...]
+
+Régénère les bibliographies (bibyml2bib.sh) puis rend chaque document
+Quarto avec `quarto render`. Sans argument, tous les *.qmd du dossier
+courant sont rendus ; les fichiers .qmd passés en argument sont rendus
+à la place.
+
+Doit être lancé depuis la racine du projet, où se trouvent les fichiers .qmd.
+
+Options:
+  -h, --help   Affiche cette aide et quitte.' \
+    "$root/bin/linto" quarto quarto-render --help
+
 python3 -m unittest discover -s "$root/tests" -p 'test_*.py'
 
 echo 'All linto tests passed.'
