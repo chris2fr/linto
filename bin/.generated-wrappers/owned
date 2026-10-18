@@ -3,19 +3,20 @@ linto-beta
 linto-beta-test
 linto-bib-order-props
 linto-bib2awk
+linto-bib2dirbibs
 linto-bib2json
 linto-biblio
 linto-biblio-bib-order-props
 linto-biblio-bib2awk
+linto-biblio-bib2dirbibs
 linto-biblio-bib2json
-linto-biblio-build-bib
+linto-biblio-bibyml2bib
 linto-biblio-csv2qmd
 linto-biblio-json2bib
 linto-biblio-md2json
-linto-biblio-mkbib
 linto-biblio-qmd2yml
-linto-biblio-renumberyml
-linto-build-bib
+linto-biblio-yml-renumber
+linto-bibyml2bib
 linto-csv2qmd
 linto-json2bib
 linto-launch
@@ -27,7 +28,6 @@ linto-linto-github
 linto-linto-mdsetup
 linto-linto-path
 linto-md2json
-linto-mkbib
 linto-prettyprint
 linto-qmd2yml
 linto-quarto
@@ -38,7 +38,6 @@ linto-quarto-render
 linto-quarto-setup
 linto-quarto-setup-document
 linto-quarto-setup-lettre
-linto-renumberyml
 linto-stripaccents
 linto-test
 linto-timezone
@@ -46,4 +45,5 @@ linto-utils
 linto-utils-prettyprint
 linto-utils-stripaccents
 linto-utils-timezone
+linto-yml-renumber
 linto-zed

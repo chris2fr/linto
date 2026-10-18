@@ -64,12 +64,20 @@ viewer\.
 .SS "Zed data sharing"
 .PP
 The Zed launcher accepts \fB\-u DIR\fP/\fB\-\-userdatadir DIR\fP; projects using the same
-root use the same \fBDIR/\.zed\fP user\-data directory\. Without this option, each
-project uses its own \fB\.zed\fP directory\. The launcher initializes a non\-default
-\fB\.zed\fP directory once per Linto \fBversion\fP in \fBconfig\.yml\fP: it opens a temporary
-Zed window, waits for you to close it, then links \fBlanguages\fP and \fBextensions\fP
-to the corresponding directories in \fB$HOME/\.zed\fP\. Other local Zed data,
-including project\-specific configuration and themes, is left in place\.
+root use the same \fBDIR/\.zed\fP user\-data directory\. Without this option, a folder
+argument uses that folder as the user\-data root\. When opening a file, the user\-
+data root defaults to the current working directory\. \fB\-\-projectdir DIR\fP sets the
+project directory explicitly\.
+.PP
+For a file argument, the project directory defaults to the current working
+directory if the file is inside it; otherwise it defaults to the file's parent
+directory\. A folder argument opens that folder as the project\.
+.PP
+When initializing a non\-default \fB\.zed\fP directory, the launcher copies the
+non\-shared contents of \fB$HOME/\.zed\fP into it, then links \fBlanguages\fP and
+\fBextensions\fP back to \fB$HOME/\.zed\fP when those shared directories exist\. The
+initialization is headless; it does not open a temporary Zed window\. Existing
+project\-specific data in the destination is preserved\.
 
 .SS "Refresh generated files"
 .PP
