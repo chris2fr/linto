@@ -26,20 +26,23 @@ name. For example, `bibtex` is both a guide topic and a group, so use
 `linto help page bibtex` to select its guide page. The group listing takes
 precedence for `linto help GROUP`.
 
-The dispatcher also supports `slug` as an alias for `stripaccents`. Run
+The configured `slug` shortcut maps to `utils stripaccents`. Run
 `linto --list-groups` to list active groups and `linto --list-commands GROUP`
 to list a group's commands.
 
 ## Shell aliases
 
-`linto launch aliases` installs or updates aliases declared in
-[`launch/lib/aliases.yml`](../launch/lib/aliases.yml) for one shell. For example:
+`linto linto aliases` installs or updates the shell aliases configured under
+`groups.linto.aliases` in [`config.yml`](../config.yml). For example:
 
 ```yaml
-aliases:
-  zz: "linto launch zed"
-unaliases:
-  - old-alias
+groups:
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        - old-alias
 ```
 
 By default, the command detects the shell from `$SHELL`, then tries the parent
@@ -47,8 +50,8 @@ process, and falls back to `sh` if it cannot identify one. Select a shell
 explicitly with `-s` or `--shell`:
 
 ```sh
-linto launch aliases --shell fish
-linto launch aliases -s bash
+linto linto aliases --shell fish
+linto linto aliases -s bash
 ```
 
 Choices are `fish`, `zsh`, `bash`, `sh`, and `ksh`. Fish aliases are saved with

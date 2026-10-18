@@ -1,13 +1,13 @@
-"""Manage and install shell aliases from launch/lib/aliases.yml."""
+"""Manage and install shell aliases configured under groups.linto.aliases."""
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import subprocess
 import sys
 from pathlib import Path
-import yaml
 
 
 def detect_current_shell() -> str:
@@ -41,33 +41,36 @@ def main() -> int:
     args = parser.parse_args()
     target_shell = args.shell
 
-    script_dir = Path(__file__).resolve().parent
-    aliases_file = script_dir / "aliases.yml"
-    
+    repo_root = Path(__file__).resolve().parents[2]
+    config_path = repo_root / "lib" / "config.py"
+    spec = importlib.util.spec_from_file_location("linto_config", config_path)
+    if spec is None or spec.loader is None:
+        print("error: could not load Linto config helper", file=sys.stderr)
+        return 1
+    linto_config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(linto_config)
+
     try:
-        data = yaml.safe_load(aliases_file.read_text())
-    except Exception as exc:
-        print(f"error: failed to read aliases.yml: {exc}", file=sys.stderr)
+        data = linto_config.load(repo_root / "config.yml")
+        alias_settings = linto_config.group_options(data, "linto").get("aliases", {})
+    except (OSError, ValueError) as exc:
+        print(f"error: failed to read Linto configuration: {exc}", file=sys.stderr)
         return 1
 
-    if not isinstance(data, dict):
-        print("error: aliases.yml must contain a YAML mapping", file=sys.stderr)
-        return 1
-
-    aliases = data.get("aliases", {})
-    unaliases = data.get("unaliases", [])
+    aliases = alias_settings.get("aliases", {})
+    unaliases = alias_settings.get("unaliases", [])
     if not isinstance(aliases, dict) or any(
         not isinstance(name, str) or not isinstance(command, str)
         for name, command in aliases.items()
     ):
-        print("error: 'aliases' in aliases.yml must be a mapping of names to command strings", file=sys.stderr)
+        print("error: groups.linto.aliases.aliases must map names to command strings", file=sys.stderr)
         return 1
     if not isinstance(unaliases, list) or any(not isinstance(name, str) for name in unaliases):
-        print("error: 'unaliases' in aliases.yml must be a list of alias names", file=sys.stderr)
+        print("error: groups.linto.aliases.unaliases must be a list of alias names", file=sys.stderr)
         return 1
 
     if not aliases and not unaliases:
-        print("No aliases or unaliases defined in aliases.yml")
+        print("No shell aliases or unaliases are configured for the linto group")
         return 0
 
     home = Path.home()

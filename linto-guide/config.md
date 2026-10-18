@@ -13,8 +13,14 @@ groups:
   beta: default
   biblio: default
   launch: default
-  linto: default
-  quarto: default
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        - something-to-delete-from-aliases
+  quarto:
+    extension: "chris2fr/quarto"
   utils: default
   old:
     enable: false
@@ -27,8 +33,11 @@ shortcuts:
 
 `default` enables a group. A group mapping may set `enable: false` to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
-completions, and generated stubs. Omitted group options default to
-`enable: true`.
+completions, and stubs. Omitted group options default to `enable: true`.
+Group-specific defaults are in [`lib/defaults.yml`](../lib/defaults.yml):
+`groups.quarto.extension` defaults to `chris2fr/quarto`. Shell-alias defaults
+come from [`linto/lib/aliases.yml`](../linto/lib/aliases.yml); values in
+`groups.linto.aliases` override or extend those defaults.
 
 The top-level `shortcuts` mapping defines explicit aliases. Each key is the
 shortcut name, and each value is a `"GROUP COMMAND"` target. For example,

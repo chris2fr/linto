@@ -30,21 +30,24 @@ name\. For example, \fBbibtex\fP is both a guide topic and a group, so use
 \fBlinto help page bibtex\fP to select its guide page\. The group listing takes
 precedence for \fBlinto help GROUP\fP\.
 .PP
-The dispatcher also supports \fBslug\fP as an alias for \fBstripaccents\fP\. Run
+The configured \fBslug\fP shortcut maps to \fButils stripaccents\fP\. Run
 \fBlinto \-\-list\-groups\fP to list active groups and \fBlinto \-\-list\-commands GROUP\fP
 to list a group's commands\.
 
 .SS "Shell aliases"
 .PP
-\fBlinto launch aliases\fP installs or updates aliases declared in
-\fBlaunch/lib/aliases\.yml\fP for one shell\. For example:
+\fBlinto linto aliases\fP installs or updates the shell aliases configured under
+\fBgroups\.linto\.aliases\fP in \fBconfig\.yml\fP\. For example:
 .RS
 .PP
 .nf
-aliases:
-  zz: "linto launch zed"
-unaliases:
-  \- old\-alias
+groups:
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        \- old\-alias
 .fi
 .RE
 .PP
@@ -54,8 +57,8 @@ explicitly with \fB\-s\fP or \fB\-\-shell\fP:
 .RS
 .PP
 .nf
-linto launch aliases \-\-shell fish
-linto launch aliases \-s bash
+linto linto aliases \-\-shell fish
+linto linto aliases \-s bash
 .fi
 .RE
 .PP
