@@ -6,13 +6,13 @@ list. Typical invocations include:
 
 ```sh
 linto quarto citations --help
-linto quarto-render --help
-linto quarto-setup --help
-linto quarto-setup-document --help
-linto quarto-setup-lettre --help
+linto quarto render --help
+linto quarto setup --help
+linto quarto setup-document --help
+linto quarto setup-lettre --help
 linto quarto guillemets2quotes --help
 linto quarto firefox-output --help
-linto quarto-github --help
+linto quarto github --help
 ```
 
 Citation extraction can produce YAML or CSV and supports ordering options; see
@@ -26,14 +26,14 @@ quarto.qmd --> citations --> pieces.yml
 
 ```mermaid
 flowchart LR
-quarto-setup
-quarto-setup-document --> document.qmd
-quarto-setup-lettre --> lettre.qmd
-quarto-github
+setup
+setup-document --> document.qmd
+setup-lettre --> lettre.qmd
+github
 ```
 
 ```mermaid
 flowchart LR
-quarto.qmd --> quarto-render --> output --> firefox-output
+quarto.qmd --> render --> output --> firefox-output
 quarto.qmd --> guillemets2quotes --> quarto.qmd
 ```

@@ -3,7 +3,7 @@ set -eu
 
 usage() {
   cat <<'EOF'
-Usage: quarto-setup.sh [-h|--help]
+Usage: setup.sh [-h|--help]
 
 Find the nearest ancestor containing _extensions/. If it contains
 _extensions/chris2fr, update chris2fr/quarto there; otherwise add it there.

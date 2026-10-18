@@ -3,7 +3,7 @@ set -eu
 
 usage() {
     cat <<'EOF'
-Usage: quarto-github.sh
+Usage: github.sh
 
 Opens the Quarto GitHub repository of the extension used in this linto installation
 EOF
