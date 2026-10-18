@@ -51,7 +51,11 @@ def main() -> int:
     spec.loader.exec_module(linto_config)
 
     try:
-        data = linto_config.load(repo_root / "config.yml")
+        data = linto_config.load(
+            repo_root / "config.yml",
+            defaults_root=repo_root,
+            overlays=linto_config.config_overlays(),
+        )
         aliases = linto_config.configdata(data, "linto").get("aliases", {})
     except (OSError, ValueError) as exc:
         print(f"error: failed to read Linto configuration: {exc}", file=sys.stderr)

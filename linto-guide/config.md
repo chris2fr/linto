@@ -1,8 +1,9 @@
 # Configuration
 
-The repository's [`config.yml`](../config.yml) controls active command groups,
-generated command stubs, the Quarto extension default, and Markdown viewer
-preferences.
+The installation's [`config.yml`](../config.yml) provides the baseline for
+active command groups, generated stubs, and shortcuts. Optional system and user
+configuration files override it at runtime. Defaults supply the Quarto extension
+and Markdown viewer preferences.
 
 ## Groups and shortcuts
 
@@ -43,8 +44,12 @@ Group-specific settings live under `groups.GROUP.configdata`, and command-
 specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
 are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
 `GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
-`configdata`, and matching entries in `config.yml` override them. The Markdown
-viewer is root configdata, while the shipped
+`configdata`, and matching entries in the installation's `config.yml` override
+them. At runtime, `/etc/linto/linto.yml` is merged next, then `~/.linto.yml`, so
+user settings have the highest precedence. These config files may contain only
+the settings they override. Defaults are located relative to the Linto
+installation, not the current working directory. The Markdown viewer is root
+configdata, while the shipped
 Quarto extension and Linto shell-alias defaults are in
 [`quarto/lib/default.yml`](../quarto/lib/default.yml) and
 [`linto/lib/default.yml`](../linto/lib/default.yml), respectively.

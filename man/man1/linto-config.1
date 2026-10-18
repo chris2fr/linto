@@ -2,9 +2,10 @@
 
 .SH "Configuration"
 .PP
-The repository's \fBconfig\.yml\fP controls active command groups,
-generated command stubs, the Quarto extension default, and Markdown viewer
-preferences\.
+The installation's \fBconfig\.yml\fP provides the baseline for
+active command groups, generated stubs, and shortcuts\. Optional system and user
+configuration files override it at runtime\. Defaults supply the Quarto extension
+and Markdown viewer preferences\.
 
 .SS "Groups and shortcuts"
 .PP
@@ -47,8 +48,12 @@ Group\-specific settings live under \fBgroups\.GROUP\.configdata\fP, and command
 specific settings under \fBgroups\.GROUP\.commands\.COMMAND\.configdata\fP\. Defaults
 are layered from \fBlib/default\.yml\fP (root), \fBGROUP/lib/default\.yml\fP (group), and
 \fBGROUP/lib/COMMAND\.yml\fP (command)\. Each defaults file stores values under
-\fBconfigdata\fP, and matching entries in \fBconfig\.yml\fP override them\. The Markdown
-viewer is root configdata, while the shipped
+\fBconfigdata\fP, and matching entries in the installation's \fBconfig\.yml\fP override
+them\. At runtime, \fB/etc/linto/linto\.yml\fP is merged next, then \fB~/\.linto\.yml\fP, so
+user settings have the highest precedence\. These config files may contain only
+the settings they override\. Defaults are located relative to the Linto
+installation, not the current working directory\. The Markdown viewer is root
+configdata, while the shipped
 Quarto extension and Linto shell\-alias defaults are in
 \fBquarto/lib/default\.yml\fP and
 \fBlinto/lib/default\.yml\fP, respectively\.

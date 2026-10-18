@@ -1,5 +1,8 @@
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -21,6 +24,23 @@ class ConfigdataTests(unittest.TestCase):
             config.configdata(data, "linto")["aliases"],
             {"zz": "linto launch zed"},
         )
+
+    def test_cli_defaults_are_anchored_to_install_when_config_is_elsewhere(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "project" / "config.yml"
+            config_path.parent.mkdir()
+            config_path.write_text("groups:\n  quarto: default\n", encoding="utf-8")
+            environment = os.environ.copy()
+            environment["HOME"] = directory
+            result = subprocess.run(
+                [sys.executable, ROOT / "lib" / "config.py", config_path, "quarto-extension"],
+                capture_output=True,
+                text=True,
+                check=False,
+                env=environment,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(result.stdout.strip())
 
     def test_configdata_merge_and_command_enable(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -73,6 +93,43 @@ class ConfigdataTests(unittest.TestCase):
             self.assertFalse(config.command_options(data, "demo", "run")["enable"])
             self.assertTrue(config.command_options(data, "demo", "other")["enable"])
             self.assertEqual(config.configdata(data)["shared"], "configured")
+
+    def test_external_system_and_user_configs_override_installation_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            install = root / "install"
+            project = root / "project"
+            project_config = project / "config.yml"
+            system_config = root / "etc-linto.yml"
+            user_config = root / "home" / ".linto.yml"
+            (install / "lib").mkdir(parents=True)
+            project.mkdir()
+            user_config.parent.mkdir()
+            (install / "lib" / "default.yml").write_text(
+                "configdata:\n  viewer: default\n", encoding="utf-8"
+            )
+            project_config.write_text(
+                "groups:\n  demo:\n    configdata:\n      setting: installation\n",
+                encoding="utf-8",
+            )
+            system_config.write_text(
+                "configdata:\n  system-only: true\n"
+                "groups:\n  demo:\n    configdata:\n      setting: system\n",
+                encoding="utf-8",
+            )
+            user_config.write_text(
+                "groups:\n  demo:\n    configdata:\n      setting: user\n",
+                encoding="utf-8",
+            )
+
+            data = config.load(
+                project_config,
+                defaults_root=install,
+                overlays=[system_config, user_config],
+            )
+            self.assertEqual(config.configdata(data)["viewer"], "default")
+            self.assertTrue(config.configdata(data)["system-only"])
+            self.assertEqual(config.configdata(data, "demo")["setting"], "user")
 
     def test_alias_defaults_are_extended_and_overridden(self):
         with tempfile.TemporaryDirectory() as directory:
