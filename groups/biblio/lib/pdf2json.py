@@ -11,7 +11,8 @@ Pour chaque FICHIER.pdf, écrit CLÉ.json où CLÉ est le nom du fichier sans
       "text": "texte extrait"
     }
 
-Le texte vient de pdftotext et les métadonnées de pdfinfo (champs standards),
+Le texte vient de pdftotext (ou de pdf2txt, de pdfminer.six, avec
+--engine pdf2txt) et les métadonnées de pdfinfo (champs standards),
 de qpdf (autres entrées du dictionnaire Info, si qpdf est installé) et du flux
 XMP du document.
 """
@@ -135,19 +136,45 @@ def build_frontmatter(path):
     return ordered
 
 
-def extract_text(path, layout):
+PDF2TXT_NAMES = ("pdf2txt.py", "pdf2txt")
+
+
+def find_pdf2txt():
+    return next((name for name in PDF2TXT_NAMES if shutil.which(name)), None)
+
+
+def choose_engine(requested):
+    """Return the text extraction engine to use, or raise if none is installed."""
+    available = {
+        "pdftotext": shutil.which("pdftotext") is not None,
+        "pdf2txt": find_pdf2txt() is not None,
+    }
+    if requested != "auto":
+        if not available[requested]:
+            raise RuntimeError(f"{requested} est requis pour --engine {requested}")
+        return requested
+    for engine in ("pdftotext", "pdf2txt"):
+        if available[engine]:
+            return engine
+    raise RuntimeError("pdftotext (poppler) ou pdf2txt (pdfminer.six) est requis")
+
+
+def extract_text(path, layout, engine="pdftotext"):
+    if engine == "pdf2txt":
+        text = run([find_pdf2txt(), str(path)]).replace("\f", "\n")
+        return re.sub(r"\n{3,}", "\n\n", text).strip()
     command = ["pdftotext", "-enc", "UTF-8", "-nopgbrk"]
     if layout:
         command.append("-layout")
     return run([*command, str(path), "-"]).strip()
 
 
-def convert_file(path, layout):
+def convert_file(path, layout, engine="pdftotext"):
     key = path.name[:-4] if path.name.lower().endswith(".pdf") else path.name
     return key, {
         "key": key,
         "frontmatter": build_frontmatter(path),
-        "text": extract_text(path, layout),
+        "text": extract_text(path, layout, engine),
     }
 
 
@@ -158,15 +185,24 @@ def main():
     parser.add_argument("inputs", nargs="+", metavar="fichier.pdf", help="Fichier(s) PDF à convertir")
     parser.add_argument("-d", "--outdir", metavar="DOSSIER", help="Dossier de sortie (défaut : dossier courant)")
     parser.add_argument("-o", "--output", metavar="FICHIER", help="Fichier de sortie, ou - pour stdout (un seul PDF)")
-    parser.add_argument("--layout", action="store_true", help="Conserve la mise en page du texte (pdftotext -layout)")
+    parser.add_argument("--layout", action="store_true", help="Conserve la mise en page du texte (pdftotext -layout; sans effet avec pdf2txt)")
+    parser.add_argument(
+        "--engine", choices=["auto", "pdftotext", "pdf2txt"], default="auto",
+        help="Extracteur de texte : pdftotext (poppler) ou pdf2txt (pdfminer.six). "
+             "Par défaut, pdftotext s'il est installé, sinon pdf2txt.",
+    )
     args = parser.parse_args()
 
     if args.output and (len(args.inputs) != 1 or args.outdir):
         parser.error("-o/--output demande exactement un PDF et exclut -d/--outdir")
-    for tool in ("pdfinfo", "pdftotext"):
-        if shutil.which(tool) is None:
-            print(f"{sys.argv[0]}: {tool} est requis (paquet poppler)", file=sys.stderr)
-            return 1
+    if shutil.which("pdfinfo") is None:
+        print(f"{sys.argv[0]}: pdfinfo est requis (paquet poppler)", file=sys.stderr)
+        return 1
+    try:
+        engine = choose_engine(args.engine)
+    except RuntimeError as error:
+        print(f"{sys.argv[0]}: {error}", file=sys.stderr)
+        return 1
 
     outdir = Path(args.outdir) if args.outdir else Path.cwd()
     failed = False
@@ -175,7 +211,7 @@ def main():
         try:
             if not path.is_file():
                 raise RuntimeError("fichier PDF absent ou illisible")
-            key, data = convert_file(path, args.layout)
+            key, data = convert_file(path, args.layout, engine)
             text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
             if args.output == "-":
                 sys.stdout.write(text)

@@ -116,7 +116,10 @@ directory, where `KEY` is the file name without `.pdf`:
 }
 ```
 
-`text` comes from `pdftotext`; add `--layout` to keep the page layout.
+`text` comes from `pdftotext`; add `--layout` to keep the page layout. With
+`--engine pdf2txt` it comes from `pdf2txt` (pdfminer.six) instead, which is also
+used automatically when `pdftotext` is not installed (`--layout` then has no
+effect). The default is `--engine auto`.
 `frontmatter` gathers every piece of metadata available: the standard fields
 from `pdfinfo` (title, author, subject, keywords, creator, producer, `date` and
 `modified` as ISO dates, page count and size, PDF version, and so on), any
@@ -126,8 +129,8 @@ different value for a field already present, it is kept as `xmp_FIELD`.
 
 Use `-d DIR` to choose the output directory, or `-o FILE` (`-o -` for standard
 output) when converting a single PDF. A file that cannot be converted is
-reported and the others still are. `pdfinfo` and `pdftotext` (poppler) are
-required.
+reported and the others still are. `pdfinfo` (poppler) is required for the
+metadata, and one of `pdftotext` or `pdf2txt` for the text.
 
 ## Convert Markdown to JSON
 

@@ -58,6 +58,23 @@ def minimal_pdf(path, info):
     path.write_bytes(body)
 
 
+class EngineTests(unittest.TestCase):
+    def test_auto_prefers_pdftotext_then_falls_back_to_pdf2txt(self):
+        def which(installed):
+            return lambda name: f"/usr/bin/{name}" if name in installed else None
+
+        with patch.object(pdf2json.shutil, "which", which({"pdftotext", "pdf2txt.py"})):
+            self.assertEqual(pdf2json.choose_engine("auto"), "pdftotext")
+        with patch.object(pdf2json.shutil, "which", which({"pdf2txt"})):
+            self.assertEqual(pdf2json.choose_engine("auto"), "pdf2txt")
+        with patch.object(pdf2json.shutil, "which", which(set())):
+            with self.assertRaises(RuntimeError):
+                pdf2json.choose_engine("auto")
+        with patch.object(pdf2json.shutil, "which", which({"pdf2txt.py"})):
+            with self.assertRaises(RuntimeError):
+                pdf2json.choose_engine("pdftotext")
+
+
 class XmpTests(unittest.TestCase):
     def test_xmp_fields_are_flattened(self):
         with patch.object(pdf2json, "run", return_value=XMP):
@@ -95,6 +112,15 @@ class ConversionTests(unittest.TestCase):
             self.assertEqual(data["frontmatter"]["pages"], 1)
             if shutil.which("qpdf"):
                 self.assertEqual(data["frontmatter"]["place"], "Paris")
+
+    @unittest.skipUnless(shutil.which("pdf2txt.py") or shutil.which("pdf2txt"), "pdf2txt is required")
+    def test_pdf2txt_engine(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            minimal_pdf(directory / "a.pdf", {"Title": "A"})
+            result = self.convert(directory, "--engine", "pdf2txt", "-o", "-", "a.pdf")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["text"], "Bonjour PDF")
 
     def test_outdir_stdout_and_failures(self):
         with tempfile.TemporaryDirectory() as directory:
