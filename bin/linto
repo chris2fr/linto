@@ -20,8 +20,8 @@ list_groups() {
 }
 
 list_group_commands() {
-  group=$1
-  for tool in "$script_dir/$group"/*.sh; do
+  list_command_group=$1
+  for tool in "$script_dir/$list_command_group"/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
     printf '%s\n' "${name%.sh}"
@@ -36,15 +36,15 @@ list_groups_and_commands() {
 }
 
 list_shortcuts() {
-  for group in $(list_groups); do
-    printf 'group\t%s\n' "$group"
-    options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$group") || continue
-    shortcuts=$(printf '%s\n' "$options" | sed -n '2p')
-    list_group_commands "$group" | while IFS= read -r command_name; do
-      case "$group/$command_name" in
+  for shortcut_group in $(list_groups); do
+    printf 'group\t%s\n' "$shortcut_group"
+    shortcut_options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$shortcut_group") || continue
+    shortcut_enabled=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
+    list_group_commands "$shortcut_group" | while IFS= read -r shortcut_command; do
+      case "$shortcut_group/$shortcut_command" in
         linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
       esac
-      printf 'command\t%s\t%s\n' "$command_name" "$shortcuts"
+      printf 'command\t%s\t%s\n' "$shortcut_command" "$shortcut_enabled"
     done
   done | awk -F '\t' '
     $1 == "group" { groups[$2] = 1; next }
@@ -148,9 +148,9 @@ EOF
 
 find_tool() {
   command_name=$1
-  group=${2-}
-  if [ -n "$group" ]; then
-    for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+  tool_group=${2-}
+  if [ -n "$tool_group" ]; then
+    for candidate in "$script_dir/$tool_group/$command_name" "$script_dir/$tool_group/$command_name.sh"; do
       if [ -f "$candidate" ]; then
         printf '%s\n' "$candidate"
         return 0
@@ -167,8 +167,8 @@ find_tool() {
   done
 
   list_shortcuts | grep -Fxq -- "$command_name" || return 1
-  for group in $(list_groups); do
-    for candidate in "$script_dir/$group/$command_name" "$script_dir/$group/$command_name.sh"; do
+  for search_group in $(list_groups); do
+    for candidate in "$script_dir/$search_group/$command_name" "$script_dir/$search_group/$command_name.sh"; do
       if [ -f "$candidate" ] && [ -x "$candidate" ]; then
         printf '%s\n' "$candidate"
         return 0
