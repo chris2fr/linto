@@ -277,6 +277,13 @@ if [ "$#" -eq 0 ]; then
   exit 0
 fi
 
+# Keep the config editor reachable even when a malformed user config prevents
+# normal group discovery; it is needed to repair that configuration.
+if [ "$#" -ge 2 ] && [ "$1" = linto ] && [ "$2" = config ]; then
+  shift 2
+  exec "$script_dir/linto/config.sh" "$@"
+fi
+
 case "$1" in
   --list-groups)
     [ "$#" -eq 1 ] || { echo "Usage: linto --list-groups" >&2; exit 2; }
