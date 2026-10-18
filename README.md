@@ -14,7 +14,7 @@ for your shell:
 export PATH="/path/to/linto/bin:$PATH"
 ```
 
-Or use Linto's setup helper for Bash, Zsh, or Fish:
+Or use Linto's setup helper for Bash, Zsh, Fish, ksh, or sh:
 
 ```sh
 linto linto setup
@@ -46,12 +46,31 @@ programs.linto = {
 };
 ```
 
+Optional dependencies are NixOS options rather than a setup step:
+
+```nix
+programs.linto = {
+  enable = true;
+  # Viewers for `linto help`, in order of preference (cat is the fallback).
+  # Also installs the packages and sets configdata.markdown-viewer.
+  markdownViewers = [ "mdcat" "glow" ];
+  # Tools used by individual commands.
+  extraPackages = with pkgs; [ quarto zed-editor xdg-utils ];
+};
+```
+
+`markdownViewers` accepts `md-tui`, `inlyne`, `mdcat`, `mandown`, `glow`,
+`frogmouth`, `bat`, and `mdfried`; `mandown` also installs `groff`. This replaces
+`linto linto mdsetup`, which is not shipped in the package.
+
 The module installs the package and optionally writes `settings` to
 `/etc/linto/linto.yml`; user config still takes precedence. Override
 `programs.linto.package` if needed. The package includes the shell/Python
 utilities used by Linto and installs Bash, Fish, and Zsh completions. Quarto,
 Zed, `xdg-open`, and optional Markdown viewers remain separate packages; add the
-ones needed by your workflow to your system configuration. User configuration
+ones needed by your workflow to your system configuration. The package does
+not ship the shell-setup helper (`linto linto setup`), which is for other
+systems, or the development scripts listed in [DEVELOPMENT.md](DEVELOPMENT.md). User configuration
 and generated data stay in the XDG locations noted below, outside the immutable
 Nix store.
 
@@ -136,16 +155,9 @@ shortcuts:
 - Group-qualified `linto GROUP COMMAND` and `linto-GROUP-COMMAND` forms remain
   available for active groups, whether or not an alias is configured.
 
-Refresh generated command stubs, Fish completions, and the active-group list in
-the man page after changing configuration or scripts:
-
-```sh
-linto linto refresh
-```
-
-`linto linto addgroup DIRECTORY` registers or re-enables a group; `linto linto
-rmgroup GROUP` removes a `default` entry or disables a mapped group. Neither
-command deletes an existing group directory. See [`linto help config`](linto-guide/config.md).
+Commands for regenerating wrappers, completions and man pages, and for managing
+groups in a development checkout, are described in
+[DEVELOPMENT.md](DEVELOPMENT.md). See [`linto help config`](linto-guide/config.md).
 
 ## Main groups
 
@@ -155,7 +167,7 @@ The active groups are listed in `config.yml`. Broadly:
 - `quarto`: rendering, citations, Quarto setup, and output browsing.
 - `utils`: text, time-zone, and formatting tools.
 - `launch`: application launchers such as Zed.
-- `linto`: Linto setup, group management, and refresh commands.
+- `linto`: Linto setup and helper commands.
 - `beta`: experimental tools.
 
 Use `linto help GROUP` for the live command list. For detailed topics, see

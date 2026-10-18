@@ -8,6 +8,8 @@
 , gnugrep
 , gnused
 , python3
+  # Fixed base configuration baked into the store; override to change it.
+, configFile ? ../config.yml
 }:
 
 let
@@ -40,6 +42,26 @@ stdenvNoCC.mkDerivation {
 
     mkdir -p "$out/lib/linto" "$out/bin"
     cp -R . "$out/lib/linto"
+    chmod u+w "$out/lib/linto/config.yml"
+    cp ${configFile} "$out/lib/linto/config.yml"
+    install -Dm444 ${configFile} "$out/etc/linto/config.yml"
+    # addgroup, rmgroup, refresh and addman are development scripts, and
+    # setup and mdsetup prepare non-Nix systems; Nix provides PATH and completions and
+    # the store tree is read-only, so none of them are shipped.
+    rm -f \
+      "$out/lib/linto/groups/linto/addgroup.sh" \
+      "$out/lib/linto/groups/linto/rmgroup.sh" \
+      "$out/lib/linto/groups/linto/refresh.sh" \
+      "$out/lib/linto/groups/linto/addman.sh" \
+      "$out/lib/linto/groups/linto/setup.sh" \
+      "$out/lib/linto/groups/linto/mdsetup.sh" \
+      "$out/lib/linto/bin/linto-linto-addgroup" \
+      "$out/lib/linto/bin/linto-linto-rmgroup" \
+      "$out/lib/linto/bin/linto-linto-refresh" \
+      "$out/lib/linto/bin/linto-linto-addman" \
+      "$out/lib/linto/bin/linto-linto-setup" \
+      "$out/lib/linto/bin/linto-linto-mdsetup" \
+      "$out/lib/linto/bin/linto-beta-addman"
     patchShebangs "$out/lib/linto"
 
     mv "$out/lib/linto/bin/linto" "$out/lib/linto/bin/linto-unwrapped"

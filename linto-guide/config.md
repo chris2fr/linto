@@ -120,21 +120,10 @@ non-shared contents of `$HOME/.zed` into it, then links `languages` and
 initialization is headless; it does not open a temporary Zed window. Existing
 project-specific data in the destination is preserved.
 
-## Refresh generated files
+## Generated files and user groups
 
-After editing configuration or adding/removing executable scripts, run:
-
-```sh
-linto linto refresh
-```
-
-Refresh writes generated command wrappers, Fish completions, and man pages to
-`${XDG_DATA_HOME:-~/.local/share}/linto`, never into the installation tree. This
-is also where custom groups added with `linto linto addgroup DIRECTORY` are
-stored. The setup helper adds the generated wrapper directory to `PATH`. Remove
-a group with `linto linto rmgroup GROUP`; it is disabled in the user config, but
-its files are left untouched. Use `linto --list-groups` to inspect active groups.
-
-The installation requires `mandown` and `groff` when refreshing generated man
-pages. This is convenient on mutable systems and should be declared as runtime
-inputs by Nix packages that expose the refresh command.
+Per-user data lives in `${XDG_DATA_HOME:-~/.local/share}/linto`, never in the
+installation tree; this is where custom user groups are stored. The setup helper
+adds the user wrapper directory to `PATH`. Enable or disable groups through the
+`groups` mapping in your user config. Use `linto --list-groups` to inspect
+active groups.

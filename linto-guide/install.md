@@ -2,19 +2,22 @@
 
 Add this installation's `bin/` directory to your `PATH`, or run the setup
 helper to configure the current user's shell. It also adds the per-user
-`${XDG_DATA_HOME:-~/.local/share}/linto/bin` directory, where refresh generates
-wrappers without modifying the installation:
+`${XDG_DATA_HOME:-~/.local/share}/linto/bin` directory for user
+wrappers, without modifying the installation:
 
 ```sh
 linto linto setup
 ```
 
-The helper supports Bash, Zsh, and Fish and can be run more than once. The
+The helper detects the invoking shell (Fish, Zsh, Bash, ksh or sh) and can be run more than once; ksh and sh get the PATH entries but no completion. The
 XDG variables are optional: without them, user configuration is stored in
 `~/.config/linto/config.yml`, and custom groups/generated data live in
 `~/.local/share/linto`. No Linto-specific home variable is required. An existing
 `~/.linto.yml` is still read as a lower-priority compatibility config and can be
 moved to `~/.config/linto/config.yml` when you migrate.
+
+On NixOS, `linto linto setup` changes nothing and prints the equivalent
+`programs.linto` options instead (see the README's Nix section).
 
 To configure shell completion and install the `linto(1)` man page as well:
 

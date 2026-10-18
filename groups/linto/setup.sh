@@ -7,11 +7,15 @@ Usage: setup.sh [--shell SHELL] [--man] [-h|--help]
 
 Configure Linto for the current user's shell by adding the package and
 user-generated command directories to PATH and installing shell completion.
-The shell defaults to $SHELL.
-Configuration lines are not duplicated. Use --man to also install the
-Linto man page.
+The invoking shell is detected automatically; use --shell to select one
+explicitly. Configuration lines are not duplicated. Use --man to also install
+the Linto man page.
 
-Supported shells: zsh, bash, fish
+On NixOS, no files are changed; the matching NixOS options are printed instead.
+
+Supported shells: zsh, bash, fish, ksh, sh. Completion is installed for zsh,
+bash and fish; ksh and sh only get the PATH entries (ksh through ~/.kshrc,
+loaded via ENV from ~/.profile; sh through ~/.profile).
 EOF
 }
 
@@ -20,14 +24,64 @@ fail() {
   exit 1
 }
 
-shell_name=${SHELL##*/}
+detect_current_shell() {
+  local pid=$PPID parent line process_name argument is_script
+  local -a argv
+  while [[ "$pid" =~ ^[0-9]+$ ]] && (( pid > 1 )); do
+    process_name=
+    IFS= read -r process_name < "/proc/$pid/comm" 2>/dev/null || break
+    process_name=${process_name##*/}
+    process_name=${process_name#-}
+
+    parent=
+    while IFS= read -r line; do
+      if [[ "$line" == PPid:* ]]; then
+        parent=${line#PPid:}
+        parent=${parent//[[:space:]]/}
+        break
+      fi
+    done < "/proc/$pid/status" 2>/dev/null || break
+
+    is_script=false
+    argv=()
+    while IFS= read -r -d '' argument; do
+      argv+=("$argument")
+    done < "/proc/$pid/cmdline" 2>/dev/null || true
+    for argument in "${argv[@]:1}"; do
+      [[ "$argument" != -* && -f "$argument" ]] || continue
+      if IFS= read -r line < "$argument" && [[ "$line" == '#!'* ]]; then
+        is_script=true
+        break
+      fi
+    done
+    if [[ "$is_script" == false ]]; then
+      case "$process_name" in
+        ksh93|mksh) process_name=ksh ;;
+      esac
+      case "$process_name" in
+        zsh|bash|fish|ksh|sh) printf '%s\n' "$process_name"; return ;;
+      esac
+    fi
+    pid=$parent
+  done
+
+  local configured_shell=${SHELL:-}
+  configured_shell=${configured_shell##*/}
+  case "$configured_shell" in
+    ksh93|mksh) printf '%s\n' ksh ;;
+    zsh|bash|fish|ksh|sh) printf '%s\n' "$configured_shell" ;;
+    *) printf '%s\n' bash ;;
+  esac
+}
+
+shell_name=$(detect_current_shell)
 install_man=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --man) install_man=true; shift ;;
     --shell)
-      [[ $# -ge 2 ]] || fail '--shell requires zsh, bash, or fish'
+      [[ $# -ge 2 ]] || fail '--shell requires zsh, bash, fish, ksh, or sh'
       shell_name=$2
       shift 2
       ;;
@@ -37,9 +91,34 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+is_nixos() {
+  [[ -e /etc/NIXOS ]] || grep -qx 'ID=nixos' /etc/os-release 2>/dev/null
+}
+
+if is_nixos; then
+  cat <<'EOF'
+This is NixOS: PATH and shell completion are managed declaratively, so no shell
+files were changed. Add Linto to your NixOS configuration instead:
+
+  imports = [ inputs.linto.nixosModules.default ];
+  programs.linto = {
+    enable = true;
+    # Optional system-wide settings, written to /etc/linto/linto.yml:
+    # settings.groups.quarto.configdata.extension = "chris2fr/quarto";
+  };
+
+The module installs the linto command, Bash/Fish/Zsh completions, and the
+runtime dependencies. Per-user settings stay in ~/.config/linto/config.yml.
+EOF
+  exit 0
+fi
+
 case "$shell_name" in
-  zsh|bash|fish) ;;
-  *) fail "unsupported shell '$shell_name' (supported: zsh, bash, fish)" ;;
+  ksh93|mksh) shell_name=ksh ;;
+esac
+case "$shell_name" in
+  zsh|bash|fish|ksh|sh) ;;
+  *) fail "unsupported shell '$shell_name' (supported: zsh, bash, fish, ksh, sh)" ;;
 esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
@@ -78,6 +157,18 @@ case "$shell_name" in
     init_line=''
     path_line="fish_add_path \"$bin_dir\" \"$user_bin_dir\""
     ;;
+  ksh)
+    config_file="$HOME/.kshrc"
+    completion_line=''
+    init_line=''
+    path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
+    ;;
+  sh)
+    config_file="$HOME/.profile"
+    completion_line=''
+    init_line=''
+    path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
+    ;;
 esac
 
 mkdir -p -- "$(dirname -- "$config_file")"
@@ -90,24 +181,54 @@ append_once() {
   printf '\n%s\n' "$line" >> "$config_file"
 }
 
-# Ensure Zsh loads the Linto function from fpath before compinit. Avoid adding a
-# second compinit when an existing initialization is already present.
-if [[ "$shell_name" == zsh ]]; then
-  append_once "$completion_line"
+ensure_zsh_completion_order() {
+  local temporary
+  temporary=$(mktemp "${config_file}.linto.XXXXXX")
+  if ! awk -v line="$completion_line" '
+    $0 == line { next }
+    !inserted && /(^|[;&[:space:]])(autoload[[:space:]]+-Uz[[:space:]]+compinit|compinit)([;&[:space:]]|$)/ {
+      print line
+      inserted = 1
+    }
+    { print }
+    END { if (!inserted) print line }
+  ' "$config_file" > "$temporary"; then
+    rm -f -- "$temporary"
+    fail "could not update Zsh completion order in $config_file"
+  fi
+  chmod --reference="$config_file" "$temporary" 2>/dev/null || true
+  mv -- "$temporary" "$config_file"
+
   if ! grep -Eq '(^|[;&[:space:]])(autoload[[:space:]]+-Uz[[:space:]]+compinit|compinit)([;&[:space:]]|$)' "$config_file"; then
     append_once "$init_line"
   fi
+}
+
+# Zsh must have the completion directory on fpath before compinit runs.
+if [[ "$shell_name" == zsh ]]; then
+  ensure_zsh_completion_order
 else
   append_once "$completion_line"
 fi
 append_once "$path_line"
+
+# ksh only reads ~/.kshrc when ENV points at it, which login shells set in ~/.profile.
+if [[ "$shell_name" == ksh ]]; then
+  profile="$HOME/.profile"
+  env_line='export ENV="${ENV:-$HOME/.kshrc}"'
+  [[ -f "$profile" ]] || : > "$profile"
+  grep -Fqx -- "$env_line" "$profile" || printf '\n%s\n' "$env_line" >> "$profile"
+fi
 
 if [[ "$install_man" == true ]]; then
   "$script_dir/groups/linto/addman.sh"
 fi
 
 printf 'Configured Linto for %s in %s\n' "$shell_name" "$config_file"
-printf 'Reload with: source %q\n' "$config_file"
+case "$shell_name" in
+  ksh|sh) printf 'Reload with: . %q\n' "$config_file" ;;
+  *) printf 'Reload with: source %q\n' "$config_file" ;;
+esac
 if [[ "$install_man" == false ]]; then
   printf 'Run linto linto addman or repeat with --man to install the man page.\n'
 fi

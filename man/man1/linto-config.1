@@ -113,23 +113,9 @@ non\-shared contents of \fB$HOME/\.zed\fP into it, then links \fBlanguages\fP an
 initialization is headless; it does not open a temporary Zed window\. Existing
 project\-specific data in the destination is preserved\.
 
-.SS "Refresh generated files"
+.SS "Generated files and user groups"
 .PP
-After editing configuration or adding/removing executable scripts, run:
-.RS
-.PP
-.nf
-linto linto refresh
-.fi
-.RE
-.PP
-Refresh regenerates command stubs, shell completion data, the active\-group list
-in the dispatcher man page, and one man page per \fBlinto\-guide/*\.md\fP topic\. Topic
-man pages are installed under \fBman/man1/\fP after generation succeeds and each
-page passes \fBgroff \-Wall\fP validation\. \fBmandown\fP and \fBgroff\fP are required for this
-step\.
-.PP
-Register or re\-enable a group with \fBlinto linto addgroup DIRECTORY\fP\. Remove a
-group from Linto's active configuration with \fBlinto linto rmgroup GROUP\fP; this
-does not delete the group directory\. Use \fBlinto \-\-list\-groups\fP to inspect active
-groups\.
+Per\-user data lives in \fB${XDG_DATA_HOME:\-~/\.local/share}/linto\fP, never in the
+installation tree; this is where custom user groups are stored\. Enable or disable
+groups through the \fBgroups\fP mapping in the user configuration\. Use
+\fBlinto \-\-list\-groups\fP to inspect active groups\.
