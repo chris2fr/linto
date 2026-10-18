@@ -18,10 +18,7 @@ groups:
   linto:
     configdata:
       aliases:
-        aliases:
-          zz: "linto launch zed"
-        unaliases:
-          - something-to-delete-from-aliases
+        zz: "linto launch zed"
   quarto:
     configdata:
       extension: "chris2fr/quarto"
@@ -45,8 +42,9 @@ completions, and stubs. Omitted group and command `enable` options default to
 Group-specific settings live under `groups.GROUP.configdata`, and command-
 specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
 are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
-`GROUP/lib/COMMAND.yml` (command); values in `config.yml` override defaults at
-the matching level. The Markdown viewer is root configdata, while the shipped
+`GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
+`configdata`, and matching entries in `config.yml` override them. The Markdown
+viewer is root configdata, while the shipped
 Quarto extension and Linto shell-alias defaults are in
 [`quarto/lib/default.yml`](../quarto/lib/default.yml) and
 [`linto/lib/default.yml`](../linto/lib/default.yml), respectively.
@@ -62,8 +60,8 @@ any alias entry.
 
 ## Markdown viewer
 
-`configdata.markdown-viewer` accepts one command name or an ordered YAML list. Linto tries
-the entries from top to bottom and runs the first installed supported viewer.
+`configdata.markdown-viewer` accepts one command name or an ordered YAML list.
+Linto tries the entries from top to bottom and runs the first installed supported viewer.
 For example:
 
 ```yaml

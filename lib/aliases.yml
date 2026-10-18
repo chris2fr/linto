@@ -1,4 +1,2 @@
 aliases:
   zz: "linto launch zed"
-unaliases:
-  - something-to-delete-from-aliases

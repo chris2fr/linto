@@ -36,13 +36,23 @@ def merge_mappings(base: dict, override: dict) -> dict:
     return result
 
 
+def read_default_configdata(path: Path, label: str) -> dict:
+    defaults = read_yaml_mapping(path, label)
+    unknown = set(defaults) - {"configdata"}
+    if unknown:
+        raise ValueError(f"{label} {path} only accepts a 'configdata' mapping")
+    configdata = defaults.get("configdata", {})
+    validate_configdata(configdata, f"{label} configdata")
+    return configdata
+
+
 def load_defaults(root: Path) -> dict:
     root_defaults_path = root / "lib" / "default.yml"
-    root_configdata = read_yaml_mapping(root_defaults_path, "root defaults")
+    root_configdata = read_default_configdata(root_defaults_path, "root defaults")
     groups = {}
     for group_defaults_path in root.glob("*/lib/default.yml"):
         group_name = group_defaults_path.parent.parent.name
-        groups[group_name] = read_yaml_mapping(group_defaults_path, "group defaults")
+        groups[group_name] = read_default_configdata(group_defaults_path, "group defaults")
     return {"configdata": root_configdata, "groups": groups}
 
 
@@ -55,21 +65,12 @@ def validate_configdata(value: object, label: str) -> None:
         raise ValueError(f"{label} must be a mapping")
 
 
-def validate_shell_aliases(value: object, label: str) -> None:
-    if not isinstance(value, dict):
-        raise ValueError(f"{label} must be a mapping")
-    unknown = set(value) - {"aliases", "unaliases"}
-    if unknown:
-        raise ValueError(f"{label} has unknown option(s): {', '.join(sorted(unknown))}")
-    aliases = value.get("aliases", {})
-    unaliases = value.get("unaliases", [])
-    if not isinstance(aliases, dict) or any(
-        not isinstance(name, str) or not name or not isinstance(command, str)
-        for name, command in aliases.items()
+def validate_aliases(value: object, label: str) -> None:
+    if not isinstance(value, dict) or any(
+        not valid_name(name) or not isinstance(command, str)
+        for name, command in value.items()
     ):
-        raise ValueError(f"{label}.aliases must map alias names to command strings")
-    if not isinstance(unaliases, list) or any(not isinstance(name, str) for name in unaliases):
-        raise ValueError(f"{label}.unaliases must be a list of alias names")
+        raise ValueError(f"{label} must map alias names to command strings")
 
 
 def validate(data: dict, defaults: dict) -> dict:
@@ -150,7 +151,7 @@ def validate(data: dict, defaults: dict) -> dict:
         if not isinstance(group_defaults, dict):
             raise ValueError(f"defaults for group {group_name!r} must be a mapping")
         if group_name == "linto" and "aliases" in group_defaults:
-            validate_shell_aliases(group_defaults["aliases"], "linto/lib/default.yml aliases")
+            validate_aliases(group_defaults["aliases"], "linto/lib/default.yml configdata.aliases")
         if group_name == "quarto" and "extension" in group_defaults:
             extension = group_defaults["extension"]
             if not isinstance(extension, str) or not extension.strip():
@@ -163,7 +164,7 @@ def validate(data: dict, defaults: dict) -> dict:
             else {},
         )
         if group_name == "linto" and "aliases" in group_configdata:
-            validate_shell_aliases(group_configdata["aliases"], "groups.linto.configdata.aliases")
+            validate_aliases(group_configdata["aliases"], "groups.linto.configdata.aliases")
         if group_name == "quarto" and "extension" in group_configdata:
             extension = group_configdata["extension"]
             if not isinstance(extension, str) or not extension.strip():
@@ -210,7 +211,7 @@ def command_options(data: dict, group_name: str, command_name: str) -> dict:
     command = group_commands.get(command_name, {})
     root = Path(data.get("_root", Path.cwd()))
     command_defaults_path = root / group_name / "lib" / f"{command_name}.yml"
-    command_defaults = read_yaml_mapping(command_defaults_path, "command defaults") if command_defaults_path.is_file() else {}
+    command_defaults = read_default_configdata(command_defaults_path, "command defaults") if command_defaults_path.is_file() else {}
     command_configdata = merge_mappings(
         command_defaults,
         command.get("configdata", {}) if isinstance(command, dict) else {},

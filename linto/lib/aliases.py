@@ -52,43 +52,34 @@ def main() -> int:
 
     try:
         data = linto_config.load(repo_root / "config.yml")
-        alias_settings = linto_config.configdata(data, "linto").get("aliases", {})
+        aliases = linto_config.configdata(data, "linto").get("aliases", {})
     except (OSError, ValueError) as exc:
         print(f"error: failed to read Linto configuration: {exc}", file=sys.stderr)
         return 1
 
-    aliases = alias_settings.get("aliases", {})
-    unaliases = alias_settings.get("unaliases", [])
     if not isinstance(aliases, dict) or any(
         not isinstance(name, str) or not isinstance(command, str)
         for name, command in aliases.items()
     ):
-        print("error: groups.linto.configdata.aliases.aliases must map names to command strings", file=sys.stderr)
+        print("error: groups.linto.configdata.aliases must map names to command strings", file=sys.stderr)
         return 1
-    if not isinstance(unaliases, list) or any(not isinstance(name, str) for name in unaliases):
-        print("error: groups.linto.configdata.aliases.unaliases must be a list of alias names", file=sys.stderr)
-        return 1
-
-    if not aliases and not unaliases:
-        print("No shell aliases or unaliases are configured for the linto group")
-        return 0
 
     home = Path.home()
 
     if target_shell == "fish":
-        update_fish_aliases(aliases, unaliases)
+        update_fish_aliases(aliases)
         print("Aliases updated successfully for fish.")
     elif target_shell == "zsh":
-        update_sh_aliases(home / ".zshrc", aliases, unaliases)
+        update_sh_aliases(home / ".zshrc", aliases)
         print("Aliases updated successfully for zsh (~/.zshrc).")
     elif target_shell == "bash":
-        update_sh_aliases(home / ".bashrc", aliases, unaliases)
+        update_sh_aliases(home / ".bashrc", aliases)
         print("Aliases updated successfully for bash (~/.bashrc).")
     elif target_shell == "sh":
-        update_sh_aliases(home / ".profile", aliases, unaliases)
+        update_sh_aliases(home / ".profile", aliases)
         print("Aliases updated successfully for sh (~/.profile).")
     elif target_shell == "ksh":
-        update_sh_aliases(home / ".kshrc", aliases, unaliases)
+        update_sh_aliases(home / ".kshrc", aliases)
         print("Aliases updated successfully for ksh (~/.kshrc).")
     else:
         print(f"error: unsupported shell: {target_shell}", file=sys.stderr)
@@ -97,7 +88,7 @@ def main() -> int:
     return 0
 
 
-def update_sh_aliases(rc_path: Path, aliases: dict[str, str], unaliases: list[str]) -> None:
+def update_sh_aliases(rc_path: Path, aliases: dict[str, str]) -> None:
     begin_marker = "# >>> linto aliases begin >>>"
     end_marker = "# >>> linto aliases end >>>"
 
@@ -118,14 +109,10 @@ def update_sh_aliases(rc_path: Path, aliases: dict[str, str], unaliases: list[st
         if not skip:
             new_lines.append(line)
 
-    # Filter out unaliases if they happen to exist elsewhere in the file (optional, but good practice)
-    # Or specifically within our block. Here we build the block with only valid active aliases.
-    active_aliases = {k: v for k, v in aliases.items() if k not in unaliases}
-
-    if active_aliases:
+    if aliases:
         # Build new block
         block = [begin_marker]
-        for name, cmd in active_aliases.items():
+        for name, cmd in aliases.items():
             block.append(f"alias {name}='{cmd}'")
         block.append(end_marker)
 
@@ -137,27 +124,16 @@ def update_sh_aliases(rc_path: Path, aliases: dict[str, str], unaliases: list[st
     rc_path.write_text("\n".join(new_lines) + "\n")
 
 
-def update_fish_aliases(aliases: dict[str, str], unaliases: list[str]) -> None:
+def update_fish_aliases(aliases: dict[str, str]) -> None:
     if not any(Path(p).exists() for p in ["/usr/bin/fish", "/usr/local/bin/fish", "/bin/fish"]) and not subprocess.run(["which", "fish"], capture_output=True).returncode == 0:
         print("warning: fish shell not found on system", file=sys.stderr)
         return
 
-    # Add/update aliases
     for name, cmd in aliases.items():
-        if name in unaliases:
-            continue
         try:
             subprocess.run(["fish", "-c", f"alias --save {name} '{cmd}'"], capture_output=True, check=True)
         except Exception as exc:
             print(f"error saving fish alias {name}: {exc}", file=sys.stderr)
-
-    # Remove unaliases using erase
-    for name in unaliases:
-        try:
-            # functions -e erases a function/alias in fish
-            subprocess.run(["fish", "-c", f"functions -e {name}; and erase {name} 2>/dev/null; true"], capture_output=True, check=True)
-        except Exception:
-            pass
 
 
 if __name__ == "__main__":

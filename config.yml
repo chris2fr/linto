@@ -6,10 +6,7 @@ groups:
   linto:
     configdata:
       aliases:
-        aliases:
-          zz: "linto launch zed"
-        unaliases:
-          - something-to-delete-from-aliases
+        zz: "linto launch zed"
   quarto: default
   utils: default
   old:
