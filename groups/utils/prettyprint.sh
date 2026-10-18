@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# linto-complete: opt -w,--width value
-# linto-complete: opt -f,--font choices:classic,outlined
+# linto-complete: opt -w,--width value Maximum output width in columns
+# linto-complete: opt -f,--font choices:classic,outlined Font to render with
 # linto-complete: arg * value
 #
 # prettyprint.sh -- render text as big block ASCII art.

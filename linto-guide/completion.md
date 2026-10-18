@@ -41,6 +41,10 @@ the three shells share, so a new command needs nothing more:
 # linto-complete: none                   the command takes no arguments
 ```
 
+Text after the kind of an `opt` (or after the names of a `flag`) is its
+description, shown next to the option by Fish and Zsh, for example
+`# linto-complete: opt -j,--json *.json Input JSON to complete`.
+
 The kind of an argument or option value is one of:
 
 - `file`: any file or directory;

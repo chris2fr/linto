@@ -1,6 +1,6 @@
 #!/bin/sh
-# linto-complete: opt -s,--source-timezone value
-# linto-complete: opt -d,--destination-timezone value
+# linto-complete: opt -s,--source-timezone value Source IANA time zone
+# linto-complete: opt -d,--destination-timezone value Destination IANA time zone
 # linto-complete: arg 1 value
 set -eu
 

@@ -1,8 +1,8 @@
 #!/bin/sh
-# linto-complete: opt -f,--file file
-# linto-complete: opt -d,--dir dir
-# linto-complete: opt --min value
-# linto-complete: opt --max value
+# linto-complete: opt -f,--file file Rename a file to its slug
+# linto-complete: opt -d,--dir dir Rename a directory to its slug
+# linto-complete: opt --min value Minimum slug length
+# linto-complete: opt --max value Maximum slug length
 # linto-complete: arg * value
 # Transliterate UTF-8 text to an ASCII slug, or rename a file to a slugified
 # filename. File mode preserves the extension and refuses to overwrite a target.

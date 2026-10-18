@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# linto-complete: opt -p,--projectdir dir
-# linto-complete: opt -u,--userdatadir dir
-# linto-complete: flag -r,--reuse,-n,--new
+# linto-complete: opt -p,--projectdir dir Project directory to open
+# linto-complete: opt -u,--userdatadir dir Root above .zed for the Zed user data
+# linto-complete: flag -r,--reuse Open in an existing window (default)
+# linto-complete: flag -n,--new Always open a new workspace
 # linto-complete: arg 1 file
 set -euo pipefail
 

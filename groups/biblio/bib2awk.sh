@@ -1,6 +1,6 @@
 #!/bin/sh
-# linto-complete: opt -t,--theme value
-# linto-complete: opt -f,--format choices:csv,sed,bibs
+# linto-complete: opt -t,--theme value Keep entries whose keywords match
+# linto-complete: opt -f,--format choices:csv,sed,bibs Output handler
 # linto-complete: arg 1 *.bib
 set -eu
 

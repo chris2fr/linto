@@ -1,5 +1,5 @@
 #!/bin/sh
-# linto-complete: opt -o,--output-file *.bib
+# linto-complete: opt -o,--output-file *.bib Output BibTeX file
 # linto-complete: arg 1 *.bib
 # linto-complete: arg 2 *.yml,*.yaml
 set -eu

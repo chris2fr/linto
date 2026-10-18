@@ -33,7 +33,19 @@ _linto() {
           fi
           ;;
         dirs) _files -/ ;;
-        words) compadd -- "${(@)reply[2,-1]}" ;;
+        words)
+          # Words may carry a description after a tab: "word<TAB>description".
+          local -a described
+          local item
+          for item in "${(@)reply[2,-1]}"; do
+            if [[ $item == *$'\t'* ]]; then
+              described+=("${item%%$'\t'*}:${item#*$'\t'}")
+            else
+              described+=("$item")
+            fi
+          done
+          _describe 'argument' described
+          ;;
         *) return 1 ;;
       esac
       return

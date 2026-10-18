@@ -1,5 +1,5 @@
 #!/bin/sh
-# linto-complete: opt -f,--format choices:1,2,3
+# linto-complete: opt -f,--format choices:1,2,3 Output layout
 # linto-complete: arg 1 *.csv
 set -eu
 

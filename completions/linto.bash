@@ -58,7 +58,8 @@ _linto_complete() {
           done < <(compgen -f -- "$cur")
           ;;
         words)
-          COMPREPLY=( $(compgen -W "$(printf '%s\n' "${reply[@]:1}")" -- "$cur") )
+          # Bash cannot show descriptions; keep only the words.
+          COMPREPLY=( $(compgen -W "$(printf '%s\n' "${reply[@]:1}" | cut -f1)" -- "$cur") )
           ;;
       esac
       return

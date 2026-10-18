@@ -1,5 +1,5 @@
 #!/bin/sh
-# linto-complete: flag -i,-i.bak
+# linto-complete: flag -i,-i.bak Replace the JSON file in place (-i.bak keeps a backup)
 # linto-complete: arg 1 *.json
 set -eu
 

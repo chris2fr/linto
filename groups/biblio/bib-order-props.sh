@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# linto-complete: opt -o,--order value
-# linto-complete: flag -i,-i.bak
+# linto-complete: opt -o,--order value Fields to put first (comma-separated, repeatable)
+# linto-complete: flag -i,-i.bak Replace the file in place (-i.bak keeps a backup)
 # linto-complete: arg 1 *.bib
 #
 # bib-order-props.sh -- sort BibTeX fields within every supported entry.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# linto-complete: opt --shell choices:zsh,bash,fish,ksh,sh
-# linto-complete: flag --man
+# linto-complete: opt --shell choices:zsh,bash,fish,ksh,sh Shell to configure (default: the invoking one)
+# linto-complete: flag --man Also install the man page
 set -euo pipefail
 
 usage() {

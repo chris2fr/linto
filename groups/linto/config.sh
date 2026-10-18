@@ -1,8 +1,9 @@
 #!/bin/sh
-# linto-complete: opt --group value
-# linto-complete: opt --command value
-# linto-complete: opt --editor value
-# linto-complete: flag --edit,--effective
+# linto-complete: opt --group value Show a group's configdata
+# linto-complete: opt --command value Include command-level configdata
+# linto-complete: opt --editor value Editor program to use with --edit
+# linto-complete: flag --edit Open config.yml in an editor
+# linto-complete: flag --effective Print the full merged configuration
 set -eu
 
 usage() {

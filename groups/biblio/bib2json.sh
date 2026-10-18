@@ -1,7 +1,7 @@
 #!/bin/sh
-# linto-complete: opt -j,--json *.json
-# linto-complete: opt -o,--output *.json
-# linto-complete: flag -i,-i.bak
+# linto-complete: opt -j,--json *.json Input JSON to complete
+# linto-complete: opt -o,--output *.json Output JSON file (default: stdout)
+# linto-complete: flag -i,-i.bak Replace the -j file in place (-i.bak keeps a backup)
 # linto-complete: arg 1 *.bib
 set -eu
 

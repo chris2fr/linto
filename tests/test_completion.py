@@ -52,8 +52,10 @@ class DispatcherCompletionTests(unittest.TestCase):
     def test_dash_lists_the_options_of_the_command(self):
         reply = complete("biblio", "bib2json", "-")
         self.assertEqual(reply[0], "words")
+        names = [line.split("\t")[0] for line in reply[1:]]
         for option in ("-j", "--json", "-o", "--output", "-i", "-i.bak", "-h", "--help"):
-            self.assertIn(option, reply)
+            self.assertIn(option, names)
+        self.assertIn("--json\tInput JSON to complete", reply)
 
     def test_commands_without_arguments_complete_nothing(self):
         self.assertEqual(complete("linto", "addman", ""), ["none"])

@@ -10,8 +10,11 @@ near the top of its script:
 
     # linto-complete: arg 1 *.bib          first positional argument
     # linto-complete: arg * *.qmd,*.md     every other positional argument
-    # linto-complete: opt -j,--json *.json option taking a value
-    # linto-complete: flag -i,-i.bak       option taking no value
+    # linto-complete: opt -j,--json *.json JSON file to complete
+    # linto-complete: flag -i,-i.bak       Replace the input file
+
+Text after the KIND of an `opt`, or after the names of a `flag`, describes the
+option; shells that can show descriptions list it next to the option.
 
 A KIND is one of: `file` (any file or directory), `dir`, a comma-separated list
 of globs such as `*.qmd,*.md` (matching files, plus directories to descend
@@ -36,6 +39,7 @@ def parse_directives(path):
     positional = {}
     options = {}
     flags = set()
+    descriptions = {}
     declared = False
     try:
         with open(path, encoding="utf-8", errors="replace") as script:
@@ -45,18 +49,23 @@ def parse_directives(path):
                 line = line.strip()
                 if not line.startswith(PREFIX):
                     continue
-                fields = line[len(PREFIX):].split()
                 declared = True
-                if len(fields) == 3 and fields[0] == "arg":
+                fields = line[len(PREFIX):].split(None, 3)
+                if len(fields) >= 3 and fields[0] == "arg":
                     positional[fields[1]] = fields[2]
-                elif len(fields) == 3 and fields[0] == "opt":
-                    for name in fields[1].split(","):
+                elif len(fields) >= 3 and fields[0] == "opt":
+                    names = fields[1].split(",")
+                    for name in names:
                         options[name] = fields[2]
-                elif len(fields) == 2 and fields[0] == "flag":
-                    flags.update(fields[1].split(","))
+                        descriptions[name] = fields[3] if len(fields) > 3 else ""
+                elif len(fields) >= 2 and fields[0] == "flag":
+                    flag_fields = line[len(PREFIX):].split(None, 2)
+                    for name in flag_fields[1].split(","):
+                        flags.add(name)
+                        descriptions[name] = flag_fields[2] if len(flag_fields) > 2 else ""
     except OSError:
         pass
-    return declared, positional, options, flags
+    return declared, positional, options, flags, descriptions
 
 
 def split_words(words, options, flags):
@@ -103,7 +112,7 @@ def main(argv):
     if not argv:
         return 0
     tool, words = argv[0], argv[1:] or [""]
-    declared, positional, options, flags = parse_directives(tool)
+    declared, positional, options, flags, descriptions = parse_directives(tool)
     if not declared:
         emit("file")
         return 0
@@ -115,8 +124,10 @@ def main(argv):
         emit(options[pending])
     elif current.startswith("-") and "--" not in typed:
         print("words")
+        descriptions.setdefault("-h", "Show help")
+        descriptions.setdefault("--help", "Show help")
         for name in sorted({*options, *flags, "-h", "--help"}):
-            print(name)
+            print(f"{name}\t{descriptions[name]}" if descriptions.get(name) else name)
     else:
         kind = positional.get(str(count + 1)) or positional.get("*")
         emit(kind or "value")
