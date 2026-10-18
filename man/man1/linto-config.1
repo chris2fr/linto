@@ -21,10 +21,7 @@ groups:
   linto:
     configdata:
       aliases:
-        aliases:
-          zz: "linto launch zed"
-        unaliases:
-          \- something\-to\-delete\-from\-aliases
+        zz: "linto launch zed"
   quarto:
     configdata:
       extension: "chris2fr/quarto"
@@ -49,8 +46,9 @@ completions, and stubs\. Omitted group and command \fBenable\fP options default 
 Group\-specific settings live under \fBgroups\.GROUP\.configdata\fP, and command\-
 specific settings under \fBgroups\.GROUP\.commands\.COMMAND\.configdata\fP\. Defaults
 are layered from \fBlib/default\.yml\fP (root), \fBGROUP/lib/default\.yml\fP (group), and
-\fBGROUP/lib/COMMAND\.yml\fP (command); values in \fBconfig\.yml\fP override defaults at
-the matching level\. The Markdown viewer is root configdata, while the shipped
+\fBGROUP/lib/COMMAND\.yml\fP (command)\. Each defaults file stores values under
+\fBconfigdata\fP, and matching entries in \fBconfig\.yml\fP override them\. The Markdown
+viewer is root configdata, while the shipped
 Quarto extension and Linto shell\-alias defaults are in
 \fBquarto/lib/default\.yml\fP and
 \fBlinto/lib/default\.yml\fP, respectively\.
@@ -66,8 +64,8 @@ any alias entry\.
 
 .SS "Markdown viewer"
 .PP
-\fBconfigdata\.markdown\-viewer\fP accepts one command name or an ordered YAML list\. Linto tries
-the entries from top to bottom and runs the first installed supported viewer\.
+\fBconfigdata\.markdown\-viewer\fP accepts one command name or an ordered YAML list\.
+Linto tries the entries from top to bottom and runs the first installed supported viewer\.
 For example:
 .RS
 .PP

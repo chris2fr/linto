@@ -1,1 +1,2 @@
-extension: chris2fr/quarto
+configdata:
+  extension: chris2fr/quarto

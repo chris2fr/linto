@@ -19,10 +19,7 @@ class ConfigdataTests(unittest.TestCase):
         self.assertEqual(config.markdown_viewers(data)[0], "md-tui")
         self.assertEqual(
             config.configdata(data, "linto")["aliases"],
-            {
-                "aliases": {"zz": "linto launch zed"},
-                "unaliases": ["something-to-delete-from-aliases"],
-            },
+            {"zz": "linto launch zed"},
         )
 
     def test_configdata_merge_and_command_enable(self):
@@ -31,13 +28,13 @@ class ConfigdataTests(unittest.TestCase):
             (root / "lib").mkdir()
             (root / "demo" / "lib").mkdir(parents=True)
             (root / "lib" / "default.yml").write_text(
-                "shared: default\nnested:\n  root: default\n", encoding="utf-8"
+                "configdata:\n  shared: default\n  nested:\n    root: default\n", encoding="utf-8"
             )
             (root / "demo" / "lib" / "default.yml").write_text(
-                "nested:\n  group: default\n", encoding="utf-8"
+                "configdata:\n  nested:\n    group: default\n", encoding="utf-8"
             )
             (root / "demo" / "lib" / "run.yml").write_text(
-                "nested:\n  command: default\n", encoding="utf-8"
+                "configdata:\n  nested:\n    command: default\n", encoding="utf-8"
             )
             config_path = root / "config.yml"
             config_path.write_text(
@@ -84,33 +81,31 @@ class ConfigdataTests(unittest.TestCase):
             (root / "linto" / "lib").mkdir(parents=True)
             (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
             (root / "linto" / "lib" / "default.yml").write_text(
-                "aliases:\n  aliases:\n    zz: default\n    keep: default\n  unaliases: [old]\n",
+                "configdata:\n  aliases:\n    zz: default\n    keep: default\n",
                 encoding="utf-8",
             )
             config_path = root / "config.yml"
             config_path.write_text(
                 "groups:\n  linto:\n    configdata:\n      aliases:\n"
-                "        aliases:\n          zz: custom\n          new: custom\n",
+                "        zz: custom\n        new: custom\n",
                 encoding="utf-8",
             )
             data = config.load(config_path)
             self.assertEqual(
                 config.configdata(data, "linto")["aliases"],
-                {
-                    "aliases": {"zz": "custom", "keep": "default", "new": "custom"},
-                    "unaliases": ["old"],
-                },
+                {"zz": "custom", "keep": "default", "new": "custom"},
             )
 
-    def test_legacy_configuration_locations_are_rejected(self):
+    def test_legacy_configuration_locations_and_unaliases_are_rejected(self):
         for text in (
             "groups:\n  quarto: default\nquarto:\n  extension: old/repo\n",
             "groups:\n  quarto: default\nmarkdown-viewer: cat\n",
+            "groups:\n  linto:\n    configdata:\n      aliases:\n        unaliases: [old]\n",
         ):
             with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 (root / "lib").mkdir()
-                (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
+                (root / "lib" / "default.yml").write_text("configdata: {}\n", encoding="utf-8")
                 path = root / "config.yml"
                 path.write_text(text, encoding="utf-8")
                 with self.assertRaises(ValueError):

@@ -56,10 +56,7 @@ groups:
   linto:
     configdata:
       aliases:
-        aliases:
-          zz: "linto launch zed"
-        unaliases:
-          - something-to-delete-from-aliases
+        zz: "linto launch zed"
   quarto:
     configdata:
       extension: "chris2fr/quarto"
@@ -84,8 +81,9 @@ shortcuts:
   `groups.GROUP.configdata`; command settings belong under
   `groups.GROUP.commands.COMMAND.configdata`. Configdata defaults are read from
   [`lib/default.yml`](lib/default.yml), `GROUP/lib/default.yml`, and
-  `GROUP/lib/COMMAND.yml`, respectively, then overridden by `config.yml` at the
-  matching level. The shipped Quarto extension default is in
+  `GROUP/lib/COMMAND.yml`, respectively. Each defaults file stores values under
+  `configdata`; corresponding entries in `config.yml` override them. The shipped
+  Quarto extension default is in
   [`quarto/lib/default.yml`](quarto/lib/default.yml); shell-alias defaults are
   in [`linto/lib/default.yml`](linto/lib/default.yml). Root settings such as
   `markdown-viewer` are under top-level `configdata`.

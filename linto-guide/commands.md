@@ -42,10 +42,7 @@ groups:
   linto:
     configdata:
       aliases:
-        aliases:
-          zz: "linto launch zed"
-        unaliases:
-          - old-alias
+        zz: "linto launch zed"
 ```
 
 By default, the command detects the shell from `$SHELL`, then tries the parent
@@ -60,6 +57,5 @@ linto linto aliases -s bash
 Choices are `fish`, `zsh`, `bash`, `sh`, and `ksh`. Fish aliases are saved with
 Fish's `alias --save` mechanism. For Bash, Zsh, sh, and ksh, Linto replaces the
 managed alias block in `~/.bashrc`, `~/.zshrc`, `~/.profile`, or `~/.kshrc`,
-respectively. Names listed in `unaliases` are omitted from the managed aliases;
-for Fish, Linto also erases the saved alias function. Start a new shell or reload
-your shell's configuration for the changes to take effect.
+respectively. Start a new shell or reload your shell's configuration for the
+changes to take effect.
