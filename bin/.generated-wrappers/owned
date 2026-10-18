@@ -29,6 +29,7 @@ linto-quarto-quarto-render
 linto-quarto-quarto-setup
 linto-quarto-quarto-setup-document
 linto-quarto-quarto-setup-lettre
+linto-slug
 linto-stripaccents
 linto-utils
 linto-utils-prettyprint
