@@ -39,6 +39,7 @@ class ConfigdataTests(unittest.TestCase):
                 text=True,
                 check=False,
                 env=environment,
+                cwd=directory,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(result.stdout.strip())
