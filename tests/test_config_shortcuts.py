@@ -69,9 +69,9 @@ class ShortcutConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "bin").mkdir()
-            (root / "linto").mkdir()
+            (root / "groups" / "linto").mkdir(parents=True)
             shutil.copy2(ROOT / "bin" / "linto", root / "bin" / "linto")
-            shutil.copy2(ROOT / "linto" / "config.sh", root / "linto" / "config.sh")
+            shutil.copy2(ROOT / "groups" / "linto" / "config.sh", root / "groups" / "linto" / "config.sh")
             home = root / "home"
             config_home = root / "xdg-config"
             home.mkdir()
@@ -128,8 +128,8 @@ class ShortcutConfigTests(unittest.TestCase):
                 ("beta", "other", "beta-other"),
                 ("gamma", "disabled", "gamma-disabled"),
             ):
-                group_dir = root / group
-                group_dir.mkdir(exist_ok=True)
+                group_dir = root / "groups" / group
+                group_dir.mkdir(parents=True, exist_ok=True)
                 tool = group_dir / f"{command}.sh"
                 tool.write_text(f"#!/bin/sh\nprintf '%s\\n' '{output}'\n", encoding="utf-8")
                 tool.chmod(0o755)

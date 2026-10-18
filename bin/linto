@@ -46,8 +46,8 @@ command_enabled() {
 }
 
 group_directory() {
-  if [ -d "$script_dir/$1" ]; then
-    printf '%s\n' "$script_dir/$1"
+  if [ -d "$script_dir/groups/$1" ]; then
+    printf '%s\n' "$script_dir/groups/$1"
   elif [ -d "$user_groups_dir/$1" ]; then
     printf '%s\n' "$user_groups_dir/$1"
   else
@@ -100,7 +100,7 @@ list_shortcuts() {
 }
 
 group_exists() {
-  is_group_name "$1" && { [ -d "$script_dir/$1" ] || [ -d "$user_groups_dir/$1" ]; } &&
+  is_group_name "$1" && { [ -d "$script_dir/groups/$1" ] || [ -d "$user_groups_dir/$1" ]; } &&
     list_groups | grep -Fxq -- "$1"
 }
 
@@ -281,7 +281,7 @@ fi
 # normal group discovery; it is needed to repair that configuration.
 if [ "$#" -ge 2 ] && [ "$1" = linto ] && [ "$2" = config ]; then
   shift 2
-  exec "$script_dir/linto/config.sh" "$@"
+  exec "$script_dir/groups/linto/config.sh" "$@"
 fi
 
 case "$1" in

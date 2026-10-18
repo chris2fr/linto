@@ -12,7 +12,7 @@ from io import StringIO
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ALIASES_PATH = ROOT / "linto" / "lib" / "aliases.py"
+ALIASES_PATH = ROOT / "groups" / "linto" / "lib" / "aliases.py"
 SPEC = importlib.util.spec_from_file_location("linto_aliases", ALIASES_PATH)
 assert SPEC and SPEC.loader
 aliases = importlib.util.module_from_spec(SPEC)
@@ -22,7 +22,7 @@ SPEC.loader.exec_module(aliases)
 class AliasShellTests(unittest.TestCase):
     def test_current_shell_detection_skips_linto_shell_wrappers(self):
         process_info = [
-            ("sh", ["sh", str(ROOT / "linto" / "aliases.sh")], 101),
+            ("sh", ["sh", str(ROOT / "groups" / "linto" / "aliases.sh")], 101),
             ("fish", ["fish"], 1),
         ]
         with patch.dict(os.environ, {"SHELL": "/usr/bin/bash"}), \
@@ -103,7 +103,7 @@ class ShellSetupTests(unittest.TestCase):
 
             for target in ("zsh", "bash"):
                 result = subprocess.run(
-                    [bash, ROOT / "linto" / "setup.sh", "--shell", target],
+                    [bash, ROOT / "groups" / "linto" / "setup.sh", "--shell", target],
                     capture_output=True,
                     text=True,
                     env=environment,
@@ -146,7 +146,7 @@ class ShellSetupTests(unittest.TestCase):
                     XDG_DATA_HOME=str(home / "data"),
                 )
                 result = subprocess.run(
-                    [shell, "-c", f"{ROOT / 'linto' / 'setup.sh'}; true"],
+                    [shell, "-c", f"{ROOT / 'groups' / 'linto' / 'setup.sh'}; true"],
                     capture_output=True,
                     text=True,
                     env=environment,

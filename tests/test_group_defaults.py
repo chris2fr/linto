@@ -48,14 +48,14 @@ class ConfigdataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "lib").mkdir()
-            (root / "demo" / "lib").mkdir(parents=True)
+            (root / "groups" / "demo" / "lib").mkdir(parents=True)
             (root / "lib" / "default.yml").write_text(
                 "configdata:\n  shared: default\n  nested:\n    root: default\n", encoding="utf-8"
             )
-            (root / "demo" / "lib" / "default.yml").write_text(
+            (root / "groups" / "demo" / "lib" / "default.yml").write_text(
                 "configdata:\n  nested:\n    group: default\n", encoding="utf-8"
             )
-            (root / "demo" / "lib" / "run.yml").write_text(
+            (root / "groups" / "demo" / "lib" / "run.yml").write_text(
                 "configdata:\n  nested:\n    command: default\n", encoding="utf-8"
             )
             config_path = root / "config.yml"
@@ -147,9 +147,9 @@ class ConfigdataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "lib").mkdir()
-            (root / "linto" / "lib").mkdir(parents=True)
+            (root / "groups" / "linto" / "lib").mkdir(parents=True)
             (root / "lib" / "default.yml").write_text("{}\n", encoding="utf-8")
-            (root / "linto" / "lib" / "default.yml").write_text(
+            (root / "groups" / "linto" / "lib" / "default.yml").write_text(
                 "configdata:\n  aliases:\n    zz: default\n    keep: default\n",
                 encoding="utf-8",
             )
@@ -214,7 +214,7 @@ class ConfigdataTests(unittest.TestCase):
             home.mkdir()
             environment = os.environ.copy()
             environment.update(HOME=str(home), XDG_CONFIG_HOME=str(config_home))
-            config_command = ROOT / "linto" / "config.sh"
+            config_command = ROOT / "groups" / "linto" / "config.sh"
             user_config = config_home / "linto" / "config.yml"
 
             initialized = subprocess.run(

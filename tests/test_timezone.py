@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "utils" / "lib" / "timezone.py"
+MODULE_PATH = ROOT / "groups" / "utils" / "lib" / "timezone.py"
 SPEC = importlib.util.spec_from_file_location("timezone", MODULE_PATH)
 timezone = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(timezone)

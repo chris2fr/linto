@@ -85,7 +85,7 @@ def main() -> int:
     args = parser.parse_args()
     target_shells = SHELLS if args.shell == "all" else (args.shell,)
 
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(__file__).resolve().parents[3]
     config_path = repo_root / "lib" / "config.py"
     spec = importlib.util.spec_from_file_location("linto_config", config_path)
     if spec is None or spec.loader is None:

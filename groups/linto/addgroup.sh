@@ -25,7 +25,7 @@ esac
 source_dir=$1
 [[ -d "$source_dir" ]] || fail "not a directory: $source_dir"
 source_dir=$(CDPATH= cd -- "$source_dir" && pwd -P)
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
   *) data_home=$HOME/.local/share ;;
@@ -39,7 +39,7 @@ case "$name" in
     ;;
 esac
 
-package_group="$script_dir/$name"
+package_group="$script_dir/groups/$name"
 user_group="$user_groups/$name"
 if [[ "$source_dir" == "$package_group" ]]; then
   group_dir=$package_group
@@ -68,5 +68,5 @@ python3 "$script_dir/lib/config.py" "$config_file" add "$name" || fail "could no
 
 
 printf 'Registered group %s with %d executable script(s).\n' "$name" "${#executables[@]}"
-"$script_dir/linto/refresh.sh"
+"$script_dir/groups/linto/refresh.sh"
 printf 'Available via: linto %s\n' "$name"

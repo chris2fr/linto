@@ -17,7 +17,7 @@ case "${1-}" in
   *) usage >&2; exit 2 ;;
 esac
 
-root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
   *) data_home=$HOME/.local/share ;;

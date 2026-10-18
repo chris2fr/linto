@@ -15,5 +15,5 @@ if [ "$#" -gt 0 ]; then
 fi
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-cd -- "$script_dir/.."
+cd -- "$script_dir/../.."
 pwd -P

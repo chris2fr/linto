@@ -16,7 +16,7 @@ case "${1-}" in
 esac
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-repo_dir=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 config_file="$repo_dir/config.yml"
 
 
