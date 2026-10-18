@@ -6,6 +6,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -152,6 +153,47 @@ class ConfigdataTests(unittest.TestCase):
                 config.configdata(data, "linto")["aliases"],
                 {"zz": "custom", "keep": "default", "new": "custom"},
             )
+
+    def test_user_data_group_defaults_and_commands_are_loaded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            install = root / "install"
+            data_root = root / "data"
+            custom_group = data_root / "groups" / "custom"
+            (install / "lib").mkdir(parents=True)
+            (custom_group / "lib").mkdir(parents=True)
+            (install / "lib" / "default.yml").write_text("configdata: {}\n", encoding="utf-8")
+            (custom_group / "lib" / "default.yml").write_text(
+                "configdata:\n  setting: group-default\n", encoding="utf-8"
+            )
+            (custom_group / "lib" / "run.yml").write_text(
+                "configdata:\n  command-setting: command-default\n", encoding="utf-8"
+            )
+            tool = custom_group / "run.sh"
+            tool.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            tool.chmod(0o755)
+            config_path = root / "config.yml"
+            config_path.write_text("groups:\n  custom: default\n", encoding="utf-8")
+
+            data = config.load(config_path, defaults_root=install, data_root=data_root)
+            self.assertEqual(
+                config.configdata(data, "custom", "run"),
+                {"setting": "group-default", "command-setting": "command-default"},
+            )
+            self.assertEqual(config.enabled_groups(data, install, data_root), ["custom"])
+
+    def test_group_enablement_writes_only_to_xdg_user_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_home = Path(directory) / "config"
+            config_home.mkdir()
+            user_config = config_home / "linto" / "config.yml"
+            with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(config_home)}):
+                config.set_user_group_enabled("custom", False)
+                saved = config.read_yaml_mapping(user_config, "test user configuration")
+                self.assertEqual(saved, {"groups": {"custom": {"enable": False}}})
+                config.set_user_group_enabled("custom", True)
+                saved = config.read_yaml_mapping(user_config, "test user configuration")
+                self.assertEqual(saved, {"groups": {"custom": {"enable": True}}})
 
     def test_legacy_configuration_locations_and_unaliases_are_rejected(self):
         for text in (

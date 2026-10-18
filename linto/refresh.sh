@@ -5,10 +5,9 @@ usage() {
   cat <<'EOF'
 Usage: refresh.sh [-h|--help]
 
-Refresh generated group/command and shortcut-alias wrappers, shell completions,
-and man pages. The dispatcher man page's active-group list and topic man pages
-are generated from config.yml and linto-guide/*.md. Shortcut aliases come from
-the top-level shortcuts mapping in config.yml and target a specific GROUP COMMAND.
+Refresh user-level group/command and shortcut wrappers, Fish completion, and
+man pages. Mutable generated files are written under the user's Linto data
+directory; the installation tree is read-only.
 EOF
 }
 
@@ -19,15 +18,21 @@ case "${1-}" in
 esac
 
 root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
-bin_dir="$root/bin"
-completion_dir="$root/completions"
-man_page="$root/man/linto.1"
+case "${XDG_DATA_HOME:-}" in
+  /*) data_home=$XDG_DATA_HOME ;;
+  *) data_home=$HOME/.local/share ;;
+esac
+linto_data_dir="$data_home/linto"
+user_bin_dir="$linto_data_dir/bin"
+completion_dir="$linto_data_dir/completions"
+man_topics_dir="$linto_data_dir/man/man1"
+man_page="$man_topics_dir/linto.1"
 config="$root/config.yml"
 config_tool="$root/lib/config.py"
 guide_dir="$root/linto-guide"
-man_topics_dir="$root/man/man1"
+bin_dir="$root/bin"
 linto="$bin_dir/linto"
-wrapper_dir="$bin_dir/.generated-wrappers"
+wrapper_dir="$user_bin_dir/.generated-wrappers"
 owned="$wrapper_dir/owned"
 
 [[ -x "$linto" ]] || { printf 'refresh: dispatcher not executable: %s\n' "$linto" >&2; exit 1; }
@@ -77,17 +82,16 @@ for alias_entry in "${shortcut_aliases[@]}"; do
   add_stub "linto-$shortcut" "$group" "$command" shortcut-alias
 done
 
-mkdir -p -- "$wrapper_dir"
+mkdir -p -- "$wrapper_dir" "$completion_dir" "$man_topics_dir"
 
 write_stub() {
   local dest=$1 group=$2 command=$3 kind=$4
   {
     printf '%s\n' '#!/bin/sh'
-    printf '%s\n' 'bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
     case "$kind" in
-      group) printf 'exec "$bin_dir/linto" %q "$@"\n' "$group" ;;
+      group) printf 'exec %q %q "$@"\n' "$linto" "$group" ;;
       group-command|shortcut-alias)
-        printf 'exec "$bin_dir/linto" %q %q "$@"\n' "$group" "$command"
+        printf 'exec %q %q %q "$@"\n' "$linto" "$group" "$command"
         ;;
     esac
   } > "$dest"
@@ -97,21 +101,20 @@ write_stub() {
 # Validate existing destinations before changing any generated files.
 for index in "${!names[@]}"; do
   name=${names[$index]}
-  dest="$bin_dir/$name"
+  dest="$user_bin_dir/$name"
   [[ -e "$dest" || -L "$dest" ]] || continue
   [[ -f "$dest" && ! -L "$dest" ]] || {
     printf 'refresh: refusing to replace non-file path: %s\n' "$dest" >&2
     exit 1
   }
   expected_head='#!/bin/sh'
-  expected_dir='bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)'
   if [[ "${kinds[$index]}" == group ]]; then
-    expected_exec="exec \"\$bin_dir/linto\" ${groups_for_stub[$index]} \"\$@\""
+    printf -v expected_exec 'exec %q %q "$@"' "$linto" "${groups_for_stub[$index]}"
   else
-    expected_exec="exec \"\$bin_dir/linto\" ${groups_for_stub[$index]} ${commands_for_stub[$index]} \"\$@\""
+    printf -v expected_exec 'exec %q %q %q "$@"' "$linto" \
+      "${groups_for_stub[$index]}" "${commands_for_stub[$index]}"
   fi
   if ! grep -Fqx "$expected_head" "$dest" ||
-     ! grep -Fqx "$expected_dir" "$dest" ||
      ! grep -Fqx "$expected_exec" "$dest"; then
     printf 'refresh: refusing to replace unrecognized path: %s\n' "$dest" >&2
     exit 1
@@ -122,24 +125,26 @@ done
 if [[ -f "$owned" ]]; then
   while IFS= read -r old_name; do
     [[ -n "$old_name" ]] || continue
-    [[ -n "${desired[$old_name]+yes}" ]] || rm -f -- "$bin_dir/$old_name"
+    [[ -n "${desired[$old_name]+yes}" ]] || rm -f -- "$user_bin_dir/$old_name"
   done < "$owned"
 fi
 
 for index in "${!names[@]}"; do
-  write_stub "$bin_dir/${names[$index]}" "${groups_for_stub[$index]}" \
+  write_stub "$user_bin_dir/${names[$index]}" "${groups_for_stub[$index]}" \
     "${commands_for_stub[$index]}" "${kinds[$index]}"
 done
 printf '%s\n' "${names[@]}" | LC_ALL=C sort -u > "$wrapper_dir/owned.tmp"
 mv -- "$wrapper_dir/owned.tmp" "$owned"
 
-cat > "$completion_dir/linto.fish" <<'FISH_HEADER'
-set -g linto_bin (realpath (dirname (status filename))/../bin/linto)
+{
+  printf "set -g linto_bin '%s'\n" "$linto"
+  cat <<'FISH_HEADER'
 complete -c linto -f -n '__fish_use_subcommand' -a 'help completion'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_use_subcommand' -a '($linto_bin --list-shortcuts 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 FISH_HEADER
+} > "$completion_dir/linto.fish"
 for group in "${groups[@]}"; do
   cat >> "$completion_dir/linto.fish" <<EOF
 complete -c linto -f -n '__fish_seen_subcommand_from $group linto-$group' -a '(\$linto_bin --list-commands $group 2>/dev/null)'
@@ -152,9 +157,9 @@ complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --lis
 complete -c linto -l help -s h -d 'Show help'
 FISH_FOOTER
 
-man_tmp=$(mktemp "$root/man/.linto.1.XXXXXX")
+man_tmp=$(mktemp "$man_topics_dir/.linto.1.XXXXXX")
 trap 'rm -f -- "$man_tmp"' EXIT
-python3 - "$man_page" "${groups[@]}" > "$man_tmp" <<'PY'
+python3 - "$root/man/linto.1" "${groups[@]}" > "$man_tmp" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
@@ -177,7 +182,7 @@ sys.stdout.write(text[:a] + '\n' + '\n'.join(lines) + '\n' + text[b:])
 PY
 mkdir -p -- "$man_topics_dir"
 
-topic_tmp=$(mktemp -d "$root/man/.topics.XXXXXX")
+topic_tmp=$(mktemp -d "$man_topics_dir/.topics.XXXXXX")
 trap 'rm -rf -- "$topic_tmp"' EXIT
 
 declare -A desired_topics=()

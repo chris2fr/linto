@@ -5,10 +5,11 @@ usage() {
   cat <<'EOF'
 Usage: setup.sh [--shell SHELL] [--man] [-h|--help]
 
-Configure Linto for the current user's shell by adding bin/ to PATH and
-installing the matching command completion. The shell defaults to $SHELL.
-Configuration lines are not duplicated. Use --man to also run
-linto-linto-addman.
+Configure Linto for the current user's shell by adding the package and
+user-generated command directories to PATH and installing shell completion.
+The shell defaults to $SHELL.
+Configuration lines are not duplicated. Use --man to also install the
+Linto man page.
 
 Supported shells: zsh, bash, fish
 EOF
@@ -44,6 +45,17 @@ esac
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 bin_dir="$script_dir/bin"
 completion_dir="$script_dir/completions"
+case "${XDG_DATA_HOME:-}" in
+  /*) data_home=$XDG_DATA_HOME ;;
+  *) data_home=$HOME/.local/share ;;
+esac
+case "${XDG_CONFIG_HOME:-}" in
+  /*) config_home=$XDG_CONFIG_HOME ;;
+  *) config_home=$HOME/.config ;;
+esac
+user_data_dir="$data_home/linto"
+user_bin_dir="$user_data_dir/bin"
+fish_completion="$user_data_dir/completions/linto.fish"
 [[ -x "$bin_dir/linto" ]] || fail "dispatcher not found or not executable: $bin_dir/linto"
 
 case "$shell_name" in
@@ -51,19 +63,20 @@ case "$shell_name" in
     config_file="${ZDOTDIR:-$HOME}/.zshrc"
     completion_line="fpath=(\"$completion_dir\" \$fpath)"
     init_line='autoload -Uz compinit && compinit'
-    path_line="export PATH=\"$bin_dir:\$PATH\""
+    path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
     ;;
   bash)
     config_file="$HOME/.bashrc"
     completion_line="source \"$completion_dir/linto.bash\""
     init_line=''
-    path_line="export PATH=\"$bin_dir:\$PATH\""
+    path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
     ;;
   fish)
-    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
-    completion_line="source \"$completion_dir/linto.fish\""
+    config_file="$config_home/fish/config.fish"
+    [[ -f "$fish_completion" ]] || fish_completion="$completion_dir/linto.fish"
+    completion_line="source \"$fish_completion\""
     init_line=''
-    path_line="fish_add_path \"$bin_dir\""
+    path_line="fish_add_path \"$bin_dir\" \"$user_bin_dir\""
     ;;
 esac
 
@@ -90,11 +103,11 @@ fi
 append_once "$path_line"
 
 if [[ "$install_man" == true ]]; then
-  "$bin_dir/linto-linto-addman"
+  "$script_dir/linto/addman.sh"
 fi
 
 printf 'Configured Linto for %s in %s\n' "$shell_name" "$config_file"
 printf 'Reload with: source %q\n' "$config_file"
 if [[ "$install_man" == false ]]; then
-  printf 'Run linto-linto-addman or repeat with --man to install the man page.\n'
+  printf 'Run linto linto addman or repeat with --man to install the man page.\n'
 fi

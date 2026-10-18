@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
-from pathlib import Path
 from collections.abc import Iterable
+from pathlib import Path
 
 import yaml
 
@@ -47,13 +48,40 @@ def read_default_configdata(path: Path, label: str) -> dict:
     return configdata
 
 
-def load_defaults(root: Path) -> dict:
+def xdg_directory(variable: str, fallback: Path) -> Path:
+    value = os.environ.get(variable)
+    candidate = Path(value) if value else fallback
+    return candidate if candidate.is_absolute() else fallback
+
+
+def config_directory() -> Path:
+    return xdg_directory("XDG_CONFIG_HOME", Path.home() / ".config") / "linto"
+
+
+def data_directory() -> Path:
+    return xdg_directory("XDG_DATA_HOME", Path.home() / ".local" / "share") / "linto"
+
+
+def user_config_file() -> Path:
+    return config_directory() / "config.yml"
+
+
+def user_groups_directory() -> Path:
+    return data_directory() / "groups"
+
+
+def load_defaults(root: Path, data_root: Path | None = None) -> dict:
     root_defaults_path = root / "lib" / "default.yml"
     root_configdata = read_default_configdata(root_defaults_path, "root defaults")
     groups = {}
-    for group_defaults_path in root.glob("*/lib/default.yml"):
-        group_name = group_defaults_path.parent.parent.name
-        groups[group_name] = read_default_configdata(group_defaults_path, "group defaults")
+    group_roots = [root]
+    if data_root is not None:
+        group_roots.append(data_root / "groups")
+    for group_root in group_roots:
+        for group_defaults_path in group_root.glob("*/lib/default.yml"):
+            group_name = group_defaults_path.parent.parent.name
+            group_configdata = read_default_configdata(group_defaults_path, "group defaults")
+            groups[group_name] = merge_mappings(groups.get(group_name, {}), group_configdata)
     return {"configdata": root_configdata, "groups": groups}
 
 
@@ -174,14 +202,20 @@ def validate(data: dict, defaults: dict) -> dict:
 
 
 def config_overlays(home: Path | None = None) -> list[Path]:
-    """Return system then user configuration paths, in increasing precedence."""
+    """Return system and user configuration paths, in increasing precedence."""
     home = home or Path.home()
-    return [Path("/etc/linto/linto.yml"), home / ".linto.yml"]
+    config_home = xdg_directory("XDG_CONFIG_HOME", home / ".config")
+    return [
+        Path("/etc/linto/linto.yml"),
+        home / ".linto.yml",
+        config_home / "linto" / "config.yml",
+    ]
 
 
 def load(
     path: Path,
     defaults_root: Path | None = None,
+    data_root: Path | None = None,
     overlays: Iterable[Path] = (),
 ) -> dict:
     try:
@@ -192,17 +226,22 @@ def load(
     except (OSError, yaml.YAMLError) as exc:
         raise ValueError(f"cannot read configuration {path}: {exc}") from exc
     root = defaults_root or path.parent
-    defaults = load_defaults(root)
+    user_data = data_root or data_directory()
+    defaults = load_defaults(root, user_data)
     validate(data, defaults)
     data["_defaults"] = defaults
     data["_root"] = root
+    data["_data_root"] = user_data
     return data
 
 
 def defaults_for(data: dict) -> dict:
     defaults = data.get("_defaults")
     if defaults is None:
-        defaults = load_defaults(Path(data.get("_root", Path.cwd())))
+        defaults = load_defaults(
+            Path(data.get("_root", Path.cwd())),
+            Path(data.get("_data_root", data_directory())),
+        )
     return defaults
 
 
@@ -223,8 +262,17 @@ def command_options(data: dict, group_name: str, command_name: str) -> dict:
     group_commands = group.get("commands", {}) if isinstance(group, dict) else {}
     command = group_commands.get(command_name, {})
     root = Path(data.get("_root", Path.cwd()))
-    command_defaults_path = root / group_name / "lib" / f"{command_name}.yml"
-    command_defaults = read_default_configdata(command_defaults_path, "command defaults") if command_defaults_path.is_file() else {}
+    data_root = Path(data.get("_data_root", data_directory()))
+    command_defaults = {}
+    for command_defaults_path in (
+        root / group_name / "lib" / f"{command_name}.yml",
+        data_root / "groups" / group_name / "lib" / f"{command_name}.yml",
+    ):
+        if command_defaults_path.is_file():
+            command_defaults = merge_mappings(
+                command_defaults,
+                read_default_configdata(command_defaults_path, "command defaults"),
+            )
     command_configdata = merge_mappings(
         command_defaults,
         command.get("configdata", {}) if isinstance(command, dict) else {},
@@ -248,12 +296,14 @@ def configdata(data: dict, group: str | None = None, command: str | None = None)
     return merge_mappings(root_data, group_data)
 
 
-def enabled_groups(data: dict, root: Path) -> list[str]:
+def enabled_groups(data: dict, root: Path, data_root: Path | None = None) -> list[str]:
     result = []
     reserved = {"bin", "completions", "man", "old", "tests", "lib"}
+    user_groups = (data_root or Path(data.get("_data_root", data_directory()))) / "groups"
     for name in data["groups"]:
         enabled = group_options(data, name)["enable"]
-        if name not in reserved and enabled and (root / name).is_dir():
+        exists = (root / name).is_dir() or (user_groups / name).is_dir()
+        if name not in reserved and enabled and exists:
             result.append(name)
     return result
 
@@ -281,10 +331,33 @@ def quarto_extension(data: dict) -> str:
     return extension.strip()
 
 
-def dump(data: dict, path: Path) -> None:
-    data = {key: value for key, value in data.items() if key not in {"_defaults", "_root"}}
+def set_user_group_enabled(group: str, enabled: bool) -> None:
+    if not valid_name(group):
+        raise ValueError(f"invalid group name: {group!r}")
+    path = user_config_file()
+    data = read_yaml_mapping(path, "user configuration") if path.is_file() else {}
+    groups = data.setdefault("groups", {})
+    if not isinstance(groups, dict):
+        raise ValueError("user config 'groups' must be a mapping")
+    current = groups.get(group)
+    if enabled:
+        if current == "default":
+            pass
+        elif isinstance(current, dict):
+            current["enable"] = True
+        else:
+            groups[group] = "default"
+    elif isinstance(current, dict):
+        current["enable"] = False
+    else:
+        groups[group] = {"enable": False}
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
     text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    path.write_text(text, encoding="utf-8")
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(path)
+
 
 
 def main() -> int:
@@ -313,14 +386,18 @@ def main() -> int:
 
     try:
         installation_root = Path(__file__).resolve().parent.parent
-        overlays = () if args.action in {"add", "remove"} else config_overlays()
+        if args.action in {"add", "remove"}:
+            set_user_group_enabled(args.group, args.action == "add")
+            return 0
+        user_data = data_directory()
         data = load(
             args.config,
             defaults_root=installation_root,
-            overlays=overlays,
+            data_root=user_data,
+            overlays=config_overlays(),
         )
         if args.action == "list":
-            for group in enabled_groups(data, installation_root):
+            for group in enabled_groups(data, installation_root, user_data):
                 print(group)
         elif args.action == "options":
             print("true" if group_options(data, args.group)["enable"] else "false")
@@ -349,28 +426,7 @@ def main() -> int:
             if not isinstance(version, str) or not version.strip():
                 raise ValueError("'version' must be a non-empty string")
             print(version.strip())
-        elif args.action == "add":
-            current = data["groups"].get(args.group)
-            if current == "default":
-                pass
-            elif isinstance(current, dict):
-                current["enable"] = True
-            else:
-                data["groups"][args.group] = "default"
-            dump(data, args.config)
-        elif args.action == "remove":
-            current = data["groups"].get(args.group)
-            if current == "default":
-                del data["groups"][args.group]
-                for alias, target in list(data.get("shortcuts", {}).items()):
-                    if target.split()[0] == args.group:
-                        del data["shortcuts"][alias]
-            elif isinstance(current, dict):
-                current["enable"] = False
-            else:
-                raise ValueError(f"group {args.group!r} is not configured")
-            dump(data, args.config)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         print(f"config: {exc}", file=sys.stderr)
         return 2
     return 0

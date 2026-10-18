@@ -45,11 +45,12 @@ specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
 are layered from `lib/default.yml` (root), `GROUP/lib/default.yml` (group), and
 `GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
 `configdata`, and matching entries in the installation's `config.yml` override
-them. At runtime, `/etc/linto/linto.yml` is merged next, then `~/.linto.yml`, so
-user settings have the highest precedence. These config files may contain only
-the settings they override. Defaults are located relative to the Linto
-installation, not the current working directory. The Markdown viewer is root
-configdata, while the shipped
+them. At runtime, `/etc/linto/linto.yml` is merged next, then
+`${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`, so user settings have the
+highest precedence. A legacy `~/.linto.yml` is read below the XDG config file.
+These files may contain only the settings they override. Defaults are located
+relative to the Linto installation, not the current working directory. The
+Markdown viewer is root configdata, while the shipped
 Quarto extension and Linto shell-alias defaults are in
 [`quarto/lib/default.yml`](../quarto/lib/default.yml) and
 [`linto/lib/default.yml`](../linto/lib/default.yml), respectively.
@@ -115,13 +116,13 @@ After editing configuration or adding/removing executable scripts, run:
 linto linto refresh
 ```
 
-Refresh regenerates command stubs, shell completion data, the active-group list
-in the dispatcher man page, and one man page per `linto-guide/*.md` topic. Topic
-man pages are installed under `man/man1/` after generation succeeds and each
-page passes `groff -Wall` validation. `mandown` and `groff` are required for this
-step.
+Refresh writes generated command wrappers, Fish completions, and man pages to
+`${XDG_DATA_HOME:-~/.local/share}/linto`, never into the installation tree. This
+is also where custom groups added with `linto linto addgroup DIRECTORY` are
+stored. The setup helper adds the generated wrapper directory to `PATH`. Remove
+a group with `linto linto rmgroup GROUP`; it is disabled in the user config, but
+its files are left untouched. Use `linto --list-groups` to inspect active groups.
 
-Register or re-enable a group with `linto linto addgroup DIRECTORY`. Remove a
-group from Linto's active configuration with `linto linto rmgroup GROUP`; this
-does not delete the group directory. Use `linto --list-groups` to inspect active
-groups.
+The installation requires `mandown` and `groff` when refreshing generated man
+pages. This is convenient on mutable systems and should be declared as runtime
+inputs by Nix packages that expose the refresh command.

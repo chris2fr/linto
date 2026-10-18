@@ -17,10 +17,10 @@ export PATH="/path/to/linto/bin:$PATH"
 Or use Linto's setup helper for Bash, Zsh, or Fish:
 
 ```sh
-linto-linto-setup
+linto linto setup
 ```
 
-Install the `linto(1)` man page too with `linto-linto-setup --man`. See
+Install the `linto(1)` man page too with `linto linto setup --man`. See
 [`linto help install`](linto-guide/install.md) for details.
 
 ## Running commands
@@ -84,11 +84,15 @@ shortcuts:
   [`lib/default.yml`](lib/default.yml), `GROUP/lib/default.yml`, and
   `GROUP/lib/COMMAND.yml`, respectively. Each defaults file stores values under
   `configdata`; corresponding entries in `config.yml` override them. Runtime
-  overrides are then merged from `/etc/linto/linto.yml` and `~/.linto.yml` (user
-  settings win). The shipped Quarto extension default is in
+  overrides are then merged from `/etc/linto/linto.yml` and
+  `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml` (user settings win). A legacy
+  `~/.linto.yml` is also read below the XDG config. The shipped Quarto extension
+  default is in
   [`quarto/lib/default.yml`](quarto/lib/default.yml); shell-alias defaults are
   in [`linto/lib/default.yml`](linto/lib/default.yml). Root settings such as
-  `markdown-viewer` are under top-level `configdata`.
+  `markdown-viewer` are under top-level `configdata`. Writable per-user data,
+  including custom groups and generated wrappers/completions/man pages, lives in
+  `${XDG_DATA_HOME:-~/.local/share}/linto`.
 - Each entry in the top-level `shortcuts` mapping defines an explicit alias:
   the key is the shortcut name, and its value is `"GROUP COMMAND"`. For example,
   `prettyprint: "utils prettyprint"` makes both `linto prettyprint` and
@@ -127,5 +131,5 @@ Use `linto help GROUP` for the live command list. For detailed topics, see
 - [`linto-guide/index.md`](linto-guide/index.md): multi-page topic guide for
   installation, config, command usage, bibliography, Quarto, and completion.
 - [`man/linto.1`](man/linto.1): dispatcher manual, installed with
-  `linto-linto-addman`.
+  `linto linto addman`.
 - Run `tests/run.sh` from the checkout to execute the test suite.
