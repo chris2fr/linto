@@ -156,6 +156,17 @@ Options:
   -h, --help   Affiche cette aide et quitte.' \
     "$root/bin/linto" quarto render --help
 
+index_help=$(LINTO_MDVIEWER=cat "$root/bin/linto" help)
+case "$index_help" in
+    *"  linto help biblio"*) ;;
+    *) fail "linto help does not list groups" ;;
+esac
+group_help=$(LINTO_MDVIEWER=cat "$root/bin/linto" help biblio)
+case "$group_help" in
+    *"  linto help biblio bib2json"*) ;;
+    *) fail "linto help GROUP does not list commands" ;;
+esac
+
 python3 -m unittest discover -s "$root/tests" -p 'test_*.py'
 
 echo 'All linto tests passed.'

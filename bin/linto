@@ -316,6 +316,8 @@ case "$1" in
   help)
     if [ "$#" -eq 1 ]; then
       render_guide "$script_dir/linto-guide/index.md"
+      printf '\nGroups:\n'
+      list_groups | sed 's/^/  linto help /'
       exit 0
     elif [ "$#" -eq 3 ] && [ "$2" = page ]; then
       topic=$3
@@ -343,7 +345,7 @@ case "$1" in
           printf '\n'
         fi
         echo "Commands in group '$topic':"
-        list_group_commands "$topic" | sed 's/^/  /'
+        list_group_commands "$topic" | sed "s/^/  linto help $topic /"
         exit 0
       fi
       guide_page="$script_dir/linto-guide/$topic.md"
