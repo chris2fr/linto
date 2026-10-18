@@ -18,7 +18,21 @@ def load_defaults() -> dict:
         raise ValueError(f"cannot read defaults {defaults_path}: {exc}") from exc
     if not isinstance(defaults, dict) or not isinstance(defaults.get("groups"), dict):
         raise ValueError("defaults.yml must contain a 'groups' mapping")
-    alias_defaults_path = defaults_path.parent.parent / "linto" / "lib" / "aliases.yml"
+    repo_root = defaults_path.parent.parent
+    for group_defaults_path in repo_root.glob("*/lib/defaults.yml"):
+        group_name = group_defaults_path.parent.parent.name
+        try:
+            group_defaults = yaml.safe_load(group_defaults_path.read_text())
+        except (OSError, yaml.YAMLError) as exc:
+            raise ValueError(f"cannot read group defaults {group_defaults_path}: {exc}") from exc
+        if not isinstance(group_defaults, dict):
+            raise ValueError(f"group defaults {group_defaults_path} must be a mapping")
+        current = defaults["groups"].setdefault(group_name, {})
+        if not isinstance(current, dict):
+            raise ValueError(f"defaults.yml group {group_name!r} must be a mapping")
+        current.update(group_defaults)
+
+    alias_defaults_path = repo_root / "linto" / "lib" / "aliases.yml"
     if alias_defaults_path.is_file():
         try:
             alias_defaults = yaml.safe_load(alias_defaults_path.read_text())
@@ -37,7 +51,7 @@ def load_defaults() -> dict:
     if "extension" in quarto and (
         not isinstance(quarto["extension"], str) or not quarto["extension"].strip()
     ):
-        raise ValueError("defaults.yml groups.quarto.extension must be a non-empty string")
+        raise ValueError("quarto/lib/defaults.yml extension must be a non-empty string")
     linto = defaults["groups"].get("linto", {})
     if "aliases" in linto:
         validate_shell_aliases(linto["aliases"], "defaults.yml groups.linto.aliases")
