@@ -8,6 +8,7 @@ Usage: $0 [-h|--help] [-j|--json entrée.json] [-o|--output sortie.json]
 
 Injecte les entrées BibTeX dans le champ bibtex des clés JSON existantes et
 crée une clé pour chaque entrée BibTeX absente du JSON (bibtex et frontmatter).
+Chaque enregistrement commence par "key", qui répète le nom de sa propriété.
 
 Options :
   -j, --json FICHIER    JSON d'entrée à compléter. Sans cette option, on part
@@ -128,6 +129,12 @@ for key, bib_entry in by_id.items():
         fields = normalize(bib_entry)
         data[key] = {'bibtex': fields, 'frontmatter': fields.copy()}
         created.append(key)
+
+# Every record starts with "key": its own property name, so it stays
+# identifiable once taken out of the mapping.
+for key, entry in data.items():
+    if isinstance(entry, dict):
+        data[key] = {'key': key, **{name: value for name, value in entry.items() if name != 'key'}}
 
 to_stdout = not json_out
 if to_stdout:

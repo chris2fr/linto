@@ -58,6 +58,7 @@ inside an entry, duplicate fields, or unbalanced delimiters.
 `linto biblio bib2json [-j INPUT.json] [-o OUTPUT.json] FILE.bib` injects each
 BibTeX entry into the `bibtex` field of the matching key in the JSON file, and
 creates a key (with `bibtex` and `frontmatter`) for every entry the JSON lacks.
+Every record starts with a `"key"` property repeating its own name (for example `"a": {"key": "a", ...}`), including records that were already in the JSON.
 The BibTeX file is the only positional argument; both JSON files are options:
 
 - `-j`/`--json INPUT.json` is the JSON to complete. Without it, the command
