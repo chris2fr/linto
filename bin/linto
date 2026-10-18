@@ -317,9 +317,6 @@ case "$1" in
       echo "Usage: linto help [PAGE|GROUP [COMMAND]] | linto help page PAGE" >&2
       exit 2
     fi
-    case "$command" in
-      slug) command=stripaccents ;;
-    esac
     if ! tool=$(find_tool "$command" "$group"); then
       echo "linto: unknown command: $command" >&2
       usage >&2
@@ -356,9 +353,6 @@ case "$1" in
   *)
     first=$1
     shift
-    case "$first" in
-      slug) first=stripaccents ;;
-    esac
 
     case "$first" in
       linto-*)
@@ -406,9 +400,6 @@ case "$1" in
       group=
       command=$first
     fi
-    case "$command" in
-      slug) command=stripaccents ;;
-    esac
     if tool=$(find_tool "$command" "$group") && [ -x "$tool" ]; then
       exec "$tool" "$@"
     fi

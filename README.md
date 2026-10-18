@@ -57,6 +57,7 @@ groups:
 shortcuts:
   prettyprint: "utils prettyprint"
   stripaccents: "utils stripaccents"
+  slug: "utils stripaccents"
   guillemets2quotes: "quarto guillemets2quotes"
 ```
 
