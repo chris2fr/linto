@@ -16,6 +16,10 @@ groups:
       - stripaccents
   old:
     enable: false
+shortcuts:
+  "prettyprint2": "utils prettyprint"
+  "stripaccents2": "utils stripaccents"
+  "guillemets2quotes2": "quarto guillemets2quotes"
 quarto:
   extension: chris2fr/quarto
 # markdown-viewer: md-tui

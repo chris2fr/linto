@@ -44,8 +44,12 @@ fi
 [[ -d "$root/linto-guide" ]] || { printf 'refresh: guide directory not found: %s\n' "$root/linto-guide" >&2; exit 1; }
 
 mapfile -t groups < <("$linto" --list-groups)
+mapfile -t shortcuts < <("$linto" --list-shortcuts)
 declare -a names=() groups_for_stub=() commands_for_stub=() kinds=()
-declare -A desired=() owners=() shortcut_owners=()
+declare -A desired=() owners=() selected_shortcuts=()
+for shortcut in "${shortcuts[@]}"; do
+  selected_shortcuts["$shortcut"]=1
+done
 
 add_stub() {
   local name=$1 group=$2 command=$3 kind=$4
@@ -58,8 +62,6 @@ add_stub() {
 
 for group in "${groups[@]}"; do
   add_stub "linto-$group" "$group" '' group
-  mapfile -t opts < <(python3 "$config_tool" "$config" options "$group")
-  shortcuts=${opts[1]:-true}
   mapfile -t commands < <("$linto" --list-commands "$group")
   for command in "${commands[@]}"; do
     case "$group/$command" in
@@ -67,29 +69,13 @@ for group in "${groups[@]}"; do
     esac
     add_stub "linto-$group-$command" "$group" "$command" group-command
     owners["$command"]+="$group "
-    shortcut_enabled=false
-    case "$shortcuts" in
-      true) shortcut_enabled=true ;;
-      false) ;;
-      list)
-        for selected_command in "${opts[@]:2}"; do
-          if [[ "$selected_command" == "$command" ]]; then
-            shortcut_enabled=true
-            break
-          fi
-        done
-        ;;
-    esac
-    if [[ "$shortcut_enabled" == true ]]; then
-      shortcut_owners["$command"]+="$group "
-    fi
   done
 done
 
 for command in "${!owners[@]}"; do
   read -r -a command_owners <<< "${owners[$command]}"
   if (( ${#command_owners[@]} == 1 )) &&
-     [[ -n "${shortcut_owners[$command]:-}" ]] &&
+     [[ -n "${selected_shortcuts[$command]:-}" ]] &&
      ! printf '%s\n' "${groups[@]}" | grep -Fxq -- "$command" &&
      [[ "$command" != help && "$command" != completion ]]; then
     add_stub "linto-$command" "${command_owners[0]}" "$command" short-command
