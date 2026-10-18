@@ -65,37 +65,7 @@ class ShortcutConfigTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
 
-<<<<<<< HEAD
-    def test_config_editor_remains_reachable_with_invalid_user_config(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / "bin").mkdir()
-            (root / "groups" / "linto").mkdir(parents=True)
-            shutil.copy2(ROOT / "bin" / "linto", root / "bin" / "linto")
-            shutil.copy2(ROOT / "groups" / "linto" / "config.sh", root / "groups" / "linto" / "config.sh")
-            home = root / "home"
-            config_home = root / "xdg-config"
-            home.mkdir()
-            user_config = config_home / "linto" / "config.yml"
-            user_config.parent.mkdir(parents=True)
-            user_config.write_text(
-                'groups:\n  linto:\n    configdata:\n      aliases:\n        zz:"invalid yaml"\n',
-                encoding="utf-8",
-            )
-            environment = os.environ.copy()
-            environment.update(HOME=str(home), XDG_CONFIG_HOME=str(config_home))
 
-            result = subprocess.run(
-                [root / "bin" / "linto", "linto", "config"],
-                capture_output=True,
-                text=True,
-                env=environment,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(str(user_config), result.stdout)
-
-=======
->>>>>>> parent of c8c75f0 (linto config)
     def test_dispatcher_uses_only_explicit_shortcut_aliases(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
