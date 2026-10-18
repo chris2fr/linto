@@ -110,8 +110,11 @@ if [[ -n "$projectdir" ]]; then
     project_dir="$(cd "$projectdir" && pwd)"
 else
     if [[ -f "$target" ]]; then
-        file_basename="$(basename "$target")"
-        file_parent_dir="$(cd "$(dirname "$target")" && pwd)"
+        # Resolve target to an absolute path first to handle relative paths correctly
+        target_abs="$(cd "$(dirname "$target")" && pwd)/$(basename "$target")"
+        file_basename="$(basename "$target_abs")"
+        file_parent_dir="$(dirname "$target_abs")"
+
         # If the file is inside or equal to $PWD, use $PWD as the project directory,
         # otherwise use the file's parent directory.
         if [[ "$file_parent_dir" == "$PWD" || "$file_parent_dir" == "$PWD/"* ]]; then
@@ -232,7 +235,16 @@ fi
     user_data_dir="$(cd "$zed_root" && pwd)/.zed"
 
     if [[ -n "${file_basename:-}" ]]; then
-        zeditor --user-data-dir "$user_data_dir" "$open_flag" "$(pwd)" "$file_basename"
+        # When project_dir is $PWD and target is a subdirectory file (e.g. .config/fish/config.fish),
+        # pass the workspace project_dir and the relative path from project_dir to the file.
+        # If we are in ~ and pass .config/fish/config.fish, relative path from ~ is .config/fish/config.fish.
+        target_abs="$file_parent_dir/$file_basename"
+        if [[ "$target_abs" == "$project_dir/"* ]]; then
+            rel_path="${target_abs#$project_dir/}"
+            zeditor --user-data-dir "$user_data_dir" "$open_flag" "$project_dir" "$rel_path"
+        else
+            zeditor --user-data-dir "$user_data_dir" "$open_flag" "$project_dir" "$file_basename"
+        fi
     else
         zeditor --user-data-dir "$user_data_dir" "$open_flag" "$(pwd)"
     fi

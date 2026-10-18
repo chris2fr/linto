@@ -24,3 +24,31 @@ precedence for `linto help GROUP`.
 The dispatcher also supports `slug` as an alias for `stripaccents`. Run
 `linto --list-groups` to list active groups and `linto --list-commands GROUP`
 to list a group's commands.
+
+## Shell aliases
+
+`linto launch aliases` installs or updates aliases declared in
+[`launch/lib/aliases.yml`](../launch/lib/aliases.yml) for one shell. For example:
+
+```yaml
+aliases:
+  zz: "linto launch zed"
+unaliases:
+  - old-alias
+```
+
+By default, the command detects the shell from `$SHELL`, then tries the parent
+process, and falls back to `sh` if it cannot identify one. Select a shell
+explicitly with `-s` or `--shell`:
+
+```sh
+linto launch aliases --shell fish
+linto launch aliases -s bash
+```
+
+Choices are `fish`, `zsh`, `bash`, `sh`, and `ksh`. Fish aliases are saved with
+Fish's `alias --save` mechanism. For Bash, Zsh, sh, and ksh, Linto replaces the
+managed alias block in `~/.bashrc`, `~/.zshrc`, `~/.profile`, or `~/.kshrc`,
+respectively. Names listed in `unaliases` are omitted from the managed aliases;
+for Fish, Linto also erases the saved alias function. Start a new shell or reload
+your shell's configuration for the changes to take effect.
