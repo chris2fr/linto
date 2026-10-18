@@ -7,9 +7,9 @@ Usage: setup.sh [--shell SHELL] [--man] [-h|--help]
 
 Configure Linto for the current user's shell by adding the package and
 user-generated command directories to PATH and installing shell completion.
-The invoking shell is detected automatically; use --shell to select one
-explicitly. Configuration lines are not duplicated. Use --man to also install
-the Linto man page.
+The shell defaults to $SHELL.
+Configuration lines are not duplicated. Use --man to also install the
+Linto man page.
 
 Supported shells: zsh, bash, fish
 EOF
@@ -20,53 +20,7 @@ fail() {
   exit 1
 }
 
-detect_current_shell() {
-  local pid=$PPID parent line process_name argument is_script
-  local -a argv
-  while [[ "$pid" =~ ^[0-9]+$ ]] && (( pid > 1 )); do
-    process_name=
-    IFS= read -r process_name < "/proc/$pid/comm" 2>/dev/null || break
-    process_name=${process_name##*/}
-    process_name=${process_name#-}
-
-    parent=
-    while IFS= read -r line; do
-      if [[ "$line" == PPid:* ]]; then
-        parent=${line#PPid:}
-        parent=${parent//[[:space:]]/}
-        break
-      fi
-    done < "/proc/$pid/status" 2>/dev/null || break
-
-    is_script=false
-    argv=()
-    while IFS= read -r -d '' argument; do
-      argv+=("$argument")
-    done < "/proc/$pid/cmdline" 2>/dev/null || true
-    for argument in "${argv[@]:1}"; do
-      [[ "$argument" != -* && -f "$argument" ]] || continue
-      if IFS= read -r line < "$argument" && [[ "$line" == '#!'* ]]; then
-        is_script=true
-        break
-      fi
-    done
-    if [[ "$is_script" == false ]]; then
-      case "$process_name" in
-        zsh|bash|fish) printf '%s\n' "$process_name"; return ;;
-      esac
-    fi
-    pid=$parent
-  done
-
-  local configured_shell=${SHELL:-}
-  configured_shell=${configured_shell##*/}
-  case "$configured_shell" in
-    zsh|bash|fish) printf '%s\n' "$configured_shell" ;;
-    *) printf '%s\n' bash ;;
-  esac
-}
-
-shell_name=$(detect_current_shell)
+shell_name=${SHELL##*/}
 install_man=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -136,32 +90,13 @@ append_once() {
   printf '\n%s\n' "$line" >> "$config_file"
 }
 
-ensure_zsh_completion_order() {
-  local temporary
-  temporary=$(mktemp "${config_file}.linto.XXXXXX")
-  if ! awk -v line="$completion_line" '
-    $0 == line { next }
-    !inserted && /(^|[;&[:space:]])(autoload[[:space:]]+-Uz[[:space:]]+compinit|compinit)([;&[:space:]]|$)/ {
-      print line
-      inserted = 1
-    }
-    { print }
-    END { if (!inserted) print line }
-  ' "$config_file" > "$temporary"; then
-    rm -f -- "$temporary"
-    fail "could not update Zsh completion order in $config_file"
-  fi
-  chmod --reference="$config_file" "$temporary" 2>/dev/null || true
-  mv -- "$temporary" "$config_file"
-
+# Ensure Zsh loads the Linto function from fpath before compinit. Avoid adding a
+# second compinit when an existing initialization is already present.
+if [[ "$shell_name" == zsh ]]; then
+  append_once "$completion_line"
   if ! grep -Eq '(^|[;&[:space:]])(autoload[[:space:]]+-Uz[[:space:]]+compinit|compinit)([;&[:space:]]|$)' "$config_file"; then
     append_once "$init_line"
   fi
-}
-
-# Zsh must have the completion directory on fpath before compinit runs.
-if [[ "$shell_name" == zsh ]]; then
-  ensure_zsh_completion_order
 else
   append_once "$completion_line"
 fi

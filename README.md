@@ -14,17 +14,13 @@ for your shell:
 export PATH="/path/to/linto/bin:$PATH"
 ```
 
-Or use Linto's setup helper for Bash, Zsh, or Fish; it detects the invoking
-shell automatically, and `--shell` can select one explicitly:
+Or use Linto's setup helper for Bash, Zsh, or Fish:
 
 ```sh
 linto linto setup
-linto linto setup --shell zsh
 ```
 
-After changing shell startup files or installing aliases, start a new shell or
-reload the relevant configuration file. Install the `linto(1)` man page too
-with `linto linto setup --man`. See
+Install the `linto(1)` man page too with `linto linto setup --man`. See
 [`linto help install`](linto-guide/install.md) for details.
 
 ## Nix and NixOS

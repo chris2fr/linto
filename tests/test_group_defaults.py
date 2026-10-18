@@ -206,6 +206,7 @@ class ConfigdataTests(unittest.TestCase):
                 saved = config.read_yaml_mapping(user_config, "test user configuration")
                 self.assertEqual(saved, {"groups": {"custom": {"enable": True}}})
 
+<<<<<<< HEAD
     def test_config_init_copies_defaults_once_without_overwriting_user_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -233,6 +234,8 @@ class ConfigdataTests(unittest.TestCase):
             self.assertNotEqual(repeated.returncode, 0)
             self.assertEqual(user_config.read_text(encoding="utf-8"), "# keep my edits\n")
 
+=======
+>>>>>>> parent of c8c75f0 (linto config)
     def test_legacy_configuration_locations_and_unaliases_are_rejected(self):
         for text in (
             "groups:\n  quarto: default\nquarto:\n  extension: old/repo\n",

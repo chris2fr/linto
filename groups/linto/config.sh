@@ -3,21 +3,18 @@ set -eu
 
 usage() {
   cat <<'EOF'
-Usage: config.sh [-h|--help] [--init]
-                 [--group GROUP [--command COMMAND] | --effective]
+Usage: config.sh [-h|--help] [--group GROUP [--command COMMAND] | --effective]
                  [--edit] [--editor PROGRAM]
 
-Without options, print the user config directory and file. --init copies the
-packaged config.yml there, but never overwrites an existing user file. --group
-shows the selected group's effective configdata; --command includes
-command-level configdata. --effective prints the full configuration with defaults merged.
+Without options, print the user config directory and file. --group shows the
+selected group's effective configdata; --command includes command-level
+configdata. --effective prints the full configuration with defaults merged.
 With --edit, open config.yml with `linto launch zed`; --editor selects another
 executable instead. Editing creates an empty user override file if needed.
 EOF
 }
 
 edit=false
-init=false
 show_effective=false
 group=
 command=
@@ -30,10 +27,6 @@ while [ "$#" -gt 0 ]; do
       ;;
     -e|--edit)
       edit=true
-      shift
-      ;;
-    --init)
-      init=true
       shift
       ;;
     --effective|--show)
@@ -92,10 +85,6 @@ config_dir="$config_home/linto"
 config_file="$config_dir/config.yml"
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)
 
-if [ "$init" = true ] && { [ "$edit" = true ] || [ "$show_effective" = true ] || [ -n "$group" ] || [ -n "$command" ]; }; then
-  echo 'config: --init cannot be combined with other actions' >&2
-  exit 2
-fi
 if [ "$edit" = true ] && { [ "$show_effective" = true ] || [ -n "$group" ] || [ -n "$command" ]; }; then
   echo 'config: --edit cannot be combined with --effective, --group, or --command' >&2
   exit 2
@@ -107,17 +96,6 @@ fi
 if [ -n "$command" ] && [ -z "$group" ]; then
   echo 'config: --command requires --group' >&2
   exit 2
-fi
-
-if [ "$init" = true ]; then
-  if [ -e "$config_file" ] || [ -L "$config_file" ]; then
-    printf 'config: refusing to overwrite existing user config: %s\n' "$config_file" >&2
-    exit 1
-  fi
-  mkdir -p -- "$config_dir"
-  cp "$script_dir/config.yml" "$config_file"
-  printf 'Initialized user config: %s\n' "$config_file"
-  exit 0
 fi
 
 if [ "$show_effective" = true ]; then
