@@ -38,6 +38,8 @@ def load(path: Path) -> dict:
             char.isalnum() or char in "_-" for char in alias
         ):
             raise ValueError(f"invalid shortcut alias name: {alias!r}")
+        if alias in {"help", "completion"} or alias in data["groups"]:
+            raise ValueError(f"shortcut alias name is reserved: {alias!r}")
         if not isinstance(target, str):
             raise ValueError(f"shortcuts.{alias} must be a 'GROUP COMMAND' string")
         parts = target.split()
