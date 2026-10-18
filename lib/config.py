@@ -175,7 +175,7 @@ def validate(data: dict, defaults: dict) -> dict:
     # Validate effective configdata for the settings with a known schema.
     root_configdata = merge_mappings(defaults["configdata"], data.get("configdata", {}))
     if "markdown-viewer" in root_configdata:
-        markdown_viewers({"configdata": root_configdata})
+        validate_markdown_viewers(root_configdata["markdown-viewer"])
     for group_name, group_defaults in defaults["groups"].items():
         if not isinstance(group_defaults, dict):
             raise ValueError(f"defaults for group {group_name!r} must be a mapping")
@@ -308,9 +308,7 @@ def enabled_groups(data: dict, root: Path, data_root: Path | None = None) -> lis
     return result
 
 
-def markdown_viewers(data: dict) -> list[str]:
-    """Return configured Markdown viewers in preference order."""
-    viewers = configdata(data).get("markdown-viewer", ["cat"])
+def validate_markdown_viewers(viewers: object) -> list[str]:
     if isinstance(viewers, str):
         viewers = [viewers]
     if not isinstance(viewers, list) or not viewers:
@@ -321,6 +319,12 @@ def markdown_viewers(data: dict) -> list[str]:
             raise ValueError("'configdata.markdown-viewer' entries must be non-empty strings")
         result.append(viewer.strip())
     return result
+
+
+def markdown_viewers(data: dict) -> list[str]:
+    """Return configured Markdown viewers in preference order."""
+    viewers = configdata(data).get("markdown-viewer", ["cat"])
+    return validate_markdown_viewers(viewers)
 
 
 def quarto_extension(data: dict) -> str:
