@@ -59,6 +59,7 @@ class ShortcutConfigTests(unittest.TestCase):
             (root / "lib").mkdir()
             shutil.copy2(ROOT / "bin" / "linto", root / "bin" / "linto")
             shutil.copy2(MODULE_PATH, root / "lib" / "config.py")
+            shutil.copy2(ROOT / "lib" / "defaults.yml", root / "lib" / "defaults.yml")
             (root / "config.yml").write_text(
                 "groups:\n"
                 "  alpha: default\n"

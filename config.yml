@@ -3,8 +3,14 @@ groups:
   beta: default
   biblio: default
   launch: default
-  linto: default
-  quarto: default
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        - something-to-delete-from-aliases
+  quarto:
+    extension: "chris2fr/quarto"
   utils: default
   old:
     enable: false
@@ -13,8 +19,7 @@ shortcuts:
   stripaccents: "utils stripaccents"
   slug: "utils stripaccents"
   guillemets2quotes: "quarto guillemets2quotes"
-quarto:
-  extension: chris2fr/quarto
+
 # markdown-viewer: md-tui
 markdown-viewer:
   - md-tui

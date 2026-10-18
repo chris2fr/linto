@@ -49,8 +49,14 @@ groups:
   beta: default
   biblio: default
   launch: default
-  linto: default
-  quarto: default
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        - something-to-delete-from-aliases
+  quarto:
+    extension: "chris2fr/quarto"
   utils: default
   old:
     enable: false
@@ -64,6 +70,11 @@ shortcuts:
 - `GROUP: default` enables a group. A group mapping may set `enable: false` to
   keep its directory but hide it from Linto, help, completions, and generated
   stubs. Omitted group options default to `enable: true`.
+- Group-specific settings live under `groups.GROUP`. The shared
+  [`lib/defaults.yml`](lib/defaults.yml) provides the default
+  `groups.quarto.extension` (`chris2fr/quarto`). Shell-alias defaults come from
+  [`linto/lib/aliases.yml`](linto/lib/aliases.yml); values in
+  `groups.linto.aliases` override or extend them.
 - Each entry in the top-level `shortcuts` mapping defines an explicit alias:
   the key is the shortcut name, and its value is `"GROUP COMMAND"`. For example,
   `prettyprint: "utils prettyprint"` makes both `linto prettyprint` and
@@ -87,7 +98,7 @@ command deletes an existing group directory. See [`linto help config`](linto-gui
 
 The active groups are listed in `config.yml`. Broadly:
 
-- `bibtex`: BibTeX/JSON conversion, bibliography formatting, and YAML helpers.
+- `biblio`: BibTeX/JSON conversion, bibliography formatting, and YAML helpers.
 - `quarto`: rendering, citations, Quarto setup, and output browsing.
 - `utils`: text, time-zone, and formatting tools.
 - `launch`: application launchers such as Zed.

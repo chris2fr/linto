@@ -10,6 +10,57 @@ from pathlib import Path
 import yaml
 
 
+def load_defaults() -> dict:
+    defaults_path = Path(__file__).with_name("defaults.yml")
+    try:
+        defaults = yaml.safe_load(defaults_path.read_text())
+    except (OSError, yaml.YAMLError) as exc:
+        raise ValueError(f"cannot read defaults {defaults_path}: {exc}") from exc
+    if not isinstance(defaults, dict) or not isinstance(defaults.get("groups"), dict):
+        raise ValueError("defaults.yml must contain a 'groups' mapping")
+    alias_defaults_path = defaults_path.parent.parent / "linto" / "lib" / "aliases.yml"
+    if alias_defaults_path.is_file():
+        try:
+            alias_defaults = yaml.safe_load(alias_defaults_path.read_text())
+        except (OSError, yaml.YAMLError) as exc:
+            raise ValueError(f"cannot read alias defaults {alias_defaults_path}: {exc}") from exc
+        validate_shell_aliases(alias_defaults, "linto/lib/aliases.yml")
+        defaults["groups"].setdefault("linto", {})["aliases"] = alias_defaults
+    else:
+        defaults["groups"].setdefault("linto", {}).setdefault(
+            "aliases", {"aliases": {}, "unaliases": []}
+        )
+    for name, options in defaults["groups"].items():
+        if not isinstance(name, str) or not isinstance(options, dict):
+            raise ValueError("defaults.yml group entries must be mappings")
+    quarto = defaults["groups"].get("quarto", {})
+    if "extension" in quarto and (
+        not isinstance(quarto["extension"], str) or not quarto["extension"].strip()
+    ):
+        raise ValueError("defaults.yml groups.quarto.extension must be a non-empty string")
+    linto = defaults["groups"].get("linto", {})
+    if "aliases" in linto:
+        validate_shell_aliases(linto["aliases"], "defaults.yml groups.linto.aliases")
+    return defaults
+
+
+def validate_shell_aliases(value: object, label: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a mapping")
+    unknown = set(value) - {"aliases", "unaliases"}
+    if unknown:
+        raise ValueError(f"{label} has unknown option(s): {', '.join(sorted(unknown))}")
+    aliases = value.get("aliases", {})
+    unaliases = value.get("unaliases", [])
+    if not isinstance(aliases, dict) or any(
+        not isinstance(name, str) or not name or not isinstance(command, str)
+        for name, command in aliases.items()
+    ):
+        raise ValueError(f"{label}.aliases must map alias names to command strings")
+    if not isinstance(unaliases, list) or any(not isinstance(name, str) for name in unaliases):
+        raise ValueError(f"{label}.unaliases must be a list of alias names")
+
+
 def load(path: Path) -> dict:
     try:
         data = yaml.safe_load(path.read_text())
@@ -17,6 +68,9 @@ def load(path: Path) -> dict:
         raise ValueError(f"cannot read configuration {path}: {exc}") from exc
     if not isinstance(data, dict) or not isinstance(data.get("groups"), dict):
         raise ValueError("config must contain a 'groups' mapping")
+    if "quarto" in data:
+        raise ValueError("move Quarto settings to groups.quarto")
+    default_groups = load_defaults()["groups"]
     for name, options in data["groups"].items():
         if not isinstance(name, str) or not name or not all(c.isalnum() or c in "_-" for c in name):
             raise ValueError(f"invalid group name: {name!r}")
@@ -24,11 +78,18 @@ def load(path: Path) -> dict:
             continue
         if not isinstance(options, dict):
             raise ValueError(f"group {name!r} must be 'default' or a mapping")
-        unknown = set(options) - {"enable"}
+        allowed_options = {"enable", *default_groups.get(name, {}).keys()}
+        unknown = set(options) - allowed_options
         if unknown:
             raise ValueError(f"unknown option(s) for group {name!r}: {', '.join(sorted(unknown))}")
         if "enable" in options and not isinstance(options["enable"], bool):
             raise ValueError(f"group {name!r}: enable must be true or false")
+        if name == "quarto" and "extension" in options:
+            extension = options["extension"]
+            if not isinstance(extension, str) or not extension.strip():
+                raise ValueError("groups.quarto.extension must be a non-empty string")
+        if name == "linto" and "aliases" in options:
+            validate_shell_aliases(options["aliases"], "groups.linto.aliases")
 
     aliases = data.get("shortcuts", {})
     if not isinstance(aliases, dict):
@@ -65,9 +126,22 @@ def enabled_groups(data: dict, root: Path) -> list[str]:
 
 def group_options(data: dict, name: str) -> dict:
     value = data["groups"].get(name, "default")
-    return {"enable": True} if value == "default" else {
-        "enable": value.get("enable", True),
-    }
+    options = dict(load_defaults()["groups"].get(name, {}))
+    if value != "default":
+        for key, item in value.items():
+            if key == "aliases" and isinstance(options.get(key), dict) and isinstance(item, dict):
+                merged = dict(options[key])
+                if "aliases" in item:
+                    merged_aliases = dict(merged.get("aliases", {}))
+                    merged_aliases.update(item["aliases"])
+                    merged["aliases"] = merged_aliases
+                if "unaliases" in item:
+                    merged["unaliases"] = item["unaliases"]
+                options[key] = merged
+            else:
+                options[key] = item
+    options.setdefault("enable", True)
+    return options
 
 
 def markdown_viewers(data: dict) -> list[str]:
@@ -87,14 +161,9 @@ def markdown_viewers(data: dict) -> list[str]:
 
 def quarto_extension(data: dict) -> str:
     """Return the configured Quarto extension repository."""
-    quarto = data.get("quarto", {})
-    if quarto is None:
-        quarto = {}
-    if not isinstance(quarto, dict):
-        raise ValueError("'quarto' configuration must be a mapping")
-    extension = quarto.get("extension", "chris2fr/quarto")
+    extension = group_options(data, "quarto").get("extension", "chris2fr/quarto")
     if not isinstance(extension, str) or not extension.strip():
-        raise ValueError("'quarto.extension' must be a non-empty string")
+        raise ValueError("groups.quarto.extension must be a non-empty string")
     return extension.strip()
 
 

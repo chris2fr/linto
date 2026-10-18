@@ -16,8 +16,14 @@ groups:
   beta: default
   biblio: default
   launch: default
-  linto: default
-  quarto: default
+  linto:
+    aliases:
+      aliases:
+        zz: "linto launch zed"
+      unaliases:
+        \- something\-to\-delete\-from\-aliases
+  quarto:
+    extension: "chris2fr/quarto"
   utils: default
   old:
     enable: false
@@ -31,8 +37,11 @@ shortcuts:
 .PP
 \fBdefault\fP enables a group\. A group mapping may set \fBenable: false\fP to leave a
 directory in the checkout while making Linto ignore it for dispatch, help,
-completions, and generated stubs\. Omitted group options default to
-\fBenable: true\fP\.
+completions, and stubs\. Omitted group options default to \fBenable: true\fP\.
+Group\-specific defaults are in \fBlib/defaults\.yml\fP:
+\fBgroups\.quarto\.extension\fP defaults to \fBchris2fr/quarto\fP, and
+\fBgroups\.linto\.aliases\fP defaults to empty alias and unalias collections\. Values
+in \fBconfig\.yml\fP override these defaults\.
 .PP
 The top\-level \fBshortcuts\fP mapping defines explicit aliases\. Each key is the
 shortcut name, and each value is a \fB"GROUP COMMAND"\fP target\. For example,
