@@ -9,8 +9,7 @@ groups:
         zz: "linto launch zed"
       unaliases:
         - something-to-delete-from-aliases
-  quarto:
-    extension: "chris2fr/quarto"
+  quarto: default
   utils: default
   old:
     enable: false
