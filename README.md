@@ -55,8 +55,7 @@ groups:
         zz: "linto launch zed"
       unaliases:
         - something-to-delete-from-aliases
-  quarto:
-    extension: "chris2fr/quarto"
+  quarto: default
   utils: default
   old:
     enable: false
@@ -70,12 +69,13 @@ shortcuts:
 - `GROUP: default` enables a group. A group mapping may set `enable: false` to
   keep its directory but hide it from Linto, help, completions, and generated
   stubs. Omitted group options default to `enable: true`.
-- Group-specific settings live under `groups.GROUP`. Shared defaults are in
-  [`lib/defaults.yml`](lib/defaults.yml), and a group can provide defaults in
-  `GROUP/lib/defaults.yml`. Quarto's `groups.quarto.extension` defaults to
-  `chris2fr/quarto` from [`quarto/lib/defaults.yml`](quarto/lib/defaults.yml).
-  Shell-alias defaults come from [`linto/lib/aliases.yml`](linto/lib/aliases.yml);
-  values in `groups.linto.aliases` override or extend them.
+- Group-specific settings live under `groups.GROUP`. Shared defaults may be
+  placed in [`lib/defaults.yml`](lib/defaults.yml); groups can provide defaults
+  in `GROUP/lib/defaults.yml`. With `quarto: default`, the extension is read
+  from [`quarto/lib/defaults.yml`](quarto/lib/defaults.yml); set
+  `groups.quarto.extension` to override it. Shell-alias defaults come from
+  [`linto/lib/aliases.yml`](linto/lib/aliases.yml); values in
+  `groups.linto.aliases` override or extend them.
 - Each entry in the top-level `shortcuts` mapping defines an explicit alias:
   the key is the shortcut name, and its value is `"GROUP COMMAND"`. For example,
   `prettyprint: "utils prettyprint"` makes both `linto prettyprint` and
