@@ -17,10 +17,11 @@ linto\-GROUP\-COMMAND [ARGUMENTS\.\.\.]   # generated group\-qualified stub
 .PP
 \fBlinto GROUP COMMAND\fP and \fBlinto\-GROUP\-COMMAND\fP always address a command in a
 specific group\. Unqualified \fBlinto COMMAND\fP and \fBlinto\-COMMAND\fP are available
-only when that command's group has \fBshortcuts: true\fP and the name is unique
-across active groups\. The \fBshortcuts\fP setting defaults to \fBtrue\fP\. A command's
-help is available through \fBlinto help GROUP COMMAND\fP; \fBlinto COMMAND \-\-help\fP
-works only when the command has an enabled unqualified shortcut\.
+only when that command's group has \fBshortcuts: true\fP, or its name is listed in
+the group's \fBshortcuts\fP list, and the name is unique across active groups\. The
+\fBshortcuts\fP setting defaults to \fBtrue\fP\. A command's help is available through
+\fBlinto help GROUP COMMAND\fP; \fBlinto COMMAND \-\-help\fP works only when the command
+has an enabled unqualified shortcut\.
 .PP
 \fBlinto help\fP displays the guide index\. Use \fBlinto help PAGE\fP to read a guide
 topic, or \fBlinto help page PAGE\fP when the topic name is also an active group

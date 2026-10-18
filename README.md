@@ -63,8 +63,9 @@ groups:
   Linto, help, completions, and generated stubs.
 - `shortcuts: true` enables `linto-COMMAND` stubs and `linto COMMAND` for
   commands unique across all active groups. `shortcuts: false` disables those
-  unqualified forms for that group's commands; `linto GROUP COMMAND` and
-  `linto-GROUP-COMMAND` remain available.
+  unqualified forms for the group. A list enables shortcuts only for the named
+  commands, for example `shortcuts: [prettyprint]`. `linto GROUP COMMAND` and
+  `linto-GROUP-COMMAND` remain available in all cases.
 - Omitted mapping options default to `enable: true` and `shortcuts: true`.
 
 Refresh generated command stubs, Fish completions, and the active-group list in

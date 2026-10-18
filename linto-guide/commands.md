@@ -13,10 +13,11 @@ linto-GROUP-COMMAND [ARGUMENTS...]   # generated group-qualified stub
 
 `linto GROUP COMMAND` and `linto-GROUP-COMMAND` always address a command in a
 specific group. Unqualified `linto COMMAND` and `linto-COMMAND` are available
-only when that command's group has `shortcuts: true` and the name is unique
-across active groups. The `shortcuts` setting defaults to `true`. A command's
-help is available through `linto help GROUP COMMAND`; `linto COMMAND --help`
-works only when the command has an enabled unqualified shortcut.
+only when that command's group has `shortcuts: true`, or its name is listed in
+the group's `shortcuts` list, and the name is unique across active groups. The
+`shortcuts` setting defaults to `true`. A command's help is available through
+`linto help GROUP COMMAND`; `linto COMMAND --help` works only when the command
+has an enabled unqualified shortcut.
 
 `linto help` displays the guide index. Use `linto help PAGE` to read a guide
 topic, or `linto help page PAGE` when the topic name is also an active group

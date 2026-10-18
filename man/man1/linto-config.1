@@ -30,11 +30,25 @@ groups:
 \fBdefault\fP enables a group and uses the defaults \fBenable: true\fP and
 \fBshortcuts: true\fP\. A mapping may set \fBenable: false\fP to leave a directory in the
 checkout while making Linto ignore it for dispatch, help, completions, and
-stubs\. With \fBshortcuts: true\fP, a command gets the unqualified forms \fBlinto
-COMMAND\fP and (when unique across all active groups) \fBlinto\-COMMAND\fP\. With
-\fBshortcuts: false\fP, commands from that group are available only as \fBlinto GROUP
-COMMAND\fP or \fBlinto\-GROUP\-COMMAND\fP\. Group commands remain available in either
-case\. Omitted mapping options default to \fBenable: true\fP and \fBshortcuts: true\fP\.
+stubs\. With \fBshortcuts: true\fP, all commands in the group may use the unqualified
+forms \fBlinto COMMAND\fP and (when unique across all active groups)
+\fBlinto\-COMMAND\fP\. With \fBshortcuts: false\fP, commands from that group are available
+only as \fBlinto GROUP COMMAND\fP or \fBlinto\-GROUP\-COMMAND\fP\. A list limits
+unqualified shortcuts to the listed commands:
+.RS
+.PP
+.nf
+groups:
+  quarto:
+    shortcuts:
+      \- quarto\-render
+      \- quarto\-github
+.fi
+.RE
+.PP
+Names in a list still need to be unique across active groups to have an
+unqualified form\. Group\-qualified commands remain available in every mode\.
+Omitted mapping options default to \fBenable: true\fP and \fBshortcuts: true\fP\.
 
 .SS "Markdown viewer"
 .PP

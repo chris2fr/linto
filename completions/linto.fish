@@ -13,8 +13,6 @@ complete -c linto -f -n '__fish_seen_subcommand_from quarto linto-quarto' -a '($
 
 complete -c linto -f -n '__fish_seen_subcommand_from utils linto-utils' -a '($linto_bin --list-commands utils 2>/dev/null)'
 
-complete -c linto -f -n '__fish_seen_subcommand_from biblio linto-biblio' -a '($linto_bin --list-commands biblio 2>/dev/null)'
-
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-shortcuts 2>/dev/null)'
 complete -c linto -l help -s h -d 'Show help'

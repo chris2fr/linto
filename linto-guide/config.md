@@ -26,11 +26,23 @@ groups:
 `default` enables a group and uses the defaults `enable: true` and
 `shortcuts: true`. A mapping may set `enable: false` to leave a directory in the
 checkout while making Linto ignore it for dispatch, help, completions, and
-stubs. With `shortcuts: true`, a command gets the unqualified forms `linto
-COMMAND` and (when unique across all active groups) `linto-COMMAND`. With
-`shortcuts: false`, commands from that group are available only as `linto GROUP
-COMMAND` or `linto-GROUP-COMMAND`. Group commands remain available in either
-case. Omitted mapping options default to `enable: true` and `shortcuts: true`.
+stubs. With `shortcuts: true`, all commands in the group may use the unqualified
+forms `linto COMMAND` and (when unique across all active groups)
+`linto-COMMAND`. With `shortcuts: false`, commands from that group are available
+only as `linto GROUP COMMAND` or `linto-GROUP-COMMAND`. A list limits
+unqualified shortcuts to the listed commands:
+
+```yaml
+groups:
+  quarto:
+    shortcuts:
+      - quarto-render
+      - quarto-github
+```
+
+Names in a list still need to be unique across active groups to have an
+unqualified form. Group-qualified commands remain available in every mode.
+Omitted mapping options default to `enable: true` and `shortcuts: true`.
 
 ## Markdown viewer
 
