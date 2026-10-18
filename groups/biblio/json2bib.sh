@@ -5,7 +5,9 @@ usage() {
   cat <<EOF
 Usage: $0 [-h|--help] [-i[.bak]] <entrée.json>
 
-Reconstruit un fichier BibTeX à partir du champ bibtex du JSON.
+Reconstruit un fichier BibTeX à partir du champ bibtex du JSON. La clé de
+chaque entrée BibTeX est le nom de sa propriété dans le JSON (un éventuel ID
+dans le champ bibtex est ignoré).
 Par défaut, écrit le résultat sur stdout. -i remplace l'entrée JSON par le BibTeX;
 -i.bak conserve une copie de l'entrée sous le nom <entrée.json>.bak.
 EOF
@@ -55,8 +57,9 @@ fi
 jq -r '
   to_entries[]
   | select(.value.bibtex != null)
+  | .key as $citekey
   | .value.bibtex as $b
-  | "@\($b.ENTRYTYPE){\($b.ID),\n"
+  | "@\($b.ENTRYTYPE){\($citekey),\n"
     + ([ $b | to_entries[]
          | select(.key | IN("ENTRYTYPE","ID") | not)
          | "  \(.key) = {\(.value | tostring | gsub("(?<!\\\\)%"; "\\%"))}" ]
