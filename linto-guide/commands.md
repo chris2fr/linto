@@ -14,8 +14,10 @@ linto-GROUP-COMMAND [ARGUMENTS...]   # generated group-qualified stub
 `linto GROUP COMMAND` and `linto-GROUP-COMMAND` always address a command in a
 specific group. Unqualified `linto COMMAND` and `linto-COMMAND` are available
 only when that command's group has `shortcuts: true`, or its name is listed in
-the group's `shortcuts` list, and the name is unique across active groups. The
-`shortcuts` setting defaults to `true`. A command's help is available through
+the group's `shortcuts` list, and exactly one active group defines that command.
+A collision suppresses unqualified forms even if only one of the groups enables
+or lists the command. The `shortcuts` setting defaults to `true`. A command's
+help is available through
 `linto help GROUP COMMAND`; `linto COMMAND --help` works only when the command
 has an enabled unqualified shortcut.
 

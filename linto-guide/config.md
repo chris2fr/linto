@@ -40,9 +40,11 @@ groups:
       - quarto-github
 ```
 
-Names in a list still need to be unique across active groups to have an
-unqualified form. Group-qualified commands remain available in every mode.
-Omitted mapping options default to `enable: true` and `shortcuts: true`.
+An unqualified shortcut is available only when exactly one active group defines
+that command. A collision suppresses it even if only one group enables or lists
+the command; `shortcuts: true` does not override a collision. Group-qualified
+commands remain available in every mode. Omitted mapping options default to
+`enable: true` and `shortcuts: true`.
 
 ## Markdown viewer
 
