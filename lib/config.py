@@ -430,6 +430,7 @@ def main() -> int:
     configdata_parser.add_argument("command", nargs="?")
     sub.add_parser("effective")
     sub.add_parser("aliases")
+    sub.add_parser("shell-state")
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
     sub.add_parser("version")
@@ -475,6 +476,16 @@ def main() -> int:
             for alias, target in data.get("shortcuts", {}).items():
                 group, command = target.split()
                 print(f"{alias}\t{group}\t{command}")
+        elif args.action == "shell-state":
+            for group in enabled_groups(data, installation_root, user_data):
+                print(f"G\t{group}")
+            for alias, target in data.get("shortcuts", {}).items():
+                group, command = target.split()
+                print(f"A\t{alias}\t{group}\t{command}")
+            for group in data["groups"]:
+                for command in group_options(data, group)["commands"]:
+                    if not command_options(data, group, command)["enable"]:
+                        print(f"D\t{group}/{command}")
         elif args.action == "quarto-extension":
             print(quarto_extension(data))
         elif args.action == "markdown-viewer":

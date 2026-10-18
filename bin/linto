@@ -20,25 +20,35 @@ is_group_name() {
   esac
 }
 
-list_groups() {
-  [ -f "$script_dir/config.yml" ] || return 0
-  python3 "$script_dir/lib/config.py" "$script_dir/config.yml" list
-}
-
-command_states_loaded=
+tab=$(printf '\t')
+groups_cache=
+alias_rows=
 disabled_command_states=
 
-load_command_states() {
-  [ "$command_states_loaded" = yes ] && return 0
-  if [ -f "$script_dir/config.yml" ]; then
-    loaded_command_states=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" disabled-commands) || return 1
-    disabled_command_states=$(printf '%s\n' "$loaded_command_states" | tr '\n' ' ')
-  fi
-  command_states_loaded=yes
+# Parse the configuration once (a single Python start-up) into shell
+# variables; must run in the main shell so subshells inherit the result.
+load_config_state() {
+  [ -f "$script_dir/config.yml" ] || return 0
+  state=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" shell-state) || return 0
+  while IFS="$tab" read -r kind field1 field2 field3; do
+    case "$kind" in
+      G) groups_cache="${groups_cache:+$groups_cache
+}$field1" ;;
+      A) alias_rows="${alias_rows:+$alias_rows
+}$field1$tab$field2$tab$field3" ;;
+      D) disabled_command_states="$disabled_command_states$field1 " ;;
+    esac
+  done <<EOF
+$state
+EOF
+}
+
+list_groups() {
+  [ -n "$groups_cache" ] && printf '%s\n' "$groups_cache"
+  return 0
 }
 
 command_enabled() {
-  load_command_states || return 1
   case " $disabled_command_states " in
     *" $1/$2 "*) return 1 ;;
   esac
@@ -58,7 +68,6 @@ group_directory() {
 list_group_commands() {
   list_command_group=$1
   command_directory=$(group_directory "$list_command_group") || return 1
-  load_command_states || return 1
   for tool in "$command_directory"/*.sh; do
     [ -f "$tool" ] && [ -x "$tool" ] || continue
     name=${tool##*/}
@@ -78,8 +87,6 @@ list_groups_and_commands() {
 }
 
 list_shortcut_aliases() {
-  alias_rows=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" aliases) || return 1
-  tab=$(printf '\t')
   while IFS="$tab" read -r alias_name alias_group alias_command; do
     [ -n "$alias_name" ] || continue
     case "$alias_name" in
@@ -272,6 +279,10 @@ EOF
 #   linto-quarto-render
 #   linto quarto citations --order-by key --format csv report.qmd
 
+if [ "${1-}" != completion ]; then
+  load_config_state
+fi
+
 if [ "$#" -eq 0 ]; then
   usage
   exit 0
@@ -291,11 +302,6 @@ case "$1" in
   --list-shortcuts)
     [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcuts" >&2; exit 2; }
     list_shortcuts
-    exit 0
-    ;;
-  --list-shortcut-aliases)
-    [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcut-aliases" >&2; exit 2; }
-    list_shortcut_aliases
     exit 0
     ;;
   --list-shortcut-aliases)
