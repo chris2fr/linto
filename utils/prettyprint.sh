@@ -155,3 +155,4 @@ main() {
 
 echo
 main "$@"
+echo

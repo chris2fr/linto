@@ -11,7 +11,8 @@ _linto_complete() {
     commands=$(printf '%s\n' "$groups" | while IFS= read -r group; do
       "$linto_bin" --list-commands "$group" 2>/dev/null | sed "s#^#linto-$group-#"
     done)
-    COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
+    aliases=$($linto_bin --list-shortcuts 2>/dev/null | sed 's#^#linto-#')
+    COMPREPLY=( $(compgen -W "$commands $aliases" -- "$cur") )
     return
   fi
 

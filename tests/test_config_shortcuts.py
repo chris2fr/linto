@@ -11,62 +11,48 @@ MODULE_PATH = ROOT / "lib" / "config.py"
 
 
 class ShortcutConfigTests(unittest.TestCase):
-    def run_options(self, config: str, group: str) -> subprocess.CompletedProcess:
+    def run_config(self, config: str, action: str, *args: str) -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yml"
             path.write_text(config, encoding="utf-8")
             return subprocess.run(
-                [sys.executable, MODULE_PATH, path, "options", group],
+                [sys.executable, MODULE_PATH, path, action, *args],
                 capture_output=True,
                 text=True,
                 check=False,
             )
 
-    def test_shortcuts_default_to_true(self):
-        for group in ("tools", "mapped"):
-            with self.subTest(group=group):
-                result = self.run_options(
-                    "groups:\n  tools: default\n  mapped: {}\n", group
-                )
-                self.assertEqual(result.returncode, 0)
-                self.assertEqual(result.stdout.strip(), "true\ntrue")
-
-    def test_shortcuts_list_selects_named_commands(self):
-        result = self.run_options(
+    def test_shortcut_aliases_resolve_to_group_commands(self):
+        result = self.run_config(
             "groups:\n  tools: default\n"
-            "shortcuts:\n  tools:\n    - first-command\n    - second_command\n",
-            "tools",
+            "shortcuts:\n  pretty: tools prettyprint\n",
+            "aliases",
         )
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "true\nlist\nfirst-command\nsecond_command")
+        self.assertEqual(result.stdout.strip(), "pretty\ttools\tprettyprint")
 
-    def test_group_mappings_no_longer_accept_shortcuts(self):
-        result = self.run_options(
-            "groups:\n  tools:\n    shortcuts: false\n", "tools"
-        )
-        self.assertEqual(result.returncode, 2)
-
-    def test_shortcuts_accept_boolean_values(self):
-        enabled = self.run_options(
-            "groups:\n  enabled: default\nshortcuts:\n  enabled: true\n", "enabled"
-        )
-        disabled = self.run_options(
-            "groups:\n  disabled: default\nshortcuts:\n  disabled: false\n",
-            "disabled",
-        )
-        self.assertEqual(enabled.stdout.strip(), "true\ntrue")
-        self.assertEqual(disabled.stdout.strip(), "true\nfalse")
-
-    def test_shortcut_list_rejects_invalid_or_duplicate_names(self):
-        for shortcuts in ("[42]", "[bad/name]", "[same, same]"):
+    def test_shortcut_aliases_reject_invalid_targets_or_names(self):
+        for shortcuts in (
+            "bad/name: tools print",
+            "pretty: tools",
+            "pretty: unknown print",
+            "pretty: tools bad/name",
+            "pretty: [tools, print]",
+        ):
             with self.subTest(shortcuts=shortcuts):
-                result = self.run_options(
-                    f"groups:\n  tools: default\nshortcuts:\n  tools: {shortcuts}\n",
-                    "tools",
+                result = self.run_config(
+                    f"groups:\n  tools: default\nshortcuts:\n  {shortcuts}\n",
+                    "aliases",
                 )
                 self.assertEqual(result.returncode, 2)
 
-    def test_dispatcher_obeys_selected_shortcuts_and_uniqueness(self):
+    def test_group_mappings_no_longer_accept_shortcuts(self):
+        result = self.run_config(
+            "groups:\n  tools:\n    shortcuts: false\n", "aliases"
+        )
+        self.assertEqual(result.returncode, 2)
+
+    def test_dispatcher_uses_only_explicit_shortcut_aliases(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "bin").mkdir()
@@ -77,11 +63,14 @@ class ShortcutConfigTests(unittest.TestCase):
                 "groups:\n"
                 "  alpha: default\n"
                 "  beta: default\n"
-                "  gamma: default\n"
+                "  gamma:\n"
+                "    enable: false\n"
                 "shortcuts:\n"
-                "  alpha: [listed, collision]\n"
-                "  beta: [other]\n"
-                "  gamma: false\n",
+                "  selected: alpha listed\n"
+                "  collision_alias: alpha collision\n"
+                "  hyphen-name: alpha listed\n"
+                "  beta_alias: beta other\n"
+                "  disabled_alias: gamma disabled\n",
                 encoding="utf-8",
             )
 
@@ -91,7 +80,6 @@ class ShortcutConfigTests(unittest.TestCase):
                 ("alpha", "hidden", "alpha-hidden"),
                 ("beta", "collision", "beta-collision"),
                 ("beta", "other", "beta-other"),
-                ("beta", "unselected", "beta-unselected"),
                 ("gamma", "disabled", "gamma-disabled"),
             ):
                 group_dir = root / group
@@ -104,27 +92,30 @@ class ShortcutConfigTests(unittest.TestCase):
             shortcuts = subprocess.run(
                 [dispatcher, "--list-shortcuts"], capture_output=True, text=True, check=True
             )
-            self.assertEqual(shortcuts.stdout.splitlines(), ["listed", "other"])
             self.assertEqual(
-                subprocess.run([dispatcher, "listed"], capture_output=True, text=True, check=True).stdout.strip(),
-                "alpha-listed",
+                shortcuts.stdout.splitlines(),
+                ["beta_alias", "collision_alias", "hyphen-name", "selected"],
             )
-            self.assertEqual(
-                subprocess.run([dispatcher, "alpha", "collision"], capture_output=True, text=True, check=True).stdout.strip(),
-                "alpha-collision",
-            )
-            for group, command, expected in (
-                ("alpha", "collision", "alpha-collision"),
-                ("beta", "collision", "beta-collision"),
-                ("beta", "unselected", "beta-unselected"),
-                ("gamma", "disabled", "gamma-disabled"),
+            for alias, expected in (
+                ("selected", "alpha-listed"),
+                ("collision_alias", "alpha-collision"),
+                ("beta_alias", "beta-other"),
+                ("linto-hyphen-name", "alpha-listed"),
             ):
-                with self.subTest(group=group, command=command):
+                with self.subTest(alias=alias):
                     result = subprocess.run(
-                        [dispatcher, group, command], capture_output=True, text=True, check=True
+                        [dispatcher, alias], capture_output=True, text=True, check=True
                     )
                     self.assertEqual(result.stdout.strip(), expected)
-            for command in ("collision", "hidden", "unselected", "disabled"):
+
+            qualified = subprocess.run(
+                [dispatcher, "beta", "collision"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertEqual(qualified.stdout.strip(), "beta-collision")
+            for command in ("listed", "collision", "other", "disabled_alias"):
                 with self.subTest(command=command):
                     result = subprocess.run(
                         [dispatcher, command], capture_output=True, text=True, check=False

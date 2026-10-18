@@ -12,10 +12,11 @@ _linto() {
   groups=(${(f)"$("$linto_bin" --list-groups 2>/dev/null)"})
   commands=(${(f)"$("$linto_bin" --list-shortcuts 2>/dev/null)"})
 
+
   if [[ "$words[1]" == linto && "$words[2]" == zed && $CURRENT -ge 3 ]]; then
     _files
   elif (( CURRENT == 2 )); then
-    aliases=(linto-${^groups})
+    aliases=(linto-${^groups} linto-${^commands})
     _describe 'linto command' commands
     _describe 'linto group' groups
     _describe 'group alias' aliases

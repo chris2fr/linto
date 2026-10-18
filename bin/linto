@@ -35,11 +35,15 @@ list_groups_and_commands() {
   done
 }
 
-configured_alias_targets() {
+list_shortcut_aliases() {
   alias_rows=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" aliases) || return 1
   tab=$(printf '\t')
   while IFS="$tab" read -r alias_name alias_group alias_command; do
     [ -n "$alias_name" ] || continue
+    case "$alias_name" in
+      help|completion) continue ;;
+    esac
+    list_groups | grep -Fxq -- "$alias_name" && continue
     group_exists "$alias_group" || continue
     alias_tool=$(find_group_command "$alias_group" "$alias_command") || continue
     [ -x "$alias_tool" ] || continue
@@ -50,58 +54,7 @@ EOF
 }
 
 list_shortcuts() {
-  {
-    for shortcut_group in $(list_groups); do
-      printf 'group\t%s\n' "$shortcut_group"
-      shortcut_options=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" options "$shortcut_group") || continue
-      shortcut_mode=$(printf '%s\n' "$shortcut_options" | sed -n '2p')
-      list_group_commands "$shortcut_group" | while IFS= read -r shortcut_command; do
-        case "$shortcut_group/$shortcut_command" in
-          linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
-        esac
-        case "$shortcut_mode" in
-          true) shortcut_enabled=true ;;
-          false) shortcut_enabled=false ;;
-          list)
-            if printf '%s\n' "$shortcut_options" | sed '1,2d' | grep -Fxq -- "$shortcut_command"; then
-              shortcut_enabled=true
-            else
-              shortcut_enabled=false
-            fi
-            ;;
-          *) continue ;;
-        esac
-        printf 'command\t%s\t%s\n' "$shortcut_command" "$shortcut_enabled"
-      done
-    done
-    configured_alias_targets | while IFS="$(printf '\t')" read -r alias_name _ alias_command; do
-      [ -n "$alias_name" ] || continue
-      printf 'command\t%s\ttrue\n' "$alias_name"
-    done
-  } | awk -F '\t' '
-    $1 == "group" { groups[$2] = 1; next }
-    $1 == "command" {
-      count[$2]++
-      if ($3 == "true") shortcut_count[$2]++
-    }
-    END {
-      for (command in count) {
-        if (count[command] == 1 && shortcut_count[command] == 1 &&
-            !groups[command] && command != "help" && command != "completion") {
-          print command
-        }
-      }
-    }
-  ' | LC_ALL=C sort
-}
-
-list_shortcut_aliases() {
-  allowed_shortcuts=$(list_shortcuts) || return 1
-  configured_alias_targets | while IFS="$(printf '\t')" read -r alias_name alias_group alias_command; do
-    [ -n "$alias_name" ] || continue
-    printf '%s\n' "$allowed_shortcuts" | grep -Fxq -- "$alias_name" || continue
-    printf '%s\t%s\t%s\n' "$alias_name" "$alias_group" "$alias_command"
-  done
+  list_shortcut_aliases | cut -f1 | LC_ALL=C sort
 }
 
 group_exists() {
@@ -243,10 +196,11 @@ Commands:
   completion SHELL        Print shell completion setup instructions.
   --list-groups           Print group names, one per line.
   --list-commands GROUP   Print commands in GROUP, one per line.
-  --list-shortcuts        Print unique unqualified command shortcuts.
+  --list-shortcuts        Print configured shortcut names.
+  --list-shortcut-aliases Print shortcut names and group-command targets.
   GROUP [COMMAND...]      Run a command in GROUP or list its commands.
   linto-GROUP [COMMAND]   Group alias; linto-GROUP-COMMAND runs a tool directly.
-  COMMAND [ARGUMENTS...]  Run a tool by name when its group enables shortcuts.
+  SHORTCUT [ARGUMENTS...] Run the configured shortcut target.
 
 Groups:
 EOF
@@ -258,7 +212,7 @@ EOF
   list_groups_and_commands
   cat <<EOF
 
-Available unqualified shortcuts (unique commands enabled by group config):
+Configured shortcuts:
 EOF
   list_shortcuts | sed 's/^/  /'
   cat <<EOF
@@ -300,6 +254,16 @@ case "$1" in
   --list-shortcuts)
     [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcuts" >&2; exit 2; }
     list_shortcuts
+    exit 0
+    ;;
+  --list-shortcut-aliases)
+    [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcut-aliases" >&2; exit 2; }
+    list_shortcut_aliases
+    exit 0
+    ;;
+  --list-shortcut-aliases)
+    [ "$#" -eq 1 ] || { echo "Usage: linto --list-shortcut-aliases" >&2; exit 2; }
+    list_shortcut_aliases
     exit 0
     ;;
   -h|--help)
@@ -397,22 +361,29 @@ case "$1" in
     esac
 
     case "$first" in
-      linto-*-*)
-        encoded=${first#linto-}
-        encoded_group=${encoded%%-*}
-        encoded_command=${encoded#*-}
-        if group_exists "$encoded_group" && [ "$encoded_command" != "$encoded" ]; then
-          if tool=$(find_group_command "$encoded_group" "$encoded_command") && [ -x "$tool" ]; then
-            exec "$tool" "$@"
-          fi
-          echo "linto: unknown command '$encoded_command' in group '$encoded_group'" >&2
-          exit 2
-        fi
-        ;;
       linto-*)
-        encoded_group=${first#linto-}
-        if group_exists "$encoded_group"; then
-          first=$encoded_group
+        encoded=${first#linto-}
+        if list_shortcuts | grep -Fxq -- "$encoded"; then
+          first=$encoded
+        else
+          case "$first" in
+            linto-*-*)
+              encoded_group=${encoded%%-*}
+              encoded_command=${encoded#*-}
+              if group_exists "$encoded_group" && [ "$encoded_command" != "$encoded" ]; then
+                if tool=$(find_group_command "$encoded_group" "$encoded_command") && [ -x "$tool" ]; then
+                  exec "$tool" "$@"
+                fi
+                echo "linto: unknown command '$encoded_command' in group '$encoded_group'" >&2
+                exit 2
+              fi
+              ;;
+            linto-*)
+              if group_exists "$encoded"; then
+                first=$encoded
+              fi
+              ;;
+          esac
         fi
         ;;
     esac
