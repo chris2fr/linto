@@ -11,19 +11,25 @@ template=$2
 help_arg=${3-}
 
 case "$name" in
-  document) description='Create a Quarto document from the chris2fr/quarto/document template.' ;;
-  lettre) description='Create a Quarto document from the chris2fr/quarto/lettre template.' ;;
+  document)
+    usage_name=quarto-setup-document.sh
+    description='Create a Quarto document from the chris2fr/quarto/document template.'
+    ;;
+  lettre)
+    usage_name=quarto-setup-lettre.sh
+    description='Create a Quarto document from the chris2fr/quarto/lettre template.'
+    ;;
   *) echo "error: unsupported setup template: $name" >&2; exit 2 ;;
 esac
 
 case "$help_arg" in
   -h|--help)
-    printf 'Usage: setup-%s.sh [-h|--help]\n\n%s\n' "$name" "$description"
+    printf 'Usage: %s [-h|--help]\n\n%s\n' "$usage_name" "$description"
     exit 0
     ;;
   '') ;;
   *)
-    printf 'Usage: setup-%s.sh [-h|--help]\n' "$name" >&2
+    printf 'Usage: %s [-h|--help]\n' "$usage_name" >&2
     exit 2
     ;;
 esac

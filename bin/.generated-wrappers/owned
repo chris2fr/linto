@@ -1,4 +1,3 @@
-linto-aliases
 linto-beta
 linto-beta-test
 linto-bib-order-props
@@ -20,10 +19,10 @@ linto-bibyml2bib
 linto-csv2qmd
 linto-json2bib
 linto-launch
-linto-launch-aliases
 linto-launch-zed
 linto-linto
 linto-linto-addman
+linto-linto-aliases
 linto-linto-github
 linto-linto-mdsetup
 linto-linto-path
@@ -32,12 +31,12 @@ linto-prettyprint
 linto-qmd2yml
 linto-quarto
 linto-quarto-firefox-output
-linto-quarto-github
 linto-quarto-guillemets2quotes
-linto-quarto-render
-linto-quarto-setup
-linto-quarto-setup-document
-linto-quarto-setup-lettre
+linto-quarto-quarto-github
+linto-quarto-quarto-render
+linto-quarto-quarto-setup
+linto-quarto-quarto-setup-document
+linto-quarto-quarto-setup-lettre
 linto-stripaccents
 linto-test
 linto-timezone
