@@ -21,6 +21,9 @@ is_group_name() {
 }
 
 tab=$(printf '\t')
+# Checked here because inside $(...) standard output is never a terminal.
+interactive=false
+if [ -t 0 ] && [ -t 1 ]; then interactive=true; fi
 groups_cache=
 alias_rows=
 disabled_command_states=
@@ -191,6 +194,16 @@ EOF
   esac
 }
 
+# Let the user pick one of the arguments (after the title) with the arrow
+# keys. Prints the choice, or nothing if cancelled. Fails when there is no
+# terminal or no menu support, so callers can fall back to a plain list.
+choose_item() {
+  choose_prefix=$1
+  shift
+  [ "$interactive" = true ] && command -v python3 >/dev/null 2>&1 || return 1
+  python3 "$script_dir/lib/menu.py" --prefix "$choose_prefix" "$@" 2>&1 >/dev/tty
+}
+
 find_tool() {
   command_name=$1
   tool_group=${2-}
@@ -317,6 +330,11 @@ case "$1" in
     if [ "$#" -eq 1 ]; then
       render_guide "$script_dir/linto-guide/index.md"
       printf '\nGroups:\n'
+      # shellcheck disable=SC2046
+      if choice=$(choose_item 'linto help ' 'Select a group (Enter: open, q: quit)' $(list_groups)); then
+        [ -z "$choice" ] || exec "$0" help "$choice"
+        exit 0
+      fi
       list_groups | sed 's/^/  linto help /'
       exit 0
     elif [ "$#" -eq 3 ] && [ "$2" = page ]; then
@@ -345,6 +363,11 @@ case "$1" in
           printf '\n'
         fi
         echo "Commands in group '$topic':"
+        # shellcheck disable=SC2046
+        if choice=$(choose_item "linto help $topic " 'Select a command (Enter: open, q: quit)' $(list_group_commands "$topic")); then
+          [ -z "$choice" ] || exec "$0" help "$topic" "$choice"
+          exit 0
+        fi
         list_group_commands "$topic" | sed "s/^/  linto help $topic /"
         exit 0
       fi
