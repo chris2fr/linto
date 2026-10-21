@@ -10,7 +10,10 @@ groups:
         cb: "flatpak run app.getclipboard.Clipboard"
   quarto: default
   utils: default
-  web: default
+  web:
+    configdata:
+      memos:
+        url: "https://memos.gv.je"
   old:
     enable: false
 shortcuts:
