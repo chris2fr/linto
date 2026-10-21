@@ -9,8 +9,8 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-LIB = ROOT / "groups" / "biblio" / "lib"
-SCRIPT = ROOT / "groups" / "biblio" / "pdf2md.sh"
+LIB = ROOT / "groups" / "bib" / "lib"
+SCRIPT = ROOT / "groups" / "bib" / "pdf2md.sh"
 sys.path.insert(0, str(LIB))
 sys.path.insert(0, str(ROOT / "tests"))
 SPEC = importlib.util.spec_from_file_location("pdf2md", LIB / "pdf2md.py")

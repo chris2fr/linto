@@ -1,21 +1,21 @@
-.TH "LINTO-BIBLIO" 1
+.TH "LINTO-BIB" 1
 
 .SH "BibTeX and bibliography tools"
 .PP
-The \fBbiblio\fP group contains utilities for converting and formatting BibTeX,
-JSON, Markdown, and YAML data\. Use \fBlinto help biblio\fP to see its current
+The \fBbib\fP group contains utilities for converting and formatting BibTeX,
+JSON, Markdown, and YAML data\. Use \fBlinto help bib\fP to see its current
 commands\. Typical tasks include:
 .RS
 .PP
 .nf
-linto biblio bib2json \-\-help
-linto biblio json2bib \-\-help
-linto biblio bib\-order\-props \-\-help
+linto bib bib2json \-\-help
+linto bib json2bib \-\-help
+linto bib bib\-order\-props \-\-help
 linto bibyml2bib \-\-help
-linto biblio csv2qmd \-\-help
-linto biblio md2json \-\-help
+linto bib csv2qmd \-\-help
+linto bib md2json \-\-help
 linto bib2dirbibs \-\-help
-linto biblio qmd2yml \-\-help
+linto bib qmd2yml \-\-help
 linto yml\-renumber \-\-help
 .fi
 .RE
@@ -53,12 +53,12 @@ legacy batch mode for \fB_pieces\-*\.yml\fP files and \fBfr\.bib\fP\.
 
 .SS "Build a numbered references YAML from citations"
 .PP
-\fBlinto biblio qmd2yml FILE\.qmd\fP extracts unique Pandoc\-style citation keys and
+\fBlinto bib qmd2yml FILE\.qmd\fP extracts unique Pandoc\-style citation keys and
 writes a numbered YAML mapping\. Use \fB\-y\fP/\fB\-\-yml\fP to extend an existing mapping:
 .RS
 .PP
 .nf
-linto biblio qmd2yml \-\-yml references\.yml report\.qmd
+linto bib qmd2yml \-\-yml references\.yml report\.qmd
 .fi
 .RE
 .PP

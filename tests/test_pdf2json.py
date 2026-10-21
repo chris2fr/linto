@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "groups" / "biblio" / "pdf2json.sh"
-SPEC = importlib.util.spec_from_file_location("pdf2json", ROOT / "groups" / "biblio" / "lib" / "pdf2json.py")
+SCRIPT = ROOT / "groups" / "bib" / "pdf2json.sh"
+SPEC = importlib.util.spec_from_file_location("pdf2json", ROOT / "groups" / "bib" / "lib" / "pdf2json.py")
 assert SPEC and SPEC.loader
 pdf2json = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(pdf2json)

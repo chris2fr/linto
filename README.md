@@ -103,7 +103,7 @@ configdata:
     - cat
 groups:
   beta: default
-  biblio: default
+  bib: default
   launch: default
   linto:
     configdata:
@@ -163,7 +163,7 @@ groups in a development checkout, are described in
 
 The active groups are listed in `config.yml`. Broadly:
 
-- `biblio`: BibTeX/JSON conversion, bibliography formatting, and YAML helpers.
+- `bib`: BibTeX/JSON conversion, bibliography formatting, and YAML helpers.
 - `quarto`: rendering, citations, Quarto setup, and output browsing.
 - `utils`: text, time-zone, and formatting tools.
 - `launch`: application launchers such as Zed.

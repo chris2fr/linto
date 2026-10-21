@@ -29,28 +29,28 @@ class DispatcherCompletionTests(unittest.TestCase):
     def test_positional_arguments_are_matched_by_glob(self):
         self.assertEqual(complete("quarto", "render", ""), ["files\t*.qmd,*.md"])
         self.assertEqual(complete("linto-quarto-render", ""), ["files\t*.qmd,*.md"])
-        self.assertEqual(complete("biblio", "bib2json", ""), ["files\t*.bib"])
+        self.assertEqual(complete("bib", "bib2json", ""), ["files\t*.bib"])
 
     def test_each_positional_argument_has_its_own_kind(self):
-        self.assertEqual(complete("biblio", "bibyml2bib", ""), ["files\t*.bib"])
+        self.assertEqual(complete("bib", "bibyml2bib", ""), ["files\t*.bib"])
         self.assertEqual(
-            complete("biblio", "bibyml2bib", "refs.bib", ""), ["files\t*.yml,*.yaml"]
+            complete("bib", "bibyml2bib", "refs.bib", ""), ["files\t*.yml,*.yaml"]
         )
-        self.assertEqual(complete("biblio", "bibyml2bib", "refs.bib", "r.yml", ""), ["none"])
+        self.assertEqual(complete("bib", "bibyml2bib", "refs.bib", "r.yml", ""), ["none"])
 
     def test_option_values_use_the_kind_of_the_option(self):
-        self.assertEqual(complete("biblio", "bib2json", "-j", ""), ["files\t*.json"])
-        self.assertEqual(complete("biblio", "bib2json", "-j", "in.json", ""), ["files\t*.bib"])
+        self.assertEqual(complete("bib", "bib2json", "-j", ""), ["files\t*.json"])
+        self.assertEqual(complete("bib", "bib2json", "-j", "in.json", ""), ["files\t*.bib"])
         self.assertEqual(complete("utils", "stripaccents", "-d", ""), ["dirs"])
         self.assertEqual(
-            complete("biblio", "bib2awk", "-f", ""), ["words", "csv", "sed", "bibs"]
+            complete("bib", "bib2awk", "-f", ""), ["words", "csv", "sed", "bibs"]
         )
 
     def test_shortcuts_resolve_to_their_command(self):
         self.assertEqual(complete("prettyprint", "-f", ""), ["words", "classic", "outlined"])
 
     def test_dash_lists_the_options_of_the_command(self):
-        reply = complete("biblio", "bib2json", "-")
+        reply = complete("bib", "bib2json", "-")
         self.assertEqual(reply[0], "words")
         names = [line.split("\t")[0] for line in reply[1:]]
         for option in ("-j", "--json", "-o", "--output", "-i", "-i.bak", "-h", "--help"):
@@ -95,7 +95,7 @@ class BashCompletionTests(unittest.TestCase):
                 self.candidates(directory, "quarto", "render", ""), ["a.qmd", "b.md", "sub"]
             )
             self.assertEqual(
-                self.candidates(directory, "biblio", "bib2json", ""), ["d.bib", "sub"]
+                self.candidates(directory, "bib", "bib2json", ""), ["d.bib", "sub"]
             )
 
     def test_option_values_and_option_names(self):
@@ -103,12 +103,12 @@ class BashCompletionTests(unittest.TestCase):
             (Path(directory) / "e.json").touch()
             (Path(directory) / "d.bib").touch()
             self.assertEqual(
-                self.candidates(directory, "biblio", "bib2json", "-j", ""), ["e.json"]
+                self.candidates(directory, "bib", "bib2json", "-j", ""), ["e.json"]
             )
             self.assertEqual(
-                self.candidates(directory, "biblio", "bib2awk", "-f", ""), ["bibs", "csv", "sed"]
+                self.candidates(directory, "bib", "bib2awk", "-f", ""), ["bibs", "csv", "sed"]
             )
-            self.assertIn("--output", self.candidates(directory, "biblio", "bib2json", "--o"))
+            self.assertIn("--output", self.candidates(directory, "bib", "bib2json", "--o"))
 
     def test_command_names_still_complete_after_a_partial_word(self):
         with tempfile.TemporaryDirectory() as directory:

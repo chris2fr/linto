@@ -19,7 +19,7 @@ Bash/Zsh completion.
 
 Beyond group and command names, Tab completes the arguments of each command
 according to what it accepts. For example `linto quarto render` offers only
-`.qmd` and `.md` files (and directories to descend into), `linto biblio
+`.qmd` and `.md` files (and directories to descend into), `linto bib
 bib2json -j` offers `.json` files, `linto utils stripaccents -d` offers only
 directories, and `linto prettyprint -f` offers the font names. Typing `-` lists
 the command's options. Commands that take no arguments complete nothing.

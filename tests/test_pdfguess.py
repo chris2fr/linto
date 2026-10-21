@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-LIB = ROOT / "groups" / "biblio" / "lib"
+LIB = ROOT / "groups" / "bib" / "lib"
 sys.path.insert(0, str(LIB))
 sys.path.insert(0, str(ROOT / "tests"))
 import pdfguess  # noqa: E402
@@ -111,7 +111,7 @@ class EndToEndTests(unittest.TestCase):
                 (11, "Universite de Lyon"), (11, "Paris, le 12 mars 2026"),
                 (11, "Note : version provisoire"), (11, "Voir www.exemple.org"),
             ])
-            script = ROOT / "groups" / "biblio" / "pdf2json.sh"
+            script = ROOT / "groups" / "bib" / "pdf2json.sh"
             run = lambda *arguments: json.loads(subprocess.run(
                 [script, "-o", "-", *arguments, "doc.pdf"], capture_output=True, text=True, cwd=directory, check=True
             ).stdout)["frontmatter"]

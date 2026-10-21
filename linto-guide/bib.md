@@ -1,19 +1,19 @@
 # BibTeX and bibliography tools
 
-The `biblio` group contains utilities for converting and formatting BibTeX,
-JSON, Markdown, CSV, and YAML data. Use `linto help biblio` to see its current
+The `bib` group contains utilities for converting and formatting BibTeX,
+JSON, Markdown, CSV, and YAML data. Use `linto help bib` to see its current
 commands and pick one, or run each command with `--help`:
 
 ```sh
-linto biblio bib2json --help
-linto biblio json2bib --help
-linto biblio bib-order-props --help
-linto biblio bib2dirbibs --help
-linto biblio bib2awk --help
-linto biblio csv2qmd --help
-linto biblio md2json --help
-linto biblio qmd2yml --help
-linto biblio bibyml2bib --help
+linto bib bib2json --help
+linto bib json2bib --help
+linto bib bib-order-props --help
+linto bib bib2dirbibs --help
+linto bib bib2awk --help
+linto bib csv2qmd --help
+linto bib md2json --help
+linto bib qmd2yml --help
+linto bib bibyml2bib --help
 ```
 
 `yml-renumber` has no `--help`; see [Renumber a YAML mapping](#renumber-a-yaml-mapping).
@@ -43,13 +43,13 @@ new file and the input is left unchanged.
 
 ## Sort BibTeX fields
 
-`linto biblio bib-order-props FILE.bib` sorts the properties of every entry
+`linto bib bib-order-props FILE.bib` sorts the properties of every entry
 alphabetically and prints the result. Use `-i` to replace the file, or `-i.bak`
 to keep a copy. Put preferred fields first with `-o`/`--order`; it may be
 repeated, and commas separate fields. Unlisted fields follow alphabetically:
 
 ```sh
-linto biblio bib-order-props -i -o author,title,year references.bib
+linto bib bib-order-props -i -o author,title,year references.bib
 ```
 
 Only entries with one single-line property per line are supported. The command
@@ -58,7 +58,7 @@ inside an entry, duplicate fields, or unbalanced delimiters.
 
 ## Keep BibTeX and JSON in step
 
-`linto biblio bib2json [-j INPUT.json] [-o OUTPUT.json] FILE.bib` injects each
+`linto bib bib2json [-j INPUT.json] [-o OUTPUT.json] FILE.bib` injects each
 BibTeX entry into the `bibtex` field of the matching key in the JSON file, and
 creates a key (with `bibtex` and `frontmatter`) for every entry the JSON lacks.
 Every record starts with a `"key"` property repeating its own name (for example `"a": {"key": "a", ...}`), including records that were already in the JSON.
@@ -73,24 +73,24 @@ The BibTeX file is the only positional argument; both JSON files are options:
   requires `-j` and cannot be combined with `-o`.
 
 ```sh
-linto biblio bib2json refs.bib > refs.json                 # new JSON from scratch
-linto biblio bib2json -j refs.json refs.bib                # merged result on stdout
-linto biblio bib2json -j refs.json -o merged.json refs.bib # merged result in a file
-linto biblio bib2json -i.bak -j refs.json refs.bib         # update refs.json in place
+linto bib bib2json refs.bib > refs.json                 # new JSON from scratch
+linto bib bib2json -j refs.json refs.bib                # merged result on stdout
+linto bib bib2json -j refs.json -o merged.json refs.bib # merged result in a file
+linto bib bib2json -i.bak -j refs.json refs.bib         # update refs.json in place
 ```
 
-`linto biblio json2bib INPUT.json` does the reverse: it rebuilds a BibTeX file
+`linto bib json2bib INPUT.json` does the reverse: it rebuilds a BibTeX file
 from the `bibtex` fields, on standard output by default, or in place with `-i`.
 
-`linto biblio json2 [-s] [FILE.json]` lists the top-level properties of a JSON
+`linto bib json2 [-s] [FILE.json]` lists the top-level properties of a JSON
 file (the record keys), one per line in file order, or sorted with `-s`. It
 reads standard input when no file is given.
 
 ## Split and extract
 
-`linto biblio bib2dirbibs FILE.bib` writes one `./bib/KEY.bib` file per entry.
+`linto bib bib2dirbibs FILE.bib` writes one `./bib/KEY.bib` file per entry.
 
-`linto biblio bib2awk [-t THEME] [-f FORMAT] FILE.bib` extracts fields with
+`linto bib bib2awk [-t THEME] [-f FORMAT] FILE.bib` extracts fields with
 GNU awk (`gawk` is required). `FORMAT` selects the handler:
 
 - `csv` (default): semicolon-separated CSV on standard output;
@@ -100,13 +100,13 @@ GNU awk (`gawk` is required). `FORMAT` selects the handler:
 `-t THEME` keeps only entries whose keywords match the comma-separated theme.
 The legacy numbers `1`, `2`, and `3` are still accepted for `-f`.
 
-`linto biblio csv2qmd [-f FORMAT] FILE.csv` converts the semicolon-separated
+`linto bib csv2qmd [-f FORMAT] FILE.csv` converts the semicolon-separated
 output into a Markdown annex. `FORMAT` is the layout `1`, `2`, or `3`
 (default `1`). The first CSV record must be the header the AWK script expects.
 
 ## Convert PDF files to JSON
 
-`linto biblio pdf2json FILE.pdf...` writes one `KEY.json` per PDF in the current
+`linto bib pdf2json FILE.pdf...` writes one `KEY.json` per PDF in the current
 directory, where `KEY` is the file name without `.pdf`:
 
 ```json
@@ -161,7 +161,7 @@ output) when converting a single PDF. A file that cannot be converted is
 reported and the others still are. `pdfinfo` (poppler) is required for the
 metadata, and one of `pdftotext` or `pdf2txt` for the text.
 
-`linto biblio pdf2md FILE.pdf...` does the same but writes `KEY.md`: a YAML
+`linto bib pdf2md FILE.pdf...` does the same but writes `KEY.md`: a YAML
 frontmatter at the top (`key`, then the same metadata as `frontmatter` above),
 followed by the text as Markdown. It takes the same `-d`, `-o`, `--engine` and
 `--layout` options.
@@ -184,25 +184,25 @@ would read as Markdown syntax (`# `, `1. `) are escaped.
 
 ## Convert Markdown to JSON
 
-`linto biblio md2json FILE.md...` converts Markdown files to JSON. Choose the
+`linto bib md2json FILE.md...` converts Markdown files to JSON. Choose the
 shape with `--format`: `simple` (default, the whole content as one string),
 `structured` (headings, sections, tables, code), `flat` (a list of paragraphs),
 or `metadata` (everything, with statistics). Use `-o FILE` for a single input,
 `--outdir DIR` for several, and `--pretty` to indent:
 
 ```sh
-linto biblio md2json --format structured --pretty doc.md -o doc.json
-linto biblio md2json --outdir json/ *.md
+linto bib md2json --format structured --pretty doc.md -o doc.json
+linto bib md2json --outdir json/ *.md
 ```
 
 ## Build BibTeX files from a YAML mapping
 
-`linto biblio bibyml2bib` selects entries from a BibTeX file using a YAML
+`linto bib bibyml2bib` selects entries from a BibTeX file using a YAML
 mapping of citation keys to numbers. Pass the BibTeX file first and the YAML
 file second:
 
 ```sh
-linto biblio bibyml2bib biblio.bib biblio.yml
+linto bib bibyml2bib biblio.bib biblio.yml
 ```
 
 The YAML should contain only string keys and numeric values, for example:
@@ -215,16 +215,16 @@ The YAML should contain only string keys and numeric values, for example:
 By default, the output is `biblio-numbered.bib`; use `-o FILE` or
 `--output-file FILE` to choose another output path. Entries are written in YAML
 order with their `number` field set to the mapped value. Missing keys are
-reported and skipped. Calling `linto biblio bibyml2bib` with no arguments
+reported and skipped. Calling `linto bib bibyml2bib` with no arguments
 retains the legacy batch mode for `_pieces-*.yml` files and `fr.bib`.
 
 ## Build a numbered references YAML from citations
 
-`linto biblio qmd2yml FILE.qmd` extracts unique Pandoc-style citation keys and
+`linto bib qmd2yml FILE.qmd` extracts unique Pandoc-style citation keys and
 writes a numbered YAML mapping. Use `-y`/`--yml` to extend an existing mapping:
 
 ```sh
-linto biblio qmd2yml --yml references.yml report.qmd
+linto bib qmd2yml --yml references.yml report.qmd
 ```
 
 The existing YAML is emitted first with empty lines removed. Keys already
@@ -235,7 +235,7 @@ YAML file. With no `--yml` input, `--start NUMBER` sets the first YAML number.
 
 ## Renumber a YAML mapping
 
-`linto biblio yml-renumber INPUT.yml [OUTPUT.yml]` rewrites every
+`linto bib yml-renumber INPUT.yml [OUTPUT.yml]` rewrites every
 `"key": number` line so that the number is the line's position in the file. The
 result goes to `OUTPUT.yml`, or to standard output when it is omitted, so the
 input is never modified.

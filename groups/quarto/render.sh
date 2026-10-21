@@ -8,7 +8,7 @@
 #     linto quarto render [-h|--help] [fichier.qmd ...]
 #
 # Steps:
-#   1. biblio/bibyml2bib.sh regenerates the pieces-*.bib files from the
+#   1. bib/bibyml2bib.sh regenerates the pieces-*.bib files from the
 #      _pieces-*.yml sources.
 #   2. Every *.qmd in the current directory is rendered with `quarto render`,
 #      unless explicit .qmd files are given on the command line.
@@ -53,11 +53,11 @@ done
 # files are intentionally relative to it. Locate the bibliography builder
 # relative to this script so the renderer can be launched from any directory.
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-# Rebuild mappings when present. The biblio helper uses exit 1 for both the
+# Rebuild mappings when present. The bib helper uses exit 1 for both the
 # expected no-mappings case and genuine generation failures, so only suppress
 # its specific no-mappings diagnostic.
 bib_output=$(
-  "$script_dir/../biblio/bibyml2bib.sh" 2>&1
+  "$script_dir/../bib/bibyml2bib.sh" 2>&1
 ) || bib_status=$?
 bib_status=${bib_status:-0}
 if [ "$bib_status" -ne 0 ]; then

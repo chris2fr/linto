@@ -1,7 +1,7 @@
 version: v0.1.0
 groups:
   beta: default
-  biblio: default
+  bib: default
   launch: default
   linto:
     configdata:
