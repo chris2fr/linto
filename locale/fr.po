@@ -1938,3 +1938,120 @@ msgstr "impossible d'installer les prérequis depuis %s"
 
 msgid "Linto will now run with %s"
 msgstr "Linto s'exécutera désormais avec %s"
+
+msgid "cannot read the token file {}: {}"
+msgstr "lecture impossible du fichier de jeton {} : {}"
+
+msgid "no Memos server: set LINTO_MEMOS_URL or groups.web.configdata.memos.url"
+msgstr "aucun serveur Memos : définir LINTO_MEMOS_URL ou groups.web.configdata.memos.url"
+
+msgid "no access token: set LINTO_MEMOS_TOKEN or groups.web.configdata.memos.token-file"
+msgstr "aucun jeton d'accès : définir LINTO_MEMOS_TOKEN ou groups.web.configdata.memos.token-file"
+
+msgid "the server answered HTTP {}: {}"
+msgstr "le serveur a répondu HTTP {} : {}"
+
+msgid "cannot reach {}: {}"
+msgstr "{} injoignable : {}"
+
+msgid "invalid memo id: {}"
+msgstr "identifiant de mémo invalide : {}"
+
+msgid "List memos, newest first."
+msgstr "Liste les mémos, du plus récent au plus ancien."
+
+msgid "only memos with this tag (repeatable)"
+msgstr "seulement les mémos portant cette étiquette (répétable)"
+
+msgid "only memos whose content contains TEXT"
+msgstr "seulement les mémos dont le contenu contient TEXTE"
+
+msgid "only PRIVATE, PROTECTED or PUBLIC memos"
+msgstr "seulement les mémos PRIVATE, PROTECTED ou PUBLIC"
+
+msgid "maximum number of memos (default: 20)"
+msgstr "nombre maximal de mémos (défaut : 20)"
+
+msgid "print the memos as JSON"
+msgstr "affiche les mémos en JSON"
+
+msgid "--limit must be at least 1"
+msgstr "--limit doit valoir au moins 1"
+
+msgid "Show one memo."
+msgstr "Affiche un mémo."
+
+msgid "print the memo as JSON"
+msgstr "affiche le mémo en JSON"
+
+msgid "Create a memo from TEXT or standard input."
+msgstr "Crée un mémo à partir de TEXTE ou de l'entrée standard."
+
+msgid "PRIVATE, PROTECTED or PUBLIC (default: PRIVATE)"
+msgstr "PRIVATE, PROTECTED ou PUBLIC (défaut : PRIVATE)"
+
+msgid "memo content (default: read standard input)"
+msgstr "contenu du mémo (défaut : lit l'entrée standard)"
+
+msgid "the memo is empty"
+msgstr "le mémo est vide"
+
+msgid "Replace the content of a memo with TEXT or standard input."
+msgstr "Remplace le contenu d'un mémo par TEXTE ou l'entrée standard."
+
+msgid "also change the visibility"
+msgstr "change aussi la visibilité"
+
+msgid "new content (default: read standard input)"
+msgstr "nouveau contenu (défaut : lit l'entrée standard)"
+
+msgid "Delete a memo."
+msgstr "Supprime un mémo."
+
+msgid "do not ask for confirmation"
+msgstr "ne pas demander confirmation"
+
+msgid "refusing to delete without confirmation: use --yes"
+msgstr "suppression refusée sans confirmation : utiliser --yes"
+
+msgid "Delete memo {} ({})? [y/N] "
+msgstr "Supprimer le mémo {} ({}) ? [o/N] "
+
+msgid "deleted memos/{}"
+msgstr "mémos/{} supprimé"
+
+msgid "Work with a Memos server (usememos)."
+msgstr "Travaille avec un serveur Memos (usememos)."
+
+msgid ""
+"Actions:\n"
+"  list     List memos, newest first.\n"
+"  get      Show one memo.\n"
+"  add      Create a memo from TEXT or standard input.\n"
+"  edit     Replace the content of a memo.\n"
+"  delete   Delete a memo.\n"
+"\n"
+"Run linto web memos ACTION --help for an action's options.\n"
+"\n"
+"Connection: set the server in groups.web.configdata.memos.url (or\n"
+"LINTO_MEMOS_URL) and a personal access token in\n"
+"groups.web.configdata.memos.token-file (or LINTO_MEMOS_TOKEN)."
+msgstr ""
+"Actions :\n"
+"  list     Liste les mémos, du plus récent au plus ancien.\n"
+"  get      Affiche un mémo.\n"
+"  add      Crée un mémo à partir de TEXTE ou de l'entrée standard.\n"
+"  edit     Remplace le contenu d'un mémo.\n"
+"  delete   Supprime un mémo.\n"
+"\n"
+"Lancez linto web memos ACTION --help pour les options d'une action.\n"
+"\n"
+"Connexion : indiquez le serveur dans groups.web.configdata.memos.url (ou\n"
+"LINTO_MEMOS_URL) et un jeton d'accès personnel dans\n"
+"groups.web.configdata.memos.token-file (ou LINTO_MEMOS_TOKEN)."
+
+msgid "what to do"
+msgstr "quoi faire"
+
+msgid "unknown action: {}"
+msgstr "action inconnue : {}"

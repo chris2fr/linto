@@ -9,6 +9,7 @@ groups:
         zz: "linto launch zed"
   quarto: default
   utils: default
+  web: default
   old:
     enable: false
 shortcuts:

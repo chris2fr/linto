@@ -1,0 +1,6 @@
+configdata:
+  memos:
+    # Base URL of the Memos server, e.g. https://memos.example.org
+    url: ""
+    # File holding a personal access token (or set LINTO_MEMOS_TOKEN)
+    token-file: ""

@@ -64,3 +64,16 @@ def fail(name, message):
     """Report a runtime error as "NAME: message" on stderr and return status 1."""
     print(f"{name}: {message}", file=sys.stderr)
     return 1
+
+
+def group_configdata(group):
+    """Effective configdata of GROUP (config.yml and the user overlays); {} if unreadable."""
+    import config
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    try:
+        data = config.load(root / "config.yml", defaults_root=root, data_root=config.data_directory(),
+                           overlays=config.config_overlays())
+        return config.configdata(data, group)
+    except Exception:
+        return {}

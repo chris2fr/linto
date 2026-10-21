@@ -48,3 +48,5 @@ linto-utils-token
 linto-utils-urldecode
 linto-utils-urlencode
 linto-utils-uuid
+linto-web
+linto-web-memos

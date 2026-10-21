@@ -59,3 +59,13 @@ Fish's `alias --save` mechanism. For Bash, Zsh, sh, and ksh, Linto replaces the
 managed alias block in `~/.bashrc`, `~/.zshrc`, `~/.profile`, or `~/.kshrc`,
 respectively. Start a new shell or reload your shell's configuration for the
 changes to take effect.
+
+## Memos (`linto web memos`)
+
+`linto web memos ACTION` works with a [Memos](https://www.usememos.com) server
+through its REST API v1: `list` (`-t TAG`, `-q TEXT`, `--visibility`, `-n`,
+`--json`), `get ID`, `add [-v LEVEL] [TEXT]`, `edit ID [TEXT]` and
+`delete ID` (`--yes`). Text not given on the command line is read from
+standard input. Set the server in `groups.web.configdata.memos.url` (or
+`LINTO_MEMOS_URL`) and a personal access token in
+`groups.web.configdata.memos.token-file` (or `LINTO_MEMOS_TOKEN`).
