@@ -53,6 +53,8 @@ done
 # files are intentionally relative to it. Locate the bibliography builder
 # relative to this script so the renderer can be launched from any directory.
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# No YAML mappings is a valid project setup; the helper reports that there is
+# nothing to build and exits successfully in that case.
 "$script_dir/../biblio/bibyml2bib.sh"
 
 # Render explicit arguments, or every *.qmd in the caller's project root.
