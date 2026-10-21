@@ -130,7 +130,9 @@ if "$root/groups/bib/bib-order-props.sh" -i "$tmpdir/unterminated.bib" >/dev/nul
 fi
 cmp -s "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original" || fail "unterminated input was modified"
 
-assert_output 'prettyprint
+assert_output 'eml2pdf
+lorem
+prettyprint
 stripaccents
 timezone' "$root/bin/linto" --list-commands utils
 launch_output=$("$root/bin/linto-launch")
