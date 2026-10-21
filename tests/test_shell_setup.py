@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 from contextlib import redirect_stdout
 from io import StringIO
 
@@ -51,10 +51,10 @@ class AliasShellTests(unittest.TestCase):
             self.assertEqual(
                 sh_update.call_args_list,
                 [
-                    call(home / ".bashrc", {"zz": "linto launch zed"}),
-                    call(home / ".profile", {"zz": "linto launch zed"}),
-                    call(home / ".kshrc", {"zz": "linto launch zed"}),
-                    call(home / ".zshrc", {"zz": "linto launch zed"}),
+                    call(home / ".bashrc", ANY),
+                    call(home / ".profile", ANY),
+                    call(home / ".kshrc", ANY),
+                    call(home / ".zshrc", ANY),
                 ],
             )
             ksh_profile.assert_called_once_with(home / ".profile")

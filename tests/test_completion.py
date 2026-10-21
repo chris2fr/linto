@@ -48,7 +48,7 @@ class DispatcherCompletionTests(unittest.TestCase):
         )
 
     def test_shortcuts_resolve_to_their_command(self):
-        self.assertEqual(complete("prettyprint", "-f", ""), ["words", "classic", "outlined"])
+        self.assertEqual(complete("pp", "-f", ""), ["words", "classic", "outlined"])
 
     def test_dash_lists_the_options_of_the_command(self):
         reply = complete("bib", "bib2json", "-")

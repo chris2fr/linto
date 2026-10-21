@@ -120,7 +120,7 @@ class MemosTests(unittest.TestCase):
     def test_missing_configuration(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("LINTO_MEMOS")}
         result = subprocess.run([LINTO, "web", "memos", "list"], capture_output=True, text=True,
-                                env=dict(env, LC_ALL="C", XDG_CONFIG_HOME="/nonexistent"))
+                                env=dict(env, LC_ALL="C", XDG_CONFIG_HOME="/nonexistent", LINTO_MEMOS_URL=""))
         self.assertEqual(result.returncode, 1)
         self.assertIn("no Memos server", result.stderr)
 

@@ -28,7 +28,7 @@ class MemosError(Exception):
 def settings():
     """(base URL, token) from the environment, then groups.web.configdata.memos."""
     conf = group_configdata("web").get("memos") or {}
-    url = os.environ.get("LINTO_MEMOS_URL") or conf.get("url") or ""
+    url = os.environ["LINTO_MEMOS_URL"] if "LINTO_MEMOS_URL" in os.environ else conf.get("url") or ""
     token = os.environ.get("LINTO_MEMOS_TOKEN") or ""
     token_file = conf.get("token-file") or ""
     if not token and token_file:

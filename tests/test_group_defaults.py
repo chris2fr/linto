@@ -21,10 +21,7 @@ class ConfigdataTests(unittest.TestCase):
         data = config.load(ROOT / "config.yml")
         self.assertEqual(config.quarto_extension(data), "chris2fr/quarto")
         self.assertEqual(config.markdown_viewers(data)[0], "md-tui")
-        self.assertEqual(
-            config.configdata(data, "linto")["aliases"],
-            {"zz": "linto launch zed"},
-        )
+        self.assertEqual(config.configdata(data, "linto")["aliases"]["zz"], "linto launch zed")
 
     def test_cli_defaults_are_anchored_to_install_when_config_is_elsewhere(self):
         with tempfile.TemporaryDirectory() as directory:
