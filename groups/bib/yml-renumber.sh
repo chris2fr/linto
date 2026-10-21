@@ -5,18 +5,20 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER | -i[.bak]] [--] [<entrée.yml>|-]
+  _ "$(cat <<'EOF'
+Usage: linto bib yml-renumber [-h|--help] [-o FILE | -i[.bak]] [--] [<input.yml>|-]
 
-Renumérote les entrées YAML pour que chaque valeur égale son numéro de ligne.
-Sans fichier d'entrée (ou avec « - »), lit stdin.
+Renumber the YAML entries so that each value equals its line number.
+Without an input file (or with "-"), read stdin.
 
-Options :
-  -o, --output FICHIER  Écrit le résultat dans FICHIER (défaut : stdout).
-  -i                    Remplace le fichier d'entrée.
-  -i.bak                Comme -i, en conservant une copie dans <entrée.yml>.bak.
-  -h, --help            Affiche cette aide et quitte.
+Options:
+  -o, --output FILE  Write the result to FILE (default: stdout).
+  -i                 Replace the input file.
+  -i.bak             Like -i, keeping a copy in <input.yml>.bak.
+  -h, --help         Show this help and exit.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -30,18 +32,18 @@ while [ "$#" -gt 0 ]; do
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || die_usage "un seul fichier YAML est attendu"
+[ "$#" -le 1 ] || die_usage "exactly one %s is expected" "$(_ "YAML file")"
 input=${1-}
 
 resolve_input "fichier YAML"
@@ -53,7 +55,7 @@ if [ "$in_place" -eq 1 ]; then
   inplace_commit "$input" "$backup_suffix"
 else
   [ "$from_stdin" -eq 1 ] || [ -z "$output" ] || [ "$output" = - ] || [ ! "$input" -ef "$output" ] ||
-    die_usage "entrée et sortie sont le même fichier; utilisez -i"
+    die_usage "input and output are the same file; use -i"
   case "$output" in
     ''|-) exec python3 "$script_dir/lib/renumberyml.py" "$input" ;;
     *) exec python3 "$script_dir/lib/renumberyml.py" "$input" "$output" ;;

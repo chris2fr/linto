@@ -5,20 +5,22 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER.bib] [--] <source.bib>|- <correspondance.yml>
-       linto bib $prog
+  _ "$(cat <<'EOF'
+Usage: linto bib bibyml2bib [-h|--help] [-o FILE.bib] [--] <source.bib>|- <mapping.yml>
+       linto bib bibyml2bib
 
-Construit un fichier BibTeX numéroté à partir d'une source BibTeX (ou stdin avec
-« - ») et d'une correspondance YAML clé -> numéro.
+Build a numbered BibTeX file from a BibTeX source (or stdin with "-") and a
+YAML key -> number mapping.
 
-Sans argument, traite chaque _pieces-*.yml du répertoire courant avec fr.bib et
-écrit pieces-*.bib (flux utilisé par « linto render »).
+With no arguments, process each _pieces-*.yml of the current directory with
+fr.bib and write pieces-*.bib (the flow used by "linto render").
 
-Options :
-  -o, --output FICHIER  Écrit le BibTeX dans FICHIER (défaut : stdout).
-  -h, --help            Affiche cette aide et quitte.
+Options:
+  -o, --output FILE  Write the BibTeX to FILE (default: stdout).
+  -h, --help         Show this help and exit.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -36,7 +38,7 @@ if [ "$#" -eq 0 ]; then
     echo "$yml_file"
     python3 "$generator" fr.bib "$yml_file" --output "$output_base.bib"
   done
-  [ "$found" -eq 1 ] || die "aucun fichier _pieces-*.yml; fournir <source.bib> <correspondance.yml>"
+  [ "$found" -eq 1 ] || die "no _pieces-*.yml file; give <source.bib> <mapping.yml>"
   exit 0
 fi
 
@@ -45,23 +47,23 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -eq 2 ] || die_usage "deux arguments sont attendus : source.bib (ou -) et correspondance.yml"
+[ "$#" -eq 2 ] || die_usage "two arguments are expected: source.bib (or -) and mapping.yml"
 input=$1
 yml=$2
 
 resolve_input "fichier BibTeX"
-require_file "fichier YAML" "$yml"
+require_file "YAML file" "$yml"
 if [ -n "$output" ] && [ "$output" != - ]; then
   exec python3 "$generator" "$input" "$yml" --output "$output"
 fi

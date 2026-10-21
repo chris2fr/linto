@@ -13,6 +13,7 @@ Les champs en lecture seule (xpiecefond, xsourcefile, xpages, xmentiontelerecour
 """
 import base64, copy, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cli import _
 from frlib import BIBSET, RO, apply_bib, entry_from_bib, entry_to_row, order_like, put_field, reorder, row_to_entry, set_bibtex
 
 # ------------------------------------------------------------------ BibTeX parser (tolerant, no dependencies)
@@ -140,25 +141,25 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
         if upd: changes.append((key, old, new, upd))
     missing = [k for k in rows if k not in seen]
 
-    short = lambda v: '(absent)' if v is ABSENT else 'null (supprimé du .bib)' if v is None else (repr(v)[:70] + '…' if len(repr(v)) > 70 else repr(v))
-    print(f'.bib : {len(entries)} entrées | db : {len(rows)} lignes')
-    print(f'  inchangées : {len(entries) - len(changes) - len(new_rows)}   modifiées : {len(changes)}   '
-          f'nouvelles : {len(new_rows)}   absentes du .bib : {len(missing)}')
+    short = lambda v: _('(absent)') if v is ABSENT else _('null (removed from the .bib)') if v is None else (repr(v)[:70] + '…' if len(repr(v)) > 70 else repr(v))
+    print(_('.bib: {} entries | db: {} rows').format(len(entries), len(rows)))
+    print(_('  unchanged: {}   modified: {}   new: {}   missing from the .bib: {}').format(
+        len(entries) - len(changes) - len(new_rows), len(changes), len(new_rows), len(missing)))
     shown = 0
     for key, old, new, upd in changes:
         diffs = describe(old, new)
-        if not diffs and set(upd) == {'field_order'}: diffs = [('(ordre des champs)', None, None)]
+        if not diffs and set(upd) == {'field_order'}: diffs = [(_('(field order)'), None, None)]
         for name, a, b in diffs:
             if shown < 40: print(f'  ~ {key}  {name}: {short(a)} -> {short(b)}')
             shown += 1
-    if shown > 40: print(f'  … {shown - 40} autres différences')
-    for key, _ in new_rows[:10]: print(f'  + entrée nouvelle {key} (markdown vide)')
-    for k in missing[:10]: print(f'  - absente du .bib : {k}' + ('  (sera supprimée)' if prune else '  (conservée)'))
+    if shown > 40: print(_('  … {} more differences').format(shown - 40))
+    for key, _unused in new_rows[:10]: print(_('  + new entry {} (empty markdown)').format(key))
+    for k in missing[:10]: print(_('  - missing from the .bib: {}').format(k) + (_('  (will be deleted)') if prune else _('  (kept)')))
     for key, f, v in ro_warn:
         if str(rows.get(key)[f] if key in rows else None) != v:
-            print(f'  ! champ en lecture seule {f} modifié sur {key} : ignoré')
+            print(_('  ! read-only field {} modified on {}: ignored').format(f, key))
     if not apply:
-        print('simulation : rien n\'a été écrit (utilisez --apply)'); return
+        print(_('dry run: nothing was written (use --apply)')); return
     with db:
         for key, old, new, upd in changes:
             sets = ', '.join(f'"{c}" = ?' for c in upd)
@@ -168,7 +169,7 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
             db.execute(f'INSERT INTO pieces ({",".join(row)}) VALUES ({",".join("?"*len(row))})', list(row.values()))
         if prune:
             for k in missing: db.execute('DELETE FROM pieces WHERE id = ?', (k,))
-    print('appliqué.')
+    print(_('applied.'))
 
 if __name__ == '__main__':
     a = sys.argv[1:]

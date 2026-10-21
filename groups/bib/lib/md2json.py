@@ -22,13 +22,15 @@ Dépendances :
     pip install markdown  # optionnel pour une meilleure analyse
 """
 
-import argparse
 import json
 import re
 import sys
 import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import cli
+from cli import _
 
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -193,9 +195,11 @@ def markdown_to_json_metadata(content: str, file_path: Path) -> Dict[str, Any]:
     }
 
 
-def md_to_json(md_path: Path, out_path: Path, format_type: str = 'simple', pretty: bool = False) -> None:
-    """Convertit un fichier Markdown en JSON."""
-    content = md_path.read_text(encoding='utf-8')
+def md_to_json(md_path: Path, out_path: Optional[Path], format_type: str = 'simple', pretty: bool = False,
+               content: Optional[str] = None) -> None:
+    """Convertit un fichier Markdown (ou `content`, lu sur stdin) en JSON; stdout si out_path est None."""
+    if content is None:
+        content = md_path.read_text(encoding='utf-8')
     converters = {
         'simple': markdown_to_json_simple,
         'structured': markdown_to_json_structured,
@@ -204,43 +208,56 @@ def md_to_json(md_path: Path, out_path: Path, format_type: str = 'simple', prett
     }
     converter = converters.get(format_type)
     if not converter:
-        raise ValueError(f"Format inconnu: {format_type}")
+        raise ValueError(_("Unknown format: {}").format(format_type))
     result = converter(content, md_path) if format_type == 'metadata' else converter(content)
     if format_type != 'metadata':
         result['_meta'] = {'source': str(md_path), 'format': format_type}
     indent = 2 if pretty else None
-    out_path.write_text(json.dumps(result, ensure_ascii=False, indent=indent), encoding='utf-8')
-    print(f"OK : {md_path} -> {out_path}", file=sys.stderr)
+    text = json.dumps(result, ensure_ascii=False, indent=indent)
+    if out_path is None:
+        sys.stdout.write(text + '\n')
+        return
+    out_path.write_text(text, encoding='utf-8')
+    print(_("OK: {} -> {}").format(md_path, out_path), file=sys.stderr)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Convertit un ou plusieurs fichiers Markdown en JSON.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Formats disponibles:
-  simple     - Contenu complet en une seule chaîne
-  structured - Structure hiérarchique avec titres, sections, tableaux, code
-  flat       - Liste de paragraphes
-  metadata   - Structure complète avec métadonnées et statistiques
+    parser = cli.Parser(
+        "md2json",
+        _("Convert one or more Markdown files to JSON."),
+        raw=True,
+        epilog=_("""
+Available formats:
+  simple     - Full content in a single string
+  structured - Hierarchical structure with headings, sections, tables, code
+  flat       - List of paragraphs
+  metadata   - Full structure with metadata and statistics
 
-Exemples:
+Examples:
   %(prog)s doc.md
   %(prog)s doc.md -o doc.json
   %(prog)s doc.md --format structured --pretty
-  %(prog)s *.md --outdir json/
-        """
+  %(prog)s *.md -d json/
+"""),
     )
-    parser.add_argument("inputs", nargs="+", help="Fichier(s) Markdown à convertir")
-    parser.add_argument("-o", "--output", help="Fichier de sortie (un seul fichier en entrée uniquement)")
-    parser.add_argument("--outdir", help="Dossier de sortie pour plusieurs fichiers")
-    parser.add_argument("--format", choices=['simple', 'structured', 'flat', 'metadata'], default='simple', help="Format de sortie JSON (défaut: simple)")
-    parser.add_argument("--pretty", action="store_true", help="Formater le JSON avec indentation")
+    parser.add_argument("inputs", nargs="*", metavar=_("file.md"), help=_("Markdown file(s) to convert (none or -: stdin, result on stdout)"))
+    parser.add_argument("-o", "--output", help=_("Output file, or - for stdout (one input file only)"))
+    parser.add_argument("-d", "--outdir", metavar=_("DIR"), help=_("Output directory for several files"))
+    parser.add_argument("--format", choices=['simple', 'structured', 'flat', 'metadata'], default='simple', help=_("JSON output format (default: simple)"))
+    parser.add_argument("--pretty", action="store_true", help=_("Indent the JSON"))
     args = parser.parse_args()
+
+    if cli.stdin_requested(parser, args.inputs, _("Markdown file")):
+        if args.outdir and not args.output:
+            parser.error(_("--outdir needs a file name; use -o with stdin"))
+        content = sys.stdin.read()
+        md_to_json(Path("stdin"), None if args.output in (None, "-") else Path(args.output),
+                   format_type=args.format, pretty=args.pretty, content=content)
+        return
 
     inputs = [Path(p) for p in args.inputs]
     if args.output and len(inputs) > 1:
-        parser.error("--output ne peut être utilisé qu'avec un seul fichier en entrée. Utilisez --outdir pour plusieurs fichiers.")
+        parser.error(_("--output can only be used with a single input file. Use --outdir for several files."))
 
     outdir = Path(args.outdir) if args.outdir else None
     if outdir:
@@ -248,15 +265,17 @@ Exemples:
 
     for md_path in inputs:
         if not md_path.exists():
-            print(f"Introuvable, ignoré : {md_path}", file=sys.stderr)
+            print(_("Not found, skipped: {}").format(md_path), file=sys.stderr)
             continue
-        if args.output:
+        if args.output == "-":
+            out_path = None
+        elif args.output:
             out_path = Path(args.output)
         elif outdir:
             out_path = outdir / (md_path.stem + ".json")
         else:
             out_path = md_path.with_suffix(".json")
-        print(f"Conversion de {md_path}...", file=sys.stderr)
+        print(_("Converting {}...").format(md_path), file=sys.stderr)
         md_to_json(md_path, out_path, format_type=args.format, pretty=args.pretty)
 
 

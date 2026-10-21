@@ -21,17 +21,19 @@ de qpdf (autres entrées du dictionnaire Info, si qpdf est installé) et du flux
 XMP du document.
 """
 
-import argparse
 import json
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Allow importing the sibling module however this file was loaded.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cli  # noqa: E402
+from cli import _  # noqa: E402
 import pdfguess  # noqa: E402
 
 RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -50,7 +52,7 @@ FIRST = ("title", "author", "date", "organization", "url", "note")
 def run(command):
     result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode:
-        raise RuntimeError(result.stderr.strip() or f"{command[0]} a échoué")
+        raise RuntimeError(result.stderr.strip() or _("{} failed").format(command[0]))
     return result.stdout
 
 
@@ -163,12 +165,12 @@ def choose_engine(requested):
     }
     if requested != "auto":
         if not available[requested]:
-            raise RuntimeError(f"{requested} est requis pour --engine {requested}")
+            raise RuntimeError(_("{} is required for --engine {}").format(requested, requested))
         return requested
     for engine in ("pdftotext", "pdf2txt"):
         if available[engine]:
             return engine
-    raise RuntimeError("pdftotext (poppler) ou pdf2txt (pdfminer.six) est requis")
+    raise RuntimeError(_("pdftotext (poppler) or pdf2txt (pdfminer.six) is required"))
 
 
 def extract_text(path, layout, engine="pdftotext"):
@@ -200,64 +202,72 @@ def render_json(data):
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
-def run_cli(description, suffix, render):
+def run_cli(name, description, suffix, render):
     """Convert each PDF given on the command line and write `render(data)`.
 
     Shared by pdf2json.py and pdf2md.py; `suffix` is the extension of the
     output files, named after the PDF without `.pdf`.
     """
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("inputs", nargs="+", metavar="fichier.pdf", help="Fichier(s) PDF à convertir")
-    parser.add_argument("-d", "--outdir", metavar="DOSSIER", help="Dossier de sortie (défaut : dossier courant)")
-    parser.add_argument("-o", "--output", metavar="FICHIER", help="Fichier de sortie, ou - pour stdout (un seul PDF)")
-    parser.add_argument("--layout", action="store_true", help="Conserve la mise en page du texte (pdftotext -layout; sans effet avec pdf2txt)")
+    parser = cli.Parser(name, description)
+    parser.add_argument("inputs", nargs="*", metavar=_("file.pdf"), help=_("PDF file(s) to convert (none or -: one PDF on stdin, result on stdout)"))
+    parser.add_argument("-d", "--outdir", metavar=_("DIR"), help=_("Output directory (default: current directory)"))
+    parser.add_argument("-o", "--output", metavar=_("FILE"), help=_("Output file, or - for stdout (one PDF only)"))
+    parser.add_argument("--layout", action="store_true", help=_("Keep the page layout of the text (pdftotext -layout; no effect with pdf2txt)"))
     parser.add_argument(
         "--engine", choices=["auto", "pdftotext", "pdf2txt"], default="auto",
-        help="Extracteur de texte : pdftotext (poppler) ou pdf2txt (pdfminer.six). "
-             "Par défaut, pdftotext s'il est installé, sinon pdf2txt.",
+        help=_("Text extractor: pdftotext (poppler) or pdf2txt (pdfminer.six). "
+               "By default, pdftotext if installed, otherwise pdf2txt."),
     )
     parser.add_argument(
         "--no-guess", action="store_true",
-        help="Ne cherche pas dans le texte les champs absents des métadonnées "
-             "(title, author, date, organization, url, note)",
+        help=_("Do not look in the text for fields missing from the metadata "
+               "(title, author, date, organization, url, note)"),
     )
     args = parser.parse_args()
 
-    if args.output and (len(args.inputs) != 1 or args.outdir):
-        parser.error("-o/--output demande exactement un PDF et exclut -d/--outdir")
+    from_stdin = cli.stdin_requested(parser, args.inputs, _("PDF file"))
+    if args.output and (not from_stdin and len(args.inputs) != 1 or args.outdir):
+        parser.error(_("-o/--output needs exactly one PDF and excludes -d/--outdir"))
     if shutil.which("pdfinfo") is None:
-        print(f"{sys.argv[0]}: pdfinfo est requis (paquet poppler)", file=sys.stderr)
-        return 1
+        return cli.fail(name, _("pdfinfo is required (poppler package)"))
     try:
         engine = choose_engine(args.engine)
     except RuntimeError as error:
-        print(f"{sys.argv[0]}: {error}", file=sys.stderr)
-        return 1
+        return cli.fail(name, error)
 
     outdir = Path(args.outdir) if args.outdir else Path.cwd()
     failed = False
-    for name in args.inputs:
-        path = Path(name)
+    scratch = tempfile.TemporaryDirectory() if from_stdin else None
+    if from_stdin:
+        stdin_pdf = Path(scratch.name) / "stdin.pdf"
+        stdin_pdf.write_bytes(sys.stdin.buffer.read())
+        inputs, output = [str(stdin_pdf)], args.output or (None if args.outdir else "-")
+    else:
+        inputs, output = args.inputs, args.output
+    for input_name in inputs:
+        path = Path(input_name)
         try:
             if not path.is_file():
-                raise RuntimeError("fichier PDF absent ou illisible")
+                raise RuntimeError(_("PDF file missing or unreadable"))
             key, data = convert_file(path, args.layout, engine, not args.no_guess)
             text = render(data)
-            if args.output == "-":
+            if output == "-":
                 sys.stdout.write(text)
                 continue
-            target = Path(args.output) if args.output else outdir / f"{key}{suffix}"
+            target = Path(output) if output else outdir / f"{key}{suffix}"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(text, encoding="utf-8")
             print(target)
         except (RuntimeError, OSError) as error:
-            print(f"{path}: {error}", file=sys.stderr)
+            print(f"{'stdin' if from_stdin else path}: {error}", file=sys.stderr)
             failed = True
+    if scratch:
+        scratch.cleanup()
     return 1 if failed else 0
 
 
 def main():
-    return run_cli("Convertit des fichiers PDF en JSON (clé, frontmatter, text).", ".json", render_json)
+    return run_cli("pdf2json", _("Convert PDF files to JSON (key, frontmatter, text)."), ".json", render_json)
 
 
 if __name__ == "__main__":

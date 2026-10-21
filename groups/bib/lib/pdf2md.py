@@ -17,6 +17,7 @@ import sys
 
 import yaml
 
+import cli
 import pdf2json
 
 BULLET = re.compile(r"^[•●▪◦‣∙·–—-]\s+")
@@ -81,7 +82,8 @@ def render_markdown(data):
 
 def main():
     return pdf2json.run_cli(
-        "Convertit des fichiers PDF en Markdown (frontmatter YAML, puis texte).",
+        "pdf2md",
+        cli._("Convert PDF files to Markdown (YAML frontmatter, then text)."),
         ".md",
         render_markdown,
     )

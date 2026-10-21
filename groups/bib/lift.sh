@@ -5,23 +5,25 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER.json | -i[.bak]] [--] [<entrée.json>|-]
+  _ "$(cat <<'EOF'
+Usage: linto bib lift [-h|--help] [-o FILE.json | -i[.bak]] [--] [<input.json>|-]
 
-Remonte d'un cran les champs de "bibtex" et de "frontmatter" au niveau de
-l'entrée. Égaux, ou présents d'un seul côté : le champ monte tel quel.
-Présents des deux côtés avec des valeurs différentes : la valeur du
-frontmatter monte, celle du bibtex reste dans "bibtex" (surcharge).
-Les objets "frontmatter" (vidé) et "bibtex" (sans surcharge) disparaissent.
+Lift the fields of "bibtex" and "frontmatter" one level up, to the entry.
+Equal, or present on one side only: the field is lifted as is.
+Present on both sides with different values: the frontmatter value is lifted,
+the bibtex one stays in "bibtex" (override).
+The "frontmatter" (emptied) and "bibtex" (without override) objects disappear.
 
-Sans fichier d'entrée (ou avec « - »), lit stdin. Le bilan va sur stderr.
+Without an input file (or with "-"), read stdin. The summary goes to stderr.
 
-Options :
-  -o, --output FICHIER  Écrit le résultat dans FICHIER (défaut : stdout).
-  -i                    Remplace le JSON d'entrée.
-  -i.bak                Comme -i, en conservant une copie dans <entrée.json>.bak.
-  -h, --help            Affiche cette aide et quitte.
+Options:
+  -o, --output FILE  Write the result to FILE (default: stdout).
+  -i                 Replace the input JSON.
+  -i.bak             Like -i, keeping a copy in <input.json>.bak.
+  -h, --help         Show this help and exit.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -35,18 +37,18 @@ while [ "$#" -gt 0 ]; do
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || die_usage "un seul fichier JSON est attendu"
+[ "$#" -le 1 ] || die_usage "exactly one %s is expected" "$(_ "JSON file")"
 input=${1-}
 
 resolve_input "fichier JSON"
@@ -59,6 +61,6 @@ if [ "$in_place" -eq 1 ]; then
 else
   [ -n "$output" ] || output=-
   [ "$from_stdin" -eq 1 ] || [ "$output" = - ] || [ ! "$input" -ef "$output" ] ||
-    die_usage "entrée et sortie sont le même fichier; utilisez -i"
+    die_usage "input and output are the same file; use -i"
   exec python3 "$script_dir/lib/lift.py" "$input" "$output"
 fi

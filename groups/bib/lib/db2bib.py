@@ -10,6 +10,7 @@ Le script vérifie, pour chaque entrée, que le .bib permet de reconstruire exac
 La colonne markdown n'est jamais exportée."""
 import base64, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cli import _
 from frlib import BIBSET, RO, bibtex_view, check_braces, entry_from_bib, row_to_entry
 
 def main(src, dst):
@@ -22,7 +23,7 @@ def main(src, dst):
         for r in db.execute('SELECT * FROM pieces ORDER BY n'):
             e = row_to_entry(r); key = e['key']
             et, fields = bibtex_view(e)
-            if et is None: raise ValueError(f'{key}: pas de ENTRYTYPE')
+            if et is None: raise ValueError(_('{}: no ENTRYTYPE').format(key))
             for f, v in fields: check_braces(key, f, v)
             ov = e.get('bibtex') or {}
             meta = {}
@@ -35,7 +36,7 @@ def main(src, dst):
             if list(rec.get('bibtex', {})) != list(ov): meta['bibtex_order'] = list(ov)
             rec = entry_from_bib(key, et, fields, meta, markdown=e.get('markdown'))
             if json.dumps(rec, ensure_ascii=False) != json.dumps(e, ensure_ascii=False):
-                raise ValueError(f'{key}: le .bib ne permet pas de reconstruire l\'entrée')
+                raise ValueError(_('{}: the .bib cannot rebuild the entry').format(key))
             lines = list(fields)
             for f in RO:
                 if r[f] is not None: lines.append((f, str(r[f])))
@@ -46,7 +47,7 @@ def main(src, dst):
             out.write(',\n'.join(f'  {f} = {{{v}}}' for f, v in lines))
             out.write('\n}\n\n')
             n += 1
-    print(f'{n} entries -> {"stdout" if stdout else dst}', file=sys.stderr)
+    print(_('{} entries -> {}').format(n, 'stdout' if stdout else dst), file=sys.stderr)
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2])

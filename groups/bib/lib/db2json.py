@@ -2,6 +2,7 @@
 """fr.db -> fr.json (remonté).  Usage: db2json.py fr.db fr.json"""
 import json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cli import _
 from frlib import row_to_entry
 
 src, dst = sys.argv[1], sys.argv[2]
@@ -15,4 +16,4 @@ if dst == '-':
 else:
     with open(dst, 'w', encoding='utf-8') as f:
         f.write(text)
-print(f'{len(out)} entries -> {"stdout" if dst == "-" else dst}', file=sys.stderr)
+print(_('{} entries -> {}').format(len(out), 'stdout' if dst == '-' else dst), file=sys.stderr)

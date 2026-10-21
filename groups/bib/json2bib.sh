@@ -5,22 +5,23 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER.bib | -i[.bak]] [--] [<entrée.json>|-]
+  _ "$(cat <<'EOF'
+Usage: linto bib json2bib [-h|--help] [-o FILE.bib | -i[.bak]] [--] [<input.json>|-]
 
-Reconstruit un fichier BibTeX à partir du JSON : champs BibTeX de premier
-niveau (ENTRYTYPE compris), remplacés par les surcharges du champ bibtex
-(null supprime le champ). La clé de chaque entrée BibTeX est le nom de sa
-propriété dans le JSON.
+Rebuild a BibTeX file from the JSON: top-level BibTeX fields (ENTRYTYPE
+included), replaced by the overrides of the bibtex field (null removes the
+field). The key of each BibTeX entry is the name of its property in the JSON.
 
-Sans fichier d'entrée (ou avec « - »), lit stdin.
+Without an input file (or with "-"), read stdin.
 
-Options :
-  -o, --output FICHIER  Écrit le BibTeX dans FICHIER (défaut : stdout).
-  -i                    Remplace le JSON d'entrée par le BibTeX.
-  -i.bak                Comme -i, en conservant une copie dans <entrée.json>.bak.
-  -h, --help            Affiche cette aide et quitte.
+Options:
+  -o, --output FILE  Write the BibTeX to FILE (default: stdout).
+  -i                 Replace the input JSON with the BibTeX.
+  -i.bak             Like -i, keeping a copy in <input.json>.bak.
+  -h, --help         Show this help and exit.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -34,18 +35,18 @@ while [ "$#" -gt 0 ]; do
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || die_usage "au plus un fichier JSON est attendu"
+[ "$#" -le 1 ] || die_usage "at most one %s is expected" "$(_ "JSON file")"
 input=${1-}
 
 resolve_input "fichier JSON"

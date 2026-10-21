@@ -10,6 +10,7 @@ ID (toujours égal à key) n'est pas conservé. Ordre : key, ENTRYTYPE, champs B
 """
 import collections, json, sys
 sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
+from cli import _
 from frlib import BIB, BIBSET, bibtex_view
 
 def same(a, b):
@@ -19,7 +20,7 @@ def lift(d):
     out, st = {}, collections.Counter()
     for key, e in d.items():
         unexpected = set(e) - {'key', 'frontmatter', 'markdown', 'bibtex'}
-        if unexpected: sys.exit(f'{key}: clés inattendues {sorted(unexpected)} (fichier déjà remonté ?)')
+        if unexpected: sys.exit('lift: ' + _('{}: unexpected keys {} (file already lifted?)').format(key, sorted(unexpected)))
         b, f = e.get('bibtex', {}), e.get('frontmatter', {})
         assert e['key'] == key and b.get('ID', key) == key and f.get('ID', key) == key, key
         assert not (set(b) - set(BIB) - {'ID', 'ENTRYTYPE'}), (key, set(b) - set(BIB))
@@ -29,19 +30,19 @@ def lift(d):
             if n == 'ID': continue
             if n in f:
                 top[n] = f[n]
-                if same(bv, f[n]): st['égaux (remontés)'] += 1
-                else: ov[n] = bv; st['divergents (frontmatter remonté, bibtex en surcharge)'] += 1
+                if same(bv, f[n]): st[_('equal (lifted)')] += 1
+                else: ov[n] = bv; st[_('different (frontmatter lifted, bibtex kept as override)')] += 1
             else:
-                top[n] = bv; st['bibtex seul (remontés)'] += 1
+                top[n] = bv; st[_('bibtex only (lifted)')] += 1
         for n, fv in f.items():
             if n == 'ID' or n in b: continue
-            top[n] = fv; st['frontmatter seul (remontés)'] += 1
+            top[n] = fv; st[_('frontmatter only (lifted)')] += 1
         new = {'key': key}
         if 'ENTRYTYPE' in top: new['ENTRYTYPE'] = top['ENTRYTYPE']
         new.update({n: v for n, v in top.items() if n in BIBSET})
         new.update({n: v for n, v in top.items() if n not in BIBSET and n != 'ENTRYTYPE'})
         new['markdown'] = e['markdown']
-        if ov: new['bibtex'] = ov; st['entrées avec surcharges'] += 1
+        if ov: new['bibtex'] = ov; st[_('entries with overrides')] += 1
         out[key] = new
     return out, st
 
@@ -71,6 +72,6 @@ if __name__ == '__main__':
     else:
         with open(sys.argv[2], 'w', encoding='utf-8') as fh:
             fh.write(text)
-    print(f'{len(new)} entrées -> {"stdout" if sys.argv[2] == "-" else sys.argv[2]}', file=sys.stderr)
+    print(_('{} entries -> {}').format(len(new), 'stdout' if sys.argv[2] == '-' else sys.argv[2]), file=sys.stderr)
     for k, v in st.items(): print(f'  {v:6}  {k}', file=sys.stderr)
-    print(f'  {added:6}  champs désormais présents dans le .bib alors qu\'ils n\'étaient que dans le frontmatter', file=sys.stderr)
+    print(f'  {added:6}  ' + _('fields now in the .bib that were only in the frontmatter'), file=sys.stderr)

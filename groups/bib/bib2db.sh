@@ -8,28 +8,29 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [--apply [-o SORTIE.db]] [--prune]
-          [--as-override] [--] <fichier.bib>|- <fichier.db>
+  _ "$(cat <<'EOF'
+Usage: linto bib bib2db [-h|--help] [--apply [-o OUTPUT.db]] [--prune]
+          [--as-override] [--] <file.bib>|- <file.db>
 
-Compare un fichier BibTeX avec la table SQLite « pieces ». Par défaut,
-affiche les changements champ par champ sur stdout sans rien écrire.
-Le BibTeX peut venir de stdin (« - »).
+Compare a BibTeX file with the SQLite "pieces" table. By default, show the
+changes field by field on stdout without writing anything.
+The BibTeX may come from stdin ("-").
 
-Options :
-  --apply              Applique les changements au fichier .db.
-  -o, --output FICHIER Avec --apply : copie le .db dans FICHIER et y applique
-                       les changements, le .db d'entrée reste inchangé.
-  --prune              Supprime les lignes dont la clé est absente du BibTeX.
-  --as-override        Une valeur modifiée dans le BibTeX, pour un champ qui n'a
-                       pas encore de surcharge, devient une surcharge "bibtex"
-                       (la valeur de base est conservée; par défaut, elle
-                       remplace la base).
-  -h, --help           Affiche cette aide et quitte.
+Options:
+  --apply             Apply the changes to the .db file.
+  -o, --output FILE   With --apply: copy the .db to FILE and apply the changes
+                      there; the input .db is left unchanged.
+  --prune             Delete the rows whose key is absent from the BibTeX.
+  --as-override       A value changed in the BibTeX, for a field with no
+                      override yet, becomes a "bibtex" override (the base value
+                      is kept; by default it replaces the base value).
+  -h, --help          Show this help and exit.
 
-Un champ disparu du BibTeX reçoit une surcharge null (sa valeur de base est
-conservée). Un champ inconnu du schéma devient aussi une surcharge.
+A field removed from the BibTeX gets a null override (its base value is kept).
+A field unknown to the schema also becomes an override.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -43,27 +44,27 @@ while [ "$#" -gt 0 ]; do
     --apply) apply=1; flags="$flags $1"; shift ;;
     --prune|--as-override) flags="$flags $1"; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -eq 2 ] || die_usage "deux arguments sont attendus : fichier.bib (ou -) et fichier.db"
+[ "$#" -eq 2 ] || die_usage "two arguments are expected: file.bib (or -) and file.db"
 input=$1
 db=$2
 
 resolve_input "fichier BibTeX"
-require_file "fichier SQLite" "$db"
+require_file "SQLite file" "$db"
 target=$db
 if [ -n "$output" ]; then
-  [ "$apply" -eq 1 ] || die_usage "-o/--output requiert --apply"
-  [ ! "$db" -ef "$output" ] || die_usage "entrée et sortie sont le même fichier"
+  [ "$apply" -eq 1 ] || die_usage "-o/--output needs --apply"
+  [ ! "$db" -ef "$output" ] || die_usage "input and output are the same file"
   cp -- "$db" "$output"
   target=$output
 fi

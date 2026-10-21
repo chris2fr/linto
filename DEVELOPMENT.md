@@ -40,6 +40,27 @@ one place. Fish's argument rules are in `completions/linto-args.fish`, which
 `linto.fish` and the file written by `linto linto refresh` both source. Add a
 `# linto-complete:` line to every new command that takes arguments.
 
+## Messages and translations
+
+Messages are written in English in the source and translated through
+`locale/<lang>.po` (currently `fr.po`). The language comes from `LC_ALL`,
+`LC_MESSAGES` or `LANG`, in that order; C, POSIX and English use the source
+text, and a string with no translation is shown unchanged. Option, command and
+parameter names are never translated.
+
+- Python: `from cli import _` (bib group) or `from i18n import _` with
+  `lib/` on the path, then `_("text {}").format(value)`.
+- Shell (bib group): `lib/common.sh` provides `_ TEXT`, and `die` and
+  `die_usage` take a translated printf format: `die "not a directory: %s" "$dir"`.
+  A `usage()` function wraps its whole help text in `_ "$(cat <<'EOF' ... EOF)"`.
+- Add each new string to `locale/fr.po` with its French text, keeping the same
+  `%s` or `{}` placeholders. `tests/test_i18n.py` checks the catalog and that
+  every bib command shows English and French help.
+
+The Python commands of the bib group share `groups/bib/lib/cli.py` (parser with
+the same "Usage:" and error style as the shell commands); the shell commands
+share `groups/bib/lib/common.sh`.
+
 ## Tests
 
 ```sh

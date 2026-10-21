@@ -8,6 +8,7 @@ import json, os, sys
 import bibtexparser
 from bibtexparser.bparser import BibTexParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cli import _
 from frlib import RO, apply_bib, entry_from_bib
 
 bib_path, json_in, json_out = sys.argv[1:4]
@@ -28,7 +29,7 @@ else:
     with open(json_in, encoding='utf-8') as f:
         data = json.load(f)
     if not isinstance(data, dict):
-        raise SystemExit(f"Le JSON doit contenir un objet indexé par clé : {json_in}")
+        raise SystemExit(f"bib2json: {_('The JSON must contain an object indexed by key: {}').format(json_in)}")
 
 unesc = lambda v: v.replace('\\%', '%') if isinstance(v, str) else v
 created = []
@@ -57,6 +58,6 @@ else:
 
 if created:
     report = sys.stderr if to_stdout else sys.stdout
-    print(f"Nouvelles clés créées depuis {bib_path} :", file=report)
+    print(_("New keys created from {}:").format("stdin" if bib_path == "/dev/stdin" else bib_path), file=report)
     for key in created:
         print("  -", key, file=report)

@@ -7,30 +7,32 @@
 set -eu
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER.json | -i[.bak]] [--as-override]
-          [--] [<fichier.bib>|-] [<existant.json>]
+  _ "$(cat <<'EOF'
+Usage: linto bib bib2json [-h|--help] [-o FILE.json | -i[.bak]] [--as-override]
+          [--] [<file.bib>|-] [<existing.json>]
 
-Répercute les entrées BibTeX sur les clés JSON existantes et crée une clé pour
-chaque entrée BibTeX absente du JSON (champs au premier niveau). Champ déjà
-surchargé dans "bibtex" : la surcharge est mise à jour; sinon la valeur du
-premier niveau est mise à jour; champ disparu du BibTeX : surcharge null.
-Chaque enregistrement commence par "key", qui répète le nom de sa propriété.
+Propagate BibTeX entries to the existing JSON keys and create a key for each
+BibTeX entry missing from the JSON (top-level fields). Field already overridden
+in "bibtex": the override is updated; otherwise the top-level value is updated;
+field gone from the BibTeX: null override.
+Each record starts with "key", which repeats the name of its property.
 
-Sans fichier BibTeX (ou avec « - »), lit stdin. Sans JSON existant, on part
-d'un JSON vide : toutes les entrées BibTeX sont créées.
+Without a BibTeX file (or with "-"), read stdin. Without an existing JSON, start
+from an empty JSON: every BibTeX entry is created.
 
-Options :
-  -o, --output FICHIER  Écrit le résultat dans FICHIER. Par défaut (ou avec
-                        « -o - »), le résultat va sur stdout et la liste des
-                        clés créées sur stderr.
-  -i                    Remplace le JSON existant (requis; incompatible avec -o).
-  -i.bak                Comme -i, en conservant une copie dans <existant.json>.bak.
-  --as-override         Une valeur modifiée dans le BibTeX, pour un champ qui n'a
-                        pas encore de surcharge, devient une surcharge "bibtex"
-                        (la valeur du premier niveau est conservée).
-  -h, --help            Affiche cette aide et quitte.
+Options:
+  -o, --output FILE  Write the result to FILE. By default (or with "-o -"), the
+                     result goes to stdout and the list of created keys to
+                     stderr.
+  -i                 Replace the existing JSON (required; incompatible with -o).
+  -i.bak             Like -i, keeping a copy in <existing.json>.bak.
+  --as-override      A value changed in the BibTeX, for a field with no override
+                     yet, becomes a "bibtex" override (the top-level value is
+                     kept).
+  -h, --help         Show this help and exit.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -46,31 +48,31 @@ while [ "$#" -gt 0 ]; do
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 2 ] || die_usage "au plus deux arguments sont attendus : fichier.bib et existant.json"
+[ "$#" -le 2 ] || die_usage "at most two arguments are expected: file.bib and existing.json"
 input=${1-}
 json_in=${2-}
 
 resolve_input "fichier BibTeX"
-[ -z "$json_in" ] || require_file "fichier JSON" "$json_in"
+[ -z "$json_in" ] || require_file "JSON file" "$json_in"
 [ "$output" != - ] || output=
 if [ "$in_place" -eq 1 ]; then
-  [ -n "$json_in" ] || die_usage "-i requiert un JSON existant en second argument"
-  [ -z "$output" ] || die_usage "-i et -o/--output sont incompatibles"
+  [ -n "$json_in" ] || die_usage "-i needs an existing JSON file as the second argument"
+  [ -z "$output" ] || die_usage "-i and -o/--output are incompatible"
   inplace_begin "$json_in"
   output=$output_tmp
 elif [ -n "$json_in" ] && [ -n "$output" ] && [ "$json_in" -ef "$output" ]; then
-  die_usage "entrée et sortie JSON sont le même fichier; utilisez -i"
+  die_usage "input and output JSON are the same file; use -i"
 fi
 
 # prérequis, une seule fois : python3 -m pip install bibtexparser

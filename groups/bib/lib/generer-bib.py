@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-import argparse
 import re
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
+import cli
+from cli import _
+
 try:
     import yaml
 except ImportError:
-    print("error: PyYAML is required (install it with: pip install pyyaml)", file=sys.stderr)
-    raise SystemExit(1)
+    raise SystemExit(f"bibyml2bib: {_('PyYAML is required (install it with: pip install pyyaml)')}")
 
 
 def parse_bibtex(path: Path) -> dict[str, str]:
@@ -80,20 +81,20 @@ STDIN = Path("/dev/stdin")
 
 def generate(bibtex_path: Path, yml_path: Path, output_path: Path | None) -> int:
     if bibtex_path != STDIN and not bibtex_path.is_file():
-        print(f"error: BibTeX file not found: {bibtex_path}", file=sys.stderr)
+        cli.fail("bibyml2bib", _("BibTeX file not found: {}").format(bibtex_path))
         return 1
     if not yml_path.is_file():
-        print(f"error: YAML file not found: {yml_path}", file=sys.stderr)
+        cli.fail("bibyml2bib", _("YAML file not found: {}").format(yml_path))
         return 1
     if output_path is not None and bibtex_path != STDIN and bibtex_path.resolve() == output_path.resolve():
-        print("error: output file must be different from the input BibTeX file", file=sys.stderr)
+        cli.fail("bibyml2bib", _("output file must be different from the input BibTeX file"))
         return 2
 
     try:
         mapping = load_mapping(yml_path)
         entries = parse_bibtex(bibtex_path)
     except (OSError, UnicodeDecodeError, TypeError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        cli.fail("bibyml2bib", str(exc))
         return 1
 
     lines = [
@@ -115,33 +116,34 @@ def generate(bibtex_path: Path, yml_path: Path, output_path: Path | None) -> int
         else:
             output_path.write_text("\n".join(lines), encoding="utf-8")
     except OSError as exc:
-        print(f"error: cannot write '{output_path}': {exc}", file=sys.stderr)
+        cli.fail("bibyml2bib", _("cannot write '{}': {}").format(output_path, exc))
         return 1
 
     if output_path is not None:
-        print(f"{output_path} generated ({len(mapping) - len(missing)} entries).", file=sys.stderr)
+        print(_("{} generated ({} entries).").format(output_path, len(mapping) - len(missing)), file=sys.stderr)
     if missing:
-        print(f"warning: {len(missing)} key(s) not found in {bibtex_path}:", file=sys.stderr)
+        print(_("warning: {} key(s) not found in {}:").format(len(missing), bibtex_path), file=sys.stderr)
         for key in missing:
             print(f"  - {key}", file=sys.stderr)
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Build a numbered BibTeX file from a BibTeX source and YAML key-to-number mapping.",
+    parser = cli.Parser(
+        "bibyml2bib",
+        _("Build a numbered BibTeX file from a BibTeX source and YAML key-to-number mapping."),
         epilog=(
-            "The default output is standard output; the source BibTeX may be - for stdin. "
-            "Calling bibyml2bib with no arguments retains the legacy _pieces-*.yml batch mode."
+            _("The default output is standard output; the source BibTeX may be - for stdin. "
+              "Calling bibyml2bib with no arguments retains the legacy _pieces-*.yml batch mode.")
         ),
     )
-    parser.add_argument("bibtex_file", type=Path, help="Source BibTeX file (first positional argument)")
-    parser.add_argument("yml", type=Path, help="YAML mapping of string keys to numbers (second positional argument)")
+    parser.add_argument("bibtex_file", type=Path, metavar=_("source.bib"), help=_("Source BibTeX file (first positional argument)"))
+    parser.add_argument("yml", type=Path, metavar=_("mapping.yml"), help=_("YAML mapping of string keys to numbers (second positional argument)"))
     parser.add_argument(
         "-o",
         "--output",
         type=Path,
-        help="Output BibTeX file (default: standard output)",
+        help=_("Output BibTeX file (default: standard output)"),
     )
     args = parser.parse_args()
     bibtex_path = STDIN if str(args.bibtex_file) == "-" else args.bibtex_file

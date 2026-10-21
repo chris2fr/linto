@@ -5,17 +5,19 @@
 set -eu
 
 usage() {
-  cat <<USAGE
-Usage: linto bib $prog [-h|--help] [-o FICHIER] [-s|--sort] [--] [<fichier.json>|-]
+  _ "$(cat <<'EOF'
+Usage: linto bib json2 [-h|--help] [-o FILE] [-s|--sort] [--] [<file.json>|-]
 
-Liste les propriétés de premier niveau d'un fichier JSON, une par ligne, dans
-l'ordre du fichier. Sans fichier (ou avec « - »), lit stdin.
+List the top-level properties of a JSON file, one per line, in file order.
+Without a file (or with "-"), read stdin.
 
-Options :
-  -o, --output FICHIER  Écrit la liste dans FICHIER (défaut : stdout).
-  -s, --sort            Trie les propriétés par ordre alphabétique.
-  -h, --help            Affiche cette aide et quitte.
-USAGE
+Options:
+  -o, --output FILE  Write the list to FILE (default: stdout).
+  -s, --sort         Sort the properties alphabetically.
+  -h, --help         Show this help and exit.
+EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -27,18 +29,18 @@ while [ "$#" -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     -s|--sort) keys='keys'; shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || die_usage "au plus un fichier JSON est attendu"
+[ "$#" -le 1 ] || die_usage "at most one %s is expected" "$(_ "JSON file")"
 
 input=${1-}
 
@@ -46,5 +48,6 @@ resolve_input "fichier JSON"
 require_cmd jq
 redirect_output
 
-filter="if type == \"object\" then $keys[] else error(\"le JSON doit être un objet\") end"
+not_object=$(_ "the JSON must be an object")
+filter="if type == \"object\" then $keys[] else error(\"$not_object\") end"
 exec jq -r "$filter" "$input"

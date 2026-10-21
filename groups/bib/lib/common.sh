@@ -4,6 +4,7 @@
 #   . "$(dirname -- "$0")/lib/common.sh"
 #
 # Provides:
+#   _ TEXT                translated TEXT (English source; see lib/i18n.py)
 #   prog, script_dir      script name without ".sh"; its physical directory
 #   die MSG...            "prog: MSG" on stderr, exit 1 (runtime error)
 #   die_usage MSG...      "prog: MSG" and usage on stderr, exit 2 (usage error)
@@ -21,29 +22,44 @@
 prog=$(basename -- "$0" .sh)
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
+# Translate TEXT with the catalog for the current language (lib/i18n.py).
+# English needs no catalog, so no Python is started for it.
+_() {
+  case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in
+    ''|C|C.*|POSIX|en|en_*|en.*) printf '%s' "$1" ;;
+    *) python3 "$script_dir/../../lib/i18n.py" "$1" ;;
+  esac
+}
+
+# die MSG [ARG...]: MSG is a printf format (translated), ARGs fill its %s.
 die() {
-  printf '%s: %s\n' "$prog" "$*" >&2
+  fmt=$(_ "$1")
+  shift
+  printf "%s: $fmt\n" "$prog" "$@" >&2
   exit 1
 }
 
 die_usage() {
-  printf '%s: %s\n' "$prog" "$*" >&2
+  fmt=$(_ "$1")
+  shift
+  printf "%s: $fmt\n" "$prog" "$@" >&2
   usage >&2
   exit 2
 }
 
+# require_file KIND FILE: KIND is a translated noun, e.g. "BibTeX file".
 require_file() {
-  [ -f "$2" ] && [ -r "$2" ] || die "$1 absent ou illisible : $2"
+  [ -f "$2" ] && [ -r "$2" ] || die "%s missing or unreadable: %s" "$(_ "$1")" "$2"
 }
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "$1 est requis"
+  command -v "$1" >/dev/null 2>&1 || die "%s is required" "$1"
 }
 
 resolve_input() {
   case "${input-}" in
     ''|-)
-      [ ! -t 0 ] || die_usage "aucun $1 : indiquer un fichier ou fournir stdin"
+      [ ! -t 0 ] || die_usage "no %s: give a file or provide stdin" "$(_ "$1")"
       input=/dev/stdin
       from_stdin=1
       ;;
@@ -56,8 +72,8 @@ resolve_input() {
 
 check_inplace() {
   if [ "${in_place:-0}" -eq 1 ]; then
-    [ -z "${output-}" ] || die_usage "-i et -o/--output sont incompatibles"
-    [ "$from_stdin" -eq 0 ] || die_usage "-i requiert un fichier d'entrée (pas stdin)"
+    [ -z "${output-}" ] || die_usage "-i and -o/--output are incompatible"
+    [ "$from_stdin" -eq 0 ] || die_usage "-i needs an input file (not stdin)"
   fi
 }
 
@@ -66,7 +82,7 @@ redirect_output() {
     ''|-) ;;
     *)
       if [ "$from_stdin" -eq 0 ] && [ "$input" -ef "$output" ]; then
-        die_usage "entrée et sortie sont le même fichier; utilisez -i"
+        die_usage "input and output are the same file; use -i"
       fi
       exec >"$output"
       ;;
@@ -74,7 +90,7 @@ redirect_output() {
 }
 
 inplace_begin() {
-  [ ! -L "$1" ] || die "refus de remplacer un lien symbolique : $1"
+  [ ! -L "$1" ] || die "refusing to replace a symbolic link: %s" "$1"
   output_dir=$(CDPATH= cd -- "$(dirname -- "$1")" && pwd -P)
   output_tmp=$(mktemp "$output_dir/.$prog.XXXXXX")
   trap 'rm -f -- "$output_tmp"' EXIT HUP INT TERM
@@ -84,7 +100,7 @@ inplace_commit() {
   if [ -n "$2" ]; then
     backup_path="$1$2"
     [ ! -e "$backup_path" ] && [ ! -L "$backup_path" ] ||
-      die "refus d'écraser la sauvegarde existante : $backup_path"
+      die "refusing to overwrite the existing backup: %s" "$backup_path"
     cp -p -- "$1" "$backup_path"
   fi
   chmod --reference="$1" "$output_tmp"

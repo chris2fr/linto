@@ -12,32 +12,32 @@
 set -euo pipefail
 
 usage() {
-  cat <<EOF
-Usage: linto bib $prog [-h|--help] [-o FICHIER | -i[.bak]] [--order CHAMP,...]...
-          [--] [<fichier.bib>|-]
+  _ "$(cat <<'EOF'
+Usage: linto bib bib-order-props [-h|--help] [-o FILE | -i[.bak]] [--order FIELD,...]...
+          [--] [<file.bib>|-]
 
-Trie les propriétés de chaque entrée BibTeX, par ordre alphabétique par
-défaut. Les options répétables --order désignent les propriétés à placer en
-premier; des virgules peuvent séparer plusieurs propriétés. Les autres
-suivent par ordre alphabétique.
+Sort the properties of each BibTeX entry, alphabetically by default. The
+repeatable --order options name the properties to put first; commas may
+separate several properties. The others follow alphabetically.
 
-Seules les entrées à une propriété par ligne, avec une valeur sur une seule
-ligne, sont prises en charge. Le script échoue sans modifier l'entrée devant
-une syntaxe non prise en charge ou ambiguë (valeur sur plusieurs lignes,
-commentaire ou directive dans une entrée, champ en double, délimiteurs
-déséquilibrés).
+Only entries with one property per line and a single-line value are supported.
+The script fails without changing the input on unsupported or ambiguous syntax
+(multi-line value, comment or directive inside an entry, duplicate field,
+unbalanced delimiters).
 
-Sans fichier d'entrée (ou avec « - »), lit stdin.
+Without an input file (or with "-"), read stdin.
 
-Options :
-  -o, --output FICHIER     Écrit le résultat dans FICHIER (défaut : stdout).
-  -i                       Remplace le fichier d'entrée.
-  -i.bak                   Comme -i, en conservant l'original dans FICHIER.bak.
-  --order CHAMP[,CHAMP...] Place ces champs en premier, dans cet ordre.
-  -h, --help               Affiche cette aide et quitte.
+Options:
+  -o, --output FILE         Write the result to FILE (default: stdout).
+  -i                        Replace the input file.
+  -i.bak                    Like -i, keeping the original in FILE.bak.
+  --order FIELD[,FIELD...]  Put these fields first, in this order.
+  -h, --help                Show this help and exit.
 
-Par défaut, l'entrée reste inchangée.
+By default, the input is left unchanged.
 EOF
+)"
+  echo
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
@@ -52,24 +52,24 @@ while [ "$#" -gt 0 ]; do
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     --order)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert une liste de champs"
+      [ "$#" -ge 2 ] || die_usage "option %s needs a list of fields" "$1"
       orders+=("$2")
       shift 2
       ;;
     --order=*) orders+=("${1#*=}"); shift ;;
     -o|--output)
-      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       output=$2
       shift 2
       ;;
     --output=*) output=${1#*=}; shift ;;
     -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
-    -?*) die_usage "option inconnue : $1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || die_usage "un seul fichier BibTeX est attendu"
+[ "$#" -le 1 ] || die_usage "exactly one %s is expected" "$(_ "BibTeX file")"
 input=${1-}
 
 resolve_input "fichier BibTeX"
@@ -82,10 +82,10 @@ for field_list in "${orders[@]}"; do
   IFS=',' read -r -a fields <<< "$field_list"
   for field in "${fields[@]}"; do
     field=${field//[[:space:]]/}
-    [ -n "$field" ] || die_usage "les noms de champs de --order ne peuvent pas être vides"
+    [ -n "$field" ] || die_usage "field names in --order cannot be empty"
     normalized_field=${field,,}
     if [[ -v seen_fields[$normalized_field] ]]; then
-      die_usage "champ en double dans --order : $field"
+      die_usage "duplicate field in --order: %s" "$field"
     fi
     seen_fields[$normalized_field]=1
     [ -z "$order_list" ] || order_list+=$separator
@@ -208,10 +208,10 @@ if ! awk -v order_list="$order_list" '
     if (in_entry && !failed) fail("unterminated entry")
   }
 ' "$input" > "$output_tmp"; then
-  die "analyse ou validation échouée, entrée inchangée : $input"
+  die "parsing or validation failed, input unchanged: %s" "$input"
 fi
 
-[ -s "$output_tmp" ] || die "aucune sortie générée pour : $input"
+[ -s "$output_tmp" ] || die "no output generated for: %s" "$input"
 if [ "$in_place" -eq 0 ]; then
   redirect_output
   cat -- "$output_tmp"

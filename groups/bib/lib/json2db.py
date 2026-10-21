@@ -6,6 +6,7 @@ autres champs), "bibtex" (JSON des surcharges), markdown, et "field_order" (ordr
 identique à l'octet près)."""
 import json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cli import _
 from frlib import BIB, entry_to_row
 
 src, dst = sys.argv[1], sys.argv[2]
@@ -54,4 +55,4 @@ END;
 """)
 db.execute("INSERT INTO pieces_fts(pieces_fts) VALUES ('rebuild')")
 db.commit(); db.close()
-print(f'{len(d)} rows -> {dst}')
+print(_('{} rows -> {}').format(len(d), dst), file=sys.stderr)
