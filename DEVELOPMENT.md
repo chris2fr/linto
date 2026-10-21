@@ -16,6 +16,16 @@ store tree is read-only. Installed systems enable or disable groups through the
 
 Neither command deletes an existing group directory.
 
+## Python environment
+
+`linto linto venv` creates `$LINTO_ROOT/.venv` (`python3 -m venv`) and installs
+`requirements.txt` into it; run it again after changing the requirements, or
+with `--recreate` to rebuild. When `.venv/bin/python3` exists, the `linto`
+dispatcher exports `LINTO_ROOT` and `VIRTUAL_ENV` and puts `.venv/bin` first on
+`PATH`, so every command and every `#!/usr/bin/env python3` script runs with it.
+`LINTO_NO_VENV=1` skips it for one run. `.venv` is git-ignored. The Nix package
+provides its own Python with the same packages and does not ship `venv`.
+
 ## Refresh and man pages
 
 `linto linto refresh` regenerates command wrappers, Fish completions, the

@@ -63,7 +63,7 @@ def main_encode() -> int:
     except ImportError:
         return fail("qrencode", _("the Python module segno is required (pip install segno)"))
     try:
-        code = segno.make(text, error=args.error.lower())
+        code = segno.make_qr(text, error=args.error.lower())
     except Exception as exc:  # segno raises DataOverflowError, ValueError, ...
         return fail("qrencode", _("cannot encode the text: {}").format(exc))
     if not args.no_image:

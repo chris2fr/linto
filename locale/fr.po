@@ -1885,3 +1885,56 @@ msgstr "commande à lancer à la fin du décompte ; mettre -- avant si elle a de
 
 msgid "cannot run {}: {}"
 msgstr "impossible de lancer {} : {}"
+
+msgid ""
+"Usage: linto linto venv [-h|--help] [--recreate] [--python PYTHON]\n"
+"\n"
+"Create the Python environment Linto runs with, $LINTO_ROOT/.venv, and install\n"
+"the packages listed in requirements.txt into it. Once it exists, the linto\n"
+"dispatcher puts it first on PATH, so every command uses it. Run the command\n"
+"again to install new requirements.\n"
+"\n"
+"Set LINTO_NO_VENV=1 to ignore the environment for one run.\n"
+"\n"
+"Options:\n"
+"  --recreate       Delete the environment and build it again.\n"
+"  --python PYTHON  Interpreter to create it with (default: python3).\n"
+"  -h, --help       Show this help and exit."
+msgstr ""
+"Usage: linto linto venv [-h|--help] [--recreate] [--python PYTHON]\n"
+"\n"
+"Crée l'environnement Python avec lequel Linto s'exécute, $LINTO_ROOT/.venv, et y\n"
+"installe les paquets listés dans requirements.txt. Une fois qu'il existe, le\n"
+"répartiteur linto le place en tête du PATH, si bien que toutes les commandes\n"
+"l'utilisent. Relancez la commande pour installer de nouveaux prérequis.\n"
+"\n"
+"Définissez LINTO_NO_VENV=1 pour ignorer l'environnement le temps d'un appel.\n"
+"\n"
+"Options :\n"
+"  --recreate       Supprime l'environnement et le reconstruit.\n"
+"  --python PYTHON  Interpréteur servant à le créer (défaut : python3).\n"
+"  -h, --help       Affiche cette aide et quitte."
+
+msgid "requirements file not found: %s"
+msgstr "fichier des prérequis introuvable : %s"
+
+msgid "cannot write to %s (read-only installation?)"
+msgstr "écriture impossible dans %s (installation en lecture seule ?)"
+
+msgid "refusing to delete %s: not a Python environment"
+msgstr "suppression refusée de %s : ce n'est pas un environnement Python"
+
+msgid "Creating %s"
+msgstr "Création de %s"
+
+msgid "could not create the environment in %s"
+msgstr "impossible de créer l'environnement dans %s"
+
+msgid "Installing the requirements..."
+msgstr "Installation des prérequis..."
+
+msgid "could not install the requirements from %s"
+msgstr "impossible d'installer les prérequis depuis %s"
+
+msgid "Linto will now run with %s"
+msgstr "Linto s'exécutera désormais avec %s"

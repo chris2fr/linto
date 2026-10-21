@@ -78,6 +78,11 @@ class QrTests(unittest.TestCase):
             self.assertIn("█", encoded.stdout)
             decoded = subprocess.run([LINTO, "utils", "qrdecode", image], capture_output=True, text=True)
             self.assertEqual(decoded.stdout.strip(), "https://example.org/é?x=1")
+            short = os.path.join(tmp, "short.png")      # short text must not become a Micro QR code
+            subprocess.run([LINTO, "utils", "qrencode", "--no-ascii", "-o", short, "hello"], check=True,
+                           capture_output=True)
+            decoded = subprocess.run([LINTO, "utils", "qrdecode", short], capture_output=True, text=True)
+            self.assertEqual(decoded.stdout.strip(), "hello")
             again = subprocess.run([LINTO, "utils", "qrencode", "-o", image, "x"], capture_output=True, text=True)
             self.assertEqual(again.returncode, 1)
 
