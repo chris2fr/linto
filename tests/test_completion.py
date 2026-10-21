@@ -39,8 +39,9 @@ class DispatcherCompletionTests(unittest.TestCase):
         self.assertEqual(complete("bib", "bibyml2bib", "refs.bib", "r.yml", ""), ["none"])
 
     def test_option_values_use_the_kind_of_the_option(self):
-        self.assertEqual(complete("bib", "bib2json", "-j", ""), ["files\t*.json"])
-        self.assertEqual(complete("bib", "bib2json", "-j", "in.json", ""), ["files\t*.bib"])
+        self.assertEqual(complete("bib", "bib2json", "-o", ""), ["files\t*.json"])
+        self.assertEqual(complete("bib", "bib2json", "-o", "out.json", ""), ["files\t*.bib"])
+        self.assertEqual(complete("bib", "bib2json", "in.bib", ""), ["files\t*.json"])
         self.assertEqual(complete("utils", "stripaccents", "-d", ""), ["dirs"])
         self.assertEqual(
             complete("bib", "bib2awk", "-f", ""), ["words", "csv", "sed", "bibs"]
@@ -53,9 +54,9 @@ class DispatcherCompletionTests(unittest.TestCase):
         reply = complete("bib", "bib2json", "-")
         self.assertEqual(reply[0], "words")
         names = [line.split("\t")[0] for line in reply[1:]]
-        for option in ("-j", "--json", "-o", "--output", "-i", "-i.bak", "-h", "--help"):
+        for option in ("-o", "--output", "-i", "-i.bak", "-h", "--help"):
             self.assertIn(option, names)
-        self.assertIn("--json\tInput JSON to complete", reply)
+        self.assertIn("--output\tOutput JSON file (default: stdout)", reply)
 
     def test_commands_without_arguments_complete_nothing(self):
         self.assertEqual(complete("linto", "addman", ""), ["none"])
@@ -103,7 +104,7 @@ class BashCompletionTests(unittest.TestCase):
             (Path(directory) / "e.json").touch()
             (Path(directory) / "d.bib").touch()
             self.assertEqual(
-                self.candidates(directory, "bib", "bib2json", "-j", ""), ["e.json"]
+                self.candidates(directory, "bib", "bib2json", "-o", ""), ["e.json"]
             )
             self.assertEqual(
                 self.candidates(directory, "bib", "bib2awk", "-f", ""), ["bibs", "csv", "sed"]

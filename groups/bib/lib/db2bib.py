@@ -15,7 +15,9 @@ from frlib import BIBSET, RO, bibtex_view, check_braces, entry_from_bib, row_to_
 def main(src, dst):
     db = sqlite3.connect(src); db.row_factory = sqlite3.Row
     n = 0
-    with open(dst, 'w', encoding='utf-8', newline='\n') as out:
+    stdout = dst == '-'
+    with (open(sys.stdout.fileno(), 'w', encoding='utf-8', newline='\n', closefd=False) if stdout
+          else open(dst, 'w', encoding='utf-8', newline='\n')) as out:
         out.write('@comment{x-kbibtex-encoding=utf-8}\n\n')
         for r in db.execute('SELECT * FROM pieces ORDER BY n'):
             e = row_to_entry(r); key = e['key']
@@ -44,7 +46,7 @@ def main(src, dst):
             out.write(',\n'.join(f'  {f} = {{{v}}}' for f, v in lines))
             out.write('\n}\n\n')
             n += 1
-    print(f'{n} entries -> {dst}')
+    print(f'{n} entries -> {"stdout" if stdout else dst}', file=sys.stderr)
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2])

@@ -28,7 +28,7 @@ def renumber_yaml(input_path, output_path=None):
         else:
             out_lines.append(line)
 
-    if output_path:
+    if output_path and output_path != '-':
         with open(output_path, 'w', encoding='utf-8') as f:
             f.writelines(out_lines)
     else:

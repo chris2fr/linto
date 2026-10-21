@@ -5,7 +5,7 @@ function format_output(vals, fldidx, fld, count, i, firstfield) {
     if (out != "") close(out)
 
     key = vals[fldidx["key"]]
-    out = "./bib/" key ".json"
+    out = outdir "/" key ".json"
 
     printf "{" > out
     count = length(fldidx)

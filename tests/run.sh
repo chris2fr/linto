@@ -99,9 +99,9 @@ actual=$(cat "$tmpdir/ordered.bib")
 for form in separated repeated attached; do
   cp "$tmpdir/ordered.bib" "$tmpdir/$form.bib"
   case "$form" in
-    separated) "$root/groups/bib/bib-order-props.sh" -i -o title -o author,date "$tmpdir/$form.bib" >/dev/null ;;
-    repeated) "$root/groups/bib/bib-order-props.sh" -i -o title -o author -o date "$tmpdir/$form.bib" >/dev/null ;;
-    attached) "$root/groups/bib/bib-order-props.sh" -i -otitle,author,date "$tmpdir/$form.bib" >/dev/null ;;
+    separated) "$root/groups/bib/bib-order-props.sh" -i --order title --order author,date "$tmpdir/$form.bib" >/dev/null ;;
+    repeated) "$root/groups/bib/bib-order-props.sh" -i --order title --order author --order date "$tmpdir/$form.bib" >/dev/null ;;
+    attached) "$root/groups/bib/bib-order-props.sh" -i --order=title,author,date "$tmpdir/$form.bib" >/dev/null ;;
   esac
 done
 cmp -s "$tmpdir/separated.bib" "$tmpdir/repeated.bib" || fail "comma-separated order equivalence"

@@ -65,8 +65,12 @@ if __name__ == '__main__':
     d = json.load(open(sys.argv[1], encoding='utf-8'))
     new, st = lift(d)
     added = verify(d, new)
-    with open(sys.argv[2], 'w', encoding='utf-8') as fh:
-        fh.write(json.dumps(new, indent=2, ensure_ascii=False))
-    print(f'{len(new)} entrées -> {sys.argv[2]}')
-    for k, v in st.items(): print(f'  {v:6}  {k}')
-    print(f'  {added:6}  champs désormais présents dans le .bib alors qu\'ils n\'étaient que dans le frontmatter')
+    text = json.dumps(new, indent=2, ensure_ascii=False)
+    if sys.argv[2] == '-':
+        sys.stdout.write(text)
+    else:
+        with open(sys.argv[2], 'w', encoding='utf-8') as fh:
+            fh.write(text)
+    print(f'{len(new)} entrées -> {"stdout" if sys.argv[2] == "-" else sys.argv[2]}', file=sys.stderr)
+    for k, v in st.items(): print(f'  {v:6}  {k}', file=sys.stderr)
+    print(f'  {added:6}  champs désormais présents dans le .bib alors qu\'ils n\'étaient que dans le frontmatter', file=sys.stderr)

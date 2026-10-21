@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
 import re
 import sys
@@ -73,15 +74,22 @@ def main() -> int:
     parser.add_argument("--format", choices=["yml", "yaml", "csv"], default="yml")
     parser.add_argument("--start", type=int, default=1, help="First YAML number without --yml (default: 1).")
     parser.add_argument("-y", "--yml", type=Path, help="Existing numbered YAML mapping to preserve and extend.")
-    parser.add_argument("file", type=Path, help="Input Quarto/Markdown file")
+    parser.add_argument("-o", "--output", type=Path, help="Output file (default: standard output)")
+    parser.add_argument("file", nargs="?", default="-", help="Input Quarto/Markdown file (default or -: stdin)")
     args = parser.parse_args()
 
     if args.start < 0:
         parser.error("--start must be a non-negative integer")
-    if not args.file.is_file():
+    from_stdin = args.file == "-"
+    if not from_stdin and not Path(args.file).is_file():
         parser.error(f"'{args.file}' is not a file")
+    if args.output is not None and str(args.output) != "-":
+        if (not from_stdin and args.output.exists() and args.output.samefile(args.file)) or (
+            args.yml is not None and args.output.exists() and args.output.samefile(args.yml)
+        ):
+            parser.error("output must differ from the input files")
     try:
-        source = args.file.read_text(encoding="utf-8")
+        source = sys.stdin.read() if from_stdin else Path(args.file).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         print(f"error: cannot read '{args.file}': {exc}", file=sys.stderr)
         return 1
@@ -98,6 +106,9 @@ def main() -> int:
         except (TypeError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
+
+    if args.output is not None and str(args.output) != "-":
+        sys.stdout = io.TextIOWrapper(args.output.open("wb"), encoding="utf-8", newline="")
 
     keys = citation_keys(source, args.order_by)
     existing = {key for key, _ in seed_refs}

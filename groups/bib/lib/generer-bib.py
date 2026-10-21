@@ -75,18 +75,17 @@ def load_mapping(path: Path) -> dict[str, int]:
     return result
 
 
-def default_output_path(bibtex_path: Path) -> Path:
-    return bibtex_path.with_name(f"{bibtex_path.stem}-numbered.bib")
+STDIN = Path("/dev/stdin")
 
 
-def generate(bibtex_path: Path, yml_path: Path, output_path: Path) -> int:
-    if not bibtex_path.is_file():
+def generate(bibtex_path: Path, yml_path: Path, output_path: Path | None) -> int:
+    if bibtex_path != STDIN and not bibtex_path.is_file():
         print(f"error: BibTeX file not found: {bibtex_path}", file=sys.stderr)
         return 1
     if not yml_path.is_file():
         print(f"error: YAML file not found: {yml_path}", file=sys.stderr)
         return 1
-    if bibtex_path.resolve() == output_path.resolve():
+    if output_path is not None and bibtex_path != STDIN and bibtex_path.resolve() == output_path.resolve():
         print("error: output file must be different from the input BibTeX file", file=sys.stderr)
         return 2
 
@@ -111,12 +110,16 @@ def generate(bibtex_path: Path, yml_path: Path, output_path: Path) -> int:
         lines.extend((add_number(entry, number), ""))
 
     try:
-        output_path.write_text("\n".join(lines), encoding="utf-8")
+        if output_path is None:
+            sys.stdout.write("\n".join(lines))
+        else:
+            output_path.write_text("\n".join(lines), encoding="utf-8")
     except OSError as exc:
         print(f"error: cannot write '{output_path}': {exc}", file=sys.stderr)
         return 1
 
-    print(f"{output_path} generated ({len(mapping) - len(missing)} entries).")
+    if output_path is not None:
+        print(f"{output_path} generated ({len(mapping) - len(missing)} entries).", file=sys.stderr)
     if missing:
         print(f"warning: {len(missing)} key(s) not found in {bibtex_path}:", file=sys.stderr)
         for key in missing:
@@ -128,7 +131,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build a numbered BibTeX file from a BibTeX source and YAML key-to-number mapping.",
         epilog=(
-            "The default output is <bibtex-name>-numbered.bib. "
+            "The default output is standard output; the source BibTeX may be - for stdin. "
             "Calling bibyml2bib with no arguments retains the legacy _pieces-*.yml batch mode."
         ),
     )
@@ -136,13 +139,14 @@ def main() -> int:
     parser.add_argument("yml", type=Path, help="YAML mapping of string keys to numbers (second positional argument)")
     parser.add_argument(
         "-o",
-        "--output-file",
+        "--output",
         type=Path,
-        help="Output BibTeX file (default: <bibtex-name>-numbered.bib)",
+        help="Output BibTeX file (default: standard output)",
     )
     args = parser.parse_args()
-    output_path = args.output_file or default_output_path(args.bibtex_file)
-    return generate(args.bibtex_file, args.yml, output_path)
+    bibtex_path = STDIN if str(args.bibtex_file) == "-" else args.bibtex_file
+    output_path = None if args.output is None or str(args.output) == "-" else args.output
+    return generate(bibtex_path, args.yml, output_path)
 
 
 if __name__ == "__main__":

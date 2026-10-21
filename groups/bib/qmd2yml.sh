@@ -3,6 +3,7 @@
 # linto-complete: opt --format choices:yml,yaml,csv Output format
 # linto-complete: opt --start value First number when there is no --yml
 # linto-complete: opt -y,--yml *.yml,*.yaml Existing YAML mapping to extend
+# linto-complete: opt -o,--output value Output file (default: stdout)
 # linto-complete: arg 1 *.qmd,*.md
 set -eu
 

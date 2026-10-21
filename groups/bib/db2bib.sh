@@ -1,30 +1,44 @@
 #!/bin/sh
+# linto-complete: opt -o,--output *.bib Output file (default: stdout)
 # linto-complete: arg 1 *.db
-# linto-complete: arg 2 *.bib
 set -eu
 
 usage() {
   cat <<EOF
-Usage: linto bib $prog [-h|--help] [--] <entrée.db> <sortie.bib>
+Usage: linto bib $prog [-h|--help] [-o FICHIER.bib] [--] <entrée.db>
 
 Exporte la table SQLite « pieces » en BibTeX.
 
 Options :
-  -h, --help   Affiche cette aide et quitte.
+  -o, --output FICHIER  Écrit le résultat dans FICHIER (défaut : stdout).
+  -h, --help            Affiche cette aide et quitte.
 EOF
 }
 
 . "$(dirname -- "$0")/lib/common.sh"
 
+output=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
+    -o|--output)
+      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      output=$2
+      shift 2
+      ;;
+    --output=*) output=${1#*=}; shift ;;
+    -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
     -?*) die_usage "option inconnue : $1" ;;
     *) break ;;
   esac
 done
-[ "$#" -eq 2 ] || die_usage "deux arguments sont attendus : entrée.db et sortie.bib"
-require_file "fichier SQLite" "$1"
+[ "$#" -eq 1 ] || die_usage "un seul fichier SQLite est attendu"
+input=$1
 
-exec python3 "$script_dir/lib/db2bib.py" "$1" "$2"
+from_stdin=0
+require_file "fichier SQLite" "$input"
+[ -n "$output" ] || output=-
+[ "$output" = - ] || [ ! "$input" -ef "$output" ] || die_usage "entrée et sortie sont le même fichier"
+
+exec python3 "$script_dir/lib/db2bib.py" "$input" "$output"

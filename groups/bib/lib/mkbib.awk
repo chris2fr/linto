@@ -5,7 +5,7 @@
     sub(/^@[[:alnum:]_]+\{/, "", key)
     sub(/,.*/, "", key)
 
-    out = "./bib/" key ".bib"
+    out = outdir "/" key ".bib"
 }
 
 out != "" {

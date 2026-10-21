@@ -9,6 +9,10 @@
 #   die_usage MSG...      "prog: MSG" and usage on stderr, exit 2 (usage error)
 #   require_file KIND F   exit 1 unless F is a readable regular file
 #   require_cmd CMD       exit 1 unless CMD is installed
+#   resolve_input KIND    input: the file named by $input, or stdin (/dev/stdin)
+#                         when $input is empty or "-"; sets from_stdin
+#   check_inplace         validate -i against $input and $output
+#   redirect_output       send stdout to $output (unless empty or "-")
 #   inplace_begin F       refuse a symlink; create a temporary file next to F
 #                         (sets output_tmp, removed on exit)
 #   inplace_commit F SUF  keep F as F<SUF> when SUF is set, then replace F
@@ -34,6 +38,39 @@ require_file() {
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "$1 est requis"
+}
+
+resolve_input() {
+  case "${input-}" in
+    ''|-)
+      [ ! -t 0 ] || die_usage "aucun $1 : indiquer un fichier ou fournir stdin"
+      input=/dev/stdin
+      from_stdin=1
+      ;;
+    *)
+      require_file "$1" "$input"
+      from_stdin=0
+      ;;
+  esac
+}
+
+check_inplace() {
+  if [ "${in_place:-0}" -eq 1 ]; then
+    [ -z "${output-}" ] || die_usage "-i et -o/--output sont incompatibles"
+    [ "$from_stdin" -eq 0 ] || die_usage "-i requiert un fichier d'entrée (pas stdin)"
+  fi
+}
+
+redirect_output() {
+  case "${output-}" in
+    ''|-) ;;
+    *)
+      if [ "$from_stdin" -eq 0 ] && [ "$input" -ef "$output" ]; then
+        die_usage "entrée et sortie sont le même fichier; utilisez -i"
+      fi
+      exec >"$output"
+      ;;
+  esac
 }
 
 inplace_begin() {

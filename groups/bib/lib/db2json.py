@@ -9,6 +9,10 @@ db = sqlite3.connect(src); db.row_factory = sqlite3.Row
 out = {}
 for r in db.execute('SELECT * FROM pieces ORDER BY n'):
     out[r['id']] = row_to_entry(r)
-with open(dst, 'w', encoding='utf-8') as f:
-    f.write(json.dumps(out, indent=2, ensure_ascii=False))   # même mise en forme que le fichier d'origine, sans retour final
-print(f'{len(out)} entries -> {dst}')
+text = json.dumps(out, indent=2, ensure_ascii=False)   # même mise en forme que le fichier d'origine, sans retour final
+if dst == '-':
+    sys.stdout.write(text)
+else:
+    with open(dst, 'w', encoding='utf-8') as f:
+        f.write(text)
+print(f'{len(out)} entries -> {"stdout" if dst == "-" else dst}', file=sys.stderr)

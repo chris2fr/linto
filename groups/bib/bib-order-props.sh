@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# linto-complete: opt -o,--order value Fields to put first (comma-separated, repeatable)
+# linto-complete: opt --order value Fields to put first (comma-separated, repeatable)
+# linto-complete: opt -o,--output *.bib Output BibTeX file (default: stdout)
 # linto-complete: flag -i,-i.bak Replace the file in place (-i.bak keeps a backup)
 # linto-complete: arg 1 *.bib
 #
@@ -12,11 +13,11 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-Usage: linto bib $prog [-h|--help] [-i[.bak]] [-o|--order CHAMP,...]... [--]
-          <fichier.bib>
+Usage: linto bib $prog [-h|--help] [-o FICHIER | -i[.bak]] [--order CHAMP,...]...
+          [--] [<fichier.bib>|-]
 
 Trie les propriétés de chaque entrée BibTeX, par ordre alphabétique par
-défaut. Les options répétables -o/--order désignent les propriétés à placer en
+défaut. Les options répétables --order désignent les propriétés à placer en
 premier; des virgules peuvent séparer plusieurs propriétés. Les autres
 suivent par ordre alphabétique.
 
@@ -26,13 +27,16 @@ une syntaxe non prise en charge ou ambiguë (valeur sur plusieurs lignes,
 commentaire ou directive dans une entrée, champ en double, délimiteurs
 déséquilibrés).
 
-Options :
-  -i                            Remplace le fichier d'entrée.
-  -i.bak                        Comme -i, en conservant l'original dans FICHIER.bak.
-  -o, --order CHAMP[,CHAMP...]  Place ces champs en premier, dans cet ordre.
-  -h, --help                    Affiche cette aide et quitte.
+Sans fichier d'entrée (ou avec « - »), lit stdin.
 
-Par défaut, le résultat trié est écrit sur stdout et l'entrée reste inchangée.
+Options :
+  -o, --output FICHIER     Écrit le résultat dans FICHIER (défaut : stdout).
+  -i                       Remplace le fichier d'entrée.
+  -i.bak                   Comme -i, en conservant l'original dans FICHIER.bak.
+  --order CHAMP[,CHAMP...] Place ces champs en premier, dans cet ordre.
+  -h, --help               Affiche cette aide et quitte.
+
+Par défaut, l'entrée reste inchangée.
 EOF
 }
 
@@ -41,27 +45,35 @@ EOF
 orders=()
 in_place=0
 backup_suffix=
+output=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
-    -o|--order)
+    --order)
       [ "$#" -ge 2 ] || die_usage "l'option $1 requiert une liste de champs"
       orders+=("$2")
       shift 2
       ;;
     --order=*) orders+=("${1#*=}"); shift ;;
-    -o?*) orders+=("${1#-o}"); shift ;;
+    -o|--output)
+      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      output=$2
+      shift 2
+      ;;
+    --output=*) output=${1#*=}; shift ;;
+    -o?*) output=${1#-o}; shift ;;
     --) shift; break ;;
     -?*) die_usage "option inconnue : $1" ;;
     *) break ;;
   esac
 done
-[ "$#" -eq 1 ] || die_usage "un seul fichier BibTeX est attendu"
-input=$1
+[ "$#" -le 1 ] || die_usage "un seul fichier BibTeX est attendu"
+input=${1-}
 
-require_file "fichier BibTeX" "$input"
+resolve_input "fichier BibTeX"
+check_inplace
 
 order_list=
 separator=$(printf '\037')
@@ -201,6 +213,7 @@ fi
 
 [ -s "$output_tmp" ] || die "aucune sortie générée pour : $input"
 if [ "$in_place" -eq 0 ]; then
+  redirect_output
   cat -- "$output_tmp"
   exit 0
 fi
