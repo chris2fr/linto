@@ -4,11 +4,12 @@
 import os
 import re
 import select
+import subprocess
 import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
-from clibase import Parser, _  # noqa: E402
+from clibase import Parser, _, fail  # noqa: E402
 
 UNITS = {"h": 3600, "m": 60, "s": 1}
 PART = re.compile(r"(\d+(?:\.\d+)?)([hms])")
@@ -53,6 +54,8 @@ def countdown(argv) -> int:
     parser.add_argument("-m", "--message", default=None, metavar="TEXT",
                         help=_("message printed when time is up (default: Time is up!)"))
     parser.add_argument("--no-bell", action="store_true", help=_("do not ring the bell"))
+    parser.add_argument("command", nargs="*", metavar="COMMAND",
+                        help=_("command to run when time is up; put -- before it if it has options"))
     args = parser.parse_args(argv)
     try:
         total = parse_duration(args.duration)
@@ -78,6 +81,11 @@ def countdown(argv) -> int:
     if not args.no_bell:
         sys.stderr.write("\a")
         sys.stderr.flush()
+    if args.command:
+        try:
+            return subprocess.run(args.command, check=False).returncode
+        except OSError as exc:
+            return fail("countdown", _("cannot run {}: {}").format(args.command[0], exc.strerror or exc)) and 127
     return 0
 
 

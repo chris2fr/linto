@@ -2,6 +2,7 @@
 # linto-complete: opt -m,--message value Message printed when time is up
 # linto-complete: flag --no-bell Do not ring the bell
 # linto-complete: arg 1 value
+# linto-complete: arg * command
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)

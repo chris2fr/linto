@@ -1879,3 +1879,9 @@ msgstr "inclut les symboles (prime sur --format)"
 
 msgid "unknown format letter(s): {} (use u, l, n, s)"
 msgstr "lettre(s) de format inconnue(s) : {} (utiliser u, l, n, s)"
+
+msgid "command to run when time is up; put -- before it if it has options"
+msgstr "commande à lancer à la fin du décompte ; mettre -- avant si elle a des options"
+
+msgid "cannot run {}: {}"
+msgstr "impossible de lancer {} : {}"

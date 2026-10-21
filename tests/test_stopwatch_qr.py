@@ -45,6 +45,17 @@ class CommandTests(unittest.TestCase):
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual((result.returncode, result.stdout), (0, "go\n"))
 
+    def test_countdown_runs_command_and_returns_its_status(self):
+        result = subprocess.run([LINTO, "utils", "countdown", "0.1s", "--no-bell", "-m", "go",
+                                 "--", "sh", "-c", "echo ran; exit 3"],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual((result.returncode, result.stdout), (3, "go\nran\n"))
+
+    def test_countdown_missing_command(self):
+        result = subprocess.run([LINTO, "utils", "countdown", "0.1s", "--no-bell", "no-such-command-xyz"],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 127, result.stderr)
+
     def test_timer_prints_elapsed_on_interrupt(self):
         proc = subprocess.Popen([LINTO, "utils", "timer"], stdout=subprocess.PIPE, text=True,
                                 stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
