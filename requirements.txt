@@ -1,0 +1,8 @@
+# Python packages used by Linto commands, installed by `linto linto venv`
+# into $LINTO_ROOT/.venv. The Nix package provides its own copies.
+PyYAML
+bibtexparser<2
+segno
+opencv-python-headless
+# Optional: another rendering engine for `linto utils eml2pdf`.
+# weasyprint

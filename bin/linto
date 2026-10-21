@@ -5,6 +5,15 @@ set -eu
 
 bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 script_dir=$(CDPATH= cd -- "$bin_dir/.." && pwd -P)
+# Run every command with Linto's own Python environment when it exists
+# (create it with `linto linto venv`; LINTO_NO_VENV=1 skips it).
+LINTO_ROOT=$script_dir
+export LINTO_ROOT
+if [ -z "${LINTO_NO_VENV:-}" ] && [ -x "$LINTO_ROOT/.venv/bin/python3" ]; then
+  PATH="$LINTO_ROOT/.venv/bin:$PATH"
+  VIRTUAL_ENV=$LINTO_ROOT/.venv
+  export PATH VIRTUAL_ENV
+fi
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
   *) data_home=$HOME/.local/share ;;

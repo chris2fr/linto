@@ -10,6 +10,7 @@ groups:
         cb: "flatpak run app.getclipboard.Clipboard"
   quarto: default
   utils: default
+  web: default
   old:
     enable: false
 shortcuts:

@@ -20,6 +20,7 @@ linto-linto-aliases
 linto-linto-github
 linto-linto-mdsetup
 linto-linto-path
+linto-linto-venv
 linto-prettyprint
 linto-quarto
 linto-quarto-firefox-output
@@ -47,3 +48,5 @@ linto-utils-token
 linto-utils-urldecode
 linto-utils-urlencode
 linto-utils-uuid
+linto-web
+linto-web-memos

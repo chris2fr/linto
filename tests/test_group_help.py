@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LINTO = str(ROOT / "bin" / "linto")
-GROUPS = ("utils", "beta", "launch", "linto")
+GROUPS = ("utils", "beta", "launch", "linto", "web")
 
 
 def run(lang, *args):

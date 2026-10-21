@@ -44,7 +44,9 @@ class FieldOrderTests(unittest.TestCase):
 
     def test_no_field_order_column(self):
         run("json2db.py", self.json, self.db)
-        cols = [c[1] for c in sqlite3.connect(self.db).execute("PRAGMA table_info(pieces)")]
+        conn = sqlite3.connect(self.db)
+        cols = [c[1] for c in conn.execute("PRAGMA table_info(pieces)")]
+        conn.close()
         self.assertNotIn("field_order", cols)
 
     def test_alphabetical_by_default(self):

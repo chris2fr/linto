@@ -1,0 +1,133 @@
+import json
+import os
+import subprocess
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+ROOT = Path(__file__).resolve().parents[1]
+LINTO = str(ROOT / "bin" / "linto")
+TOKEN = "memos_pat_test"
+
+
+class FakeMemos(BaseHTTPRequestHandler):
+    memos = {}
+    requests = []
+
+    def log_message(self, *args):
+        pass
+
+    def reply(self, status, payload=None):
+        body = json.dumps(payload if payload is not None else {}).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_any(self):
+        url = urlparse(self.path)
+        query = {k: v[0] for k, v in parse_qs(url.query).items()}
+        length = int(self.headers.get("Content-Length") or 0)
+        body = json.loads(self.rfile.read(length)) if length else None
+        type(self).requests.append((self.command, url.path, query, body))
+        if self.headers.get("Authorization") != f"Bearer {TOKEN}":
+            return self.reply(401, {"message": "unauthenticated"})
+        parts = url.path.strip("/").split("/")
+        if parts[:3] != ["api", "v1", "memos"]:
+            return self.reply(404, {"message": "not found"})
+        if len(parts) == 3:
+            if self.command == "POST":
+                name = f"memos/{len(self.memos) + 1}"
+                self.memos[name] = {"name": name, "visibility": "PRIVATE", "createTime": "2026-01-01T10:00:00Z", **body}
+                return self.reply(200, self.memos[name])
+            ordered = list(self.memos.values())
+            start = int(query.get("pageToken") or 0)
+            size = int(query.get("pageSize") or 50)
+            page = ordered[start:start + size]
+            nxt = str(start + size) if start + size < len(ordered) else ""
+            return self.reply(200, {"memos": page, "nextPageToken": nxt})
+        name = "/".join(parts[2:4])
+        memo = self.memos.get(name)
+        if memo is None:
+            return self.reply(404, {"message": "memo not found"})
+        if self.command == "GET":
+            return self.reply(200, memo)
+        if self.command == "PATCH":
+            memo.update(body)
+            return self.reply(200, memo)
+        if self.command == "DELETE":
+            del self.memos[name]
+            return self.reply(200, {})
+
+    do_GET = do_POST = do_PATCH = do_DELETE = handle_any
+
+
+class MemosTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = HTTPServer(("127.0.0.1", 0), FakeMemos)
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+
+    def setUp(self):
+        FakeMemos.memos = {}
+        FakeMemos.requests = []
+
+    def memos(self, *args, token=TOKEN, stdin=None):
+        env = dict(os.environ, LC_ALL="C", LINTO_MEMOS_URL=f"http://127.0.0.1:{self.server.server_port}",
+                   NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
+        env["LINTO_MEMOS_TOKEN"] = token
+        return subprocess.run([LINTO, "web", "memos", *args], capture_output=True, text=True, env=env,
+                              input=stdin if stdin is not None else "", timeout=30)
+
+    def test_add_list_get_edit_delete(self):
+        added = self.memos("add", "-v", "public", "First #idea", "line")
+        self.assertEqual((added.returncode, added.stdout.strip()), (0, "memos/1"), added.stderr)
+        self.assertEqual(FakeMemos.requests[-1][3], {"content": "First #idea line", "visibility": "PUBLIC"})
+        self.memos("add", stdin="From stdin\nsecond line\n")
+        listed = self.memos("list")
+        self.assertIn("First #idea line", listed.stdout)
+        self.assertIn("From stdin", listed.stdout)
+        shown = self.memos("get", "memos/2")
+        self.assertIn("second line", shown.stdout)
+        edited = self.memos("edit", "2", "New text")
+        self.assertEqual(edited.returncode, 0, edited.stderr)
+        method, path, query, body = FakeMemos.requests[-1]
+        self.assertEqual((method, path, query["updateMask"], body), ("PATCH", "/api/v1/memos/2", "content", {"content": "New text"}))
+        self.assertEqual(self.memos("delete", "2", "--yes").returncode, 0)
+        self.assertEqual(self.memos("get", "2").returncode, 1)
+
+    def test_list_filters_and_pagination(self):
+        for i in range(5):
+            self.memos("add", f"memo {i}")
+        listed = self.memos("list", "-n", "4", "-t", "idea", "-q", 'a"b', "--json")
+        self.assertEqual(len(json.loads(listed.stdout)), 4)
+        requests = [r for r in FakeMemos.requests if r[0] == "GET"]
+        self.assertEqual(requests[0][2]["filter"], 'tag in ["idea"] && content.contains("a\\"b")')
+
+    def test_authentication_error_is_reported(self):
+        result = self.memos("list", token="wrong")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("HTTP 401: unauthenticated", result.stderr)
+
+    def test_missing_configuration(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("LINTO_MEMOS")}
+        result = subprocess.run([LINTO, "web", "memos", "list"], capture_output=True, text=True,
+                                env=dict(env, LC_ALL="C", XDG_CONFIG_HOME="/nonexistent"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no Memos server", result.stderr)
+
+    def test_delete_needs_confirmation_without_a_terminal(self):
+        self.memos("add", "x")
+        self.assertEqual(self.memos("delete", "1").returncode, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
