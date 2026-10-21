@@ -6,14 +6,14 @@
 # linto-complete: arg 1 file
 set -euo pipefail
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+repo_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 userdatadir=""
 projectdir=""
 mode="reuse"
 
 usage() {
-    cat <<'EOF'
-Usage: zed.sh [OPTIONS] [PATH]
+    _ "$(cat <<'EOF'
+Usage: linto launch zed [OPTIONS] [PATH]
 
 Open PATH in Zed. PATH may be a file or a directory.
 
@@ -38,7 +38,12 @@ For a non-default user-data root, the first launch opens a temporary Zed window
 and waits for you to close it while initializing shared languages and extensions.
 Projects opened with the same --userdatadir share those components.
 EOF
+)"
+    echo
 }
+
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
+
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -47,10 +52,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         -p|--projectdir)
-            if [[ $# -lt 2 ]]; then
-                echo "error: $1 requires an argument" >&2
-                exit 1
-            fi
+            [[ $# -ge 2 ]] || die_usage "option %s needs an argument" "$1"
             projectdir="$2"
             shift 2
             ;;
@@ -63,10 +65,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -u|--userdatadir)
-            if [[ $# -lt 2 ]]; then
-                echo "error: $1 requires an argument" >&2
-                exit 1
-            fi
+            [[ $# -ge 2 ]] || die_usage "option %s needs an argument" "$1"
             userdatadir="$2"
             shift 2
             ;;
@@ -86,9 +85,8 @@ while [[ $# -gt 0 ]]; do
             mode="new"
             shift
             ;;
-        -[a-zA-Z]*)
-            echo "error: unknown option: $1" >&2
-            exit 1
+        -?*)
+            die_usage "unknown option: %s" "$1"
             ;;
         *)
             target="$1"
@@ -112,6 +110,7 @@ target="${target:-$PWD}"
 #   - project_dir is that directory.
 #   - zed_root defaults to the project directory if no explicit -u is given.
 if [[ -n "$projectdir" ]]; then
+    [[ -d "$projectdir" ]] || die "not a directory: %s" "$projectdir"
     project_dir="$(cd "$projectdir" && pwd)"
 else
     if [[ -f "$target" ]]; then
@@ -160,11 +159,10 @@ shared_zed_dir="$HOME/.zed"
 marker_file="$user_data_dir/.linto-version"
 
 if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
-    linto_config="$script_dir/config.yml"
-    shared_version=$(python3 "$script_dir/lib/config.py" "$linto_config" version 2>/dev/null || true)
+    linto_config="$repo_dir/config.yml"
+    shared_version=$(python3 "$repo_dir/lib/config.py" "$linto_config" version 2>/dev/null || true)
     if [[ -z "$shared_version" ]]; then
-        echo "zed: Linto version is missing from config.yml; refusing shared-data initialization" >&2
-        exit 1
+        die "Linto version is missing from config.yml; refusing shared-data initialization"
     fi
 
     marker_version=
@@ -174,30 +172,26 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
 
     if [[ "$marker_version" != "$shared_version" ]]; then
         if [[ -e "$marker_file" && ! -f "$marker_file" ]]; then
-            printf 'zed: refusing to replace invalid marker path: %s\n' "$marker_file" >&2
-            exit 1
+            die "refusing to replace invalid marker path: %s" "$marker_file"
         fi
         for shared_item in languages extensions; do
             local_path="$user_data_dir/$shared_item"
             shared_path="$shared_zed_dir/$shared_item"
             if [[ -e "$local_path" && ! -L "$local_path" && ! -d "$local_path" ]]; then
-                printf 'zed: refusing to replace non-directory data path: %s\n' "$local_path" >&2
-                exit 1
+                die "refusing to replace non-directory data path: %s" "$local_path"
             fi
             if [[ -L "$local_path" && "$(readlink -f -- "$local_path" 2>/dev/null || true)" != "$(readlink -f -- "$shared_path" 2>/dev/null || true)" ]]; then
-                printf 'zed: refusing to replace existing symlink: %s\n' "$local_path" >&2
-                exit 1
+                die "refusing to replace existing symlink: %s" "$local_path"
             fi
             if [[ -e "$local_path" && ! -L "$local_path" && ! -f "$marker_file" ]]; then
-                printf 'zed: refusing to remove unmarked local data path: %s (move it manually, or initialize from a clean .zed directory)\n' "$local_path" >&2
-                exit 1
+                die "refusing to remove unmarked local data path: %s (move it manually, or initialize from a clean .zed directory)" "$local_path"
             fi
             if [[ -e "$shared_path" ]] || true; then
                 # We will populate from shared_zed_dir directly below.
                 true
             fi
         done
-        printf 'Initializing shared Zed data in %s from %s...\n' "$user_data_dir" "$shared_zed_dir" >&2
+        printf "$(_ "Initializing shared Zed data in %s from %s...")\n" "$user_data_dir" "$shared_zed_dir" >&2
 
         # Copy base configuration and state files from ~/.zed, excluding heavy/shared items
         for item in "$shared_zed_dir"/*; do
@@ -228,8 +222,7 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
         marker_tmp="$marker_file.tmp.$$"
         if ! printf '%s\n' "$shared_version" > "$marker_tmp" || ! mv -f -- "$marker_tmp" "$marker_file"; then
             rm -f -- "$marker_tmp"
-            echo "zed: failed to write shared-data marker: $marker_file" >&2
-            exit 1
+            die "failed to write shared-data marker: %s" "$marker_file"
         fi
     fi
 fi

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Convert an ISO date/time from a source time zone to a destination time zone."""
 
-import argparse
+import os
 import re
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+from clibase import Parser, _, fail  # noqa: E402
 
 ISO_INPUT = re.compile(
     r"^(?P<date>\d{4}-\d{2}-\d{2})"
@@ -94,21 +97,19 @@ def generate_biblatex_date(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Convert an ISO date/time between IANA time zones."
-    )
+    parser = Parser("utils", "timezone", description=_("Convert an ISO date/time between IANA time zones."))
     parser.add_argument(
         "datetime",
-        help="ISO date/time, e.g. 2027-12-28T14:30 or 2027-12-28T14:30-02:00",
+        help=_("ISO date/time, e.g. 2027-12-28T14:30 or 2027-12-28T14:30-02:00"),
     )
     parser.add_argument(
-        "-s", "--source-timezone",
-        help="source IANA time zone; defaults to the destination zone",
+        "-s", "--source-timezone", metavar="ZONE",
+        help=_("source IANA time zone; defaults to the destination zone"),
     )
     parser.add_argument(
-        "-d", "--destination-timezone",
+        "-d", "--destination-timezone", metavar="ZONE",
         default="Europe/Paris",
-        help="destination IANA time zone (default: Europe/Paris)",
+        help=_("destination IANA time zone (default: Europe/Paris)"),
     )
     args = parser.parse_args()
 
@@ -119,7 +120,7 @@ def main() -> int:
             source_timezone=args.source_timezone,
         )
     except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        fail("timezone", str(exc))
         return 2
 
     print(result)

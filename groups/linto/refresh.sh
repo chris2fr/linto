@@ -3,19 +3,27 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
-Usage: refresh.sh [-h|--help]
+  _ "$(cat <<'EOF'
+Usage: linto linto refresh [-h|--help]
 
 Refresh user-level group/command and shortcut wrappers, Fish completion, and
 man pages. Mutable generated files are written under the user's Linto data
 directory; the installation tree is read-only.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;
   '') ;;
-  *) usage >&2; exit 2 ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
 esac
 
 root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
@@ -36,17 +44,15 @@ linto="$bin_dir/linto"
 wrapper_dir="$user_bin_dir/.generated-wrappers"
 owned="$wrapper_dir/owned"
 
-[[ -x "$linto" ]] || { printf 'refresh: dispatcher not executable: %s\n' "$linto" >&2; exit 1; }
-[[ -f "$config" && -f "$config_tool" ]] || { printf 'refresh: config or config helper is missing\n' >&2; exit 1; }
+[[ -x "$linto" ]] || die "dispatcher not executable: %s" "$linto"
+[[ -f "$config" && -f "$config_tool" ]] || die "config or config helper is missing"
 if ! command -v mandown >/dev/null 2>&1; then
-  printf 'refresh: mandown is required to generate topic man pages (run linto linto mdsetup)\n' >&2
-  exit 1
+  die "mandown is required to generate topic man pages (run linto linto mdsetup)"
 fi
 if ! command -v groff >/dev/null 2>&1; then
-  printf 'refresh: groff is required to validate topic man pages\n' >&2
-  exit 1
+  die "groff is required to validate topic man pages"
 fi
-[[ -d "$root/linto-guide" ]] || { printf 'refresh: guide directory not found: %s\n' "$root/linto-guide" >&2; exit 1; }
+[[ -d "$root/linto-guide" ]] || die "guide directory not found: %s" "$root/linto-guide"
 
 mapfile -t groups < <("$linto" --list-groups)
 mapfile -t shortcut_aliases < <("$linto" --list-shortcut-aliases)
@@ -56,8 +62,7 @@ declare -A desired=()
 add_stub() {
   local name=$1 group=$2 command=$3 kind=$4
   [[ -z "${desired[$name]+yes}" ]] || {
-    printf 'refresh: generated wrapper name collision: %s\n' "$name" >&2
-    exit 1
+    die "generated wrapper name collision: %s" "$name"
   }
   names+=("$name")
   groups_for_stub+=("$group")
@@ -105,8 +110,7 @@ for index in "${!names[@]}"; do
   dest="$user_bin_dir/$name"
   [[ -e "$dest" || -L "$dest" ]] || continue
   [[ -f "$dest" && ! -L "$dest" ]] || {
-    printf 'refresh: refusing to replace non-file path: %s\n' "$dest" >&2
-    exit 1
+    die "refusing to replace non-file path: %s" "$dest"
   }
   expected_head='#!/bin/sh'
   if [[ "${kinds[$index]}" == group ]]; then
@@ -117,8 +121,7 @@ for index in "${!names[@]}"; do
   fi
   if ! grep -Fqx "$expected_head" "$dest" ||
      ! grep -Fqx "$expected_exec" "$dest"; then
-    printf 'refresh: refusing to replace unrecognized path: %s\n' "$dest" >&2
-    exit 1
+    die "refusing to replace unrecognized path: %s" "$dest"
   fi
 done
 
@@ -194,14 +197,12 @@ for source in "$guide_dir"/*.md; do
   topic=${topic%.md}
   case "$topic" in
     *[!a-zA-Z0-9_-]*|'')
-      printf 'refresh: invalid guide topic filename: %s\n' "$source" >&2
-      exit 1
+      die "invalid guide topic filename: %s" "$source"
       ;;
   esac
   dest="$man_topics_dir/linto-$topic.1"
   [[ ! -e "$dest" || -f "$dest" ]] || {
-    printf 'refresh: refusing to replace non-file path: %s\n' "$dest" >&2
-    exit 1
+    die "refusing to replace non-file path: %s" "$dest"
   }
   desired_topics["linto-$topic.1"]=1
 
@@ -243,5 +244,5 @@ for existing in "$man_topics_dir"/linto-*.1; do
 done
 mv -- "$man_tmp" "$man_page"
 
-printf 'Refreshed %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s).\n' \
+printf "$(_ 'Refreshed %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s).')\n" \
   "${#groups[@]}" "${#desired_topics[@]}"

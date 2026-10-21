@@ -3,7 +3,7 @@
 # linto-complete: opt -f,--font choices:classic,outlined Font to render with
 # linto-complete: arg * value
 #
-# prettyprint.sh -- render text as big block ASCII art.
+# Render text as big block ASCII art.
 
 set -euo pipefail
 
@@ -11,8 +11,8 @@ CELL_W=6
 ROWS=5
 
 usage() {
-  cat <<'EOF'
-Usage: prettyprint.sh [-w COLS] [-f FONT] [-h] [TEXT...]
+  _ "$(cat <<'EOF'
+Usage: linto utils prettyprint [-w COLS] [-f FONT] [-h] [TEXT...]
 
 Render TEXT as 5-line-high block ASCII art, wrapped to the terminal width.
 
@@ -23,7 +23,11 @@ Options:
 
 With no TEXT arguments the input is read from standard input.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 font_name=classic
@@ -33,7 +37,7 @@ declare -A FONT=()
 
 load_font() {
   local font_file="$script_dir/lib/fonts/$1"
-  [[ -r $font_file ]] || { printf 'prettyprint.sh: unknown or unreadable font: %s\n' "$1" >&2; exit 2; }
+  [[ -r $font_file ]] || die_usage "unknown or unreadable font: %s" "$1"
   FONT_TABLE=$(<"$font_file")
   FONT=()
   local line key
@@ -124,21 +128,22 @@ main() {
       -h|--help) usage; exit 0 ;;
       -w|--width)
         shift
-        [[ ${1:-} =~ ^[0-9]+$ ]] || { echo "prettyprint.sh: -w needs a column count" >&2; exit 2; }
+        [[ ${1:-} =~ ^[0-9]+$ ]] || die_usage "option %s needs a column count" "-w"
         max=$1 ;;
       -f|--font)
         shift
-        [[ -n ${1:-} ]] || { echo "prettyprint.sh: -f needs a font name" >&2; exit 2; }
+        [[ -n ${1:-} ]] || die_usage "option %s needs a font name" "-f"
         font_name=$1 ;;
       --font=*) font_name=${1#*=} ;;
       --) shift; args+=("$@"); break ;;
-      -*) echo "prettyprint.sh: unknown option: $1" >&2; usage >&2; exit 2 ;;
+      -*) die_usage "unknown option: %s" "$1" ;;
       *) args+=("$1") ;;
     esac
     shift
   done
 
   load_font "$font_name"
+  echo
 
   if [[ -z $max ]]; then
     max=$(tput cols 2>/dev/null || true)
@@ -156,6 +161,5 @@ main() {
   fi
 }
 
-echo
 main "$@"
 echo

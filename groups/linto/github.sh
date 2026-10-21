@@ -3,23 +3,25 @@
 set -eu
 
 usage() {
-    cat <<'EOF'
-Usage: github.sh
+  _ "$(cat <<'EOF'
+Usage: linto linto github [-h|--help]
 
-Opens the GitHub repository of linto
+Open the GitHub repository of Linto.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;
   '') ;;
-  *) usage >&2; exit 2 ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
 esac
-
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
-config_file="$repo_dir/config.yml"
-
-
 
 exec xdg-open "https://github.com/chris2fr/linto"

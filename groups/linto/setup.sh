@@ -4,8 +4,8 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
-Usage: setup.sh [--shell SHELL] [--man] [-h|--help]
+  _ "$(cat <<'EOF'
+Usage: linto linto setup [--shell SHELL] [--man] [-h|--help]
 
 Configure Linto for the current user's shell by adding the package and
 user-generated command directories to PATH and installing shell completion.
@@ -18,13 +18,17 @@ On NixOS, no files are changed; the matching NixOS options are printed instead.
 Supported shells: zsh, bash, fish, ksh, sh. Completion is installed for zsh,
 bash and fish; ksh and sh only get the PATH entries (ksh through ~/.kshrc,
 loaded via ENV from ~/.profile; sh through ~/.profile).
+
+Options:
+  --shell SHELL  Shell to configure (default: the invoking one).
+  --man          Also install the man page.
+  -h, --help     Show this help and exit.
 EOF
+)"
+  echo
 }
 
-fail() {
-  printf 'linto setup: %s\n' "$*" >&2
-  exit 1
-}
+. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 detect_current_shell() {
   local pid=$PPID parent line process_name argument is_script
@@ -83,13 +87,14 @@ while [[ $# -gt 0 ]]; do
     -h|--help) usage; exit 0 ;;
     --man) install_man=true; shift ;;
     --shell)
-      [[ $# -ge 2 ]] || fail '--shell requires zsh, bash, fish, ksh, or sh'
+      [[ $# -ge 2 ]] || die_usage "option %s needs an argument" "$1"
       shell_name=$2
       shift 2
       ;;
     --shell=*) shell_name=${1#*=}; shift ;;
-    --) shift; [[ $# -eq 0 ]] || { usage >&2; exit 2; } ;;
-    *) usage >&2; exit 2 ;;
+    --) shift; [[ $# -eq 0 ]] || die_usage "unexpected argument: %s" "$1" ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
+    *) die_usage "unexpected argument: %s" "$1" ;;
   esac
 done
 
@@ -98,7 +103,7 @@ is_nixos() {
 }
 
 if is_nixos; then
-  cat <<'EOF'
+  _ "$(cat <<'EOF'
 This is NixOS: PATH and shell completion are managed declaratively, so no shell
 files were changed. Add Linto to your NixOS configuration instead:
 
@@ -112,6 +117,8 @@ files were changed. Add Linto to your NixOS configuration instead:
 The module installs the linto command, Bash/Fish/Zsh completions, and the
 runtime dependencies. Per-user settings stay in ~/.config/linto/config.yml.
 EOF
+)"
+  echo
   exit 0
 fi
 
@@ -120,12 +127,12 @@ case "$shell_name" in
 esac
 case "$shell_name" in
   zsh|bash|fish|ksh|sh) ;;
-  *) fail "unsupported shell '$shell_name' (supported: zsh, bash, fish, ksh, sh)" ;;
+  *) die "unsupported shell '%s' (supported: zsh, bash, fish, ksh, sh)" "$shell_name" ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-bin_dir="$script_dir/bin"
-completion_dir="$script_dir/completions"
+repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
+bin_dir="$repo_dir/bin"
+completion_dir="$repo_dir/completions"
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
   *) data_home=$HOME/.local/share ;;
@@ -137,7 +144,7 @@ esac
 user_data_dir="$data_home/linto"
 user_bin_dir="$user_data_dir/bin"
 fish_completion="$user_data_dir/completions/linto.fish"
-[[ -x "$bin_dir/linto" ]] || fail "dispatcher not found or not executable: $bin_dir/linto"
+[[ -x "$bin_dir/linto" ]] || die "dispatcher not found or not executable: %s" "$bin_dir/linto"
 
 case "$shell_name" in
   zsh)
@@ -196,7 +203,7 @@ ensure_zsh_completion_order() {
     END { if (!inserted) print line }
   ' "$config_file" > "$temporary"; then
     rm -f -- "$temporary"
-    fail "could not update Zsh completion order in $config_file"
+    die "could not update Zsh completion order in %s" "$config_file"
   fi
   chmod --reference="$config_file" "$temporary" 2>/dev/null || true
   mv -- "$temporary" "$config_file"
@@ -223,14 +230,14 @@ if [[ "$shell_name" == ksh ]]; then
 fi
 
 if [[ "$install_man" == true ]]; then
-  "$script_dir/groups/linto/addman.sh"
+  "$repo_dir/groups/linto/addman.sh"
 fi
 
-printf 'Configured Linto for %s in %s\n' "$shell_name" "$config_file"
+printf "$(_ 'Configured Linto for %s in %s')\n" "$shell_name" "$config_file"
 case "$shell_name" in
-  ksh|sh) printf 'Reload with: . %q\n' "$config_file" ;;
-  *) printf 'Reload with: source %q\n' "$config_file" ;;
+  ksh|sh) printf "$(_ 'Reload with: . %q')\n" "$config_file" ;;
+  *) printf "$(_ 'Reload with: source %q')\n" "$config_file" ;;
 esac
 if [[ "$install_man" == false ]]; then
-  printf 'Run linto linto addman or repeat with --man to install the man page.\n'
+  printf '%s\n' "$(_ 'Run linto linto addman or repeat with --man to install the man page.')"
 fi

@@ -3,20 +3,27 @@
 set -eu
 
 usage() {
-  cat <<'EOF'
-Usage: addman.sh [-h|--help]
+  _ "$(cat <<'EOF'
+Usage: linto linto addman [-h|--help]
 
 Generate and install the user's Linto man page in the XDG data directory.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;
   '') ;;
-  *) usage >&2; exit 2 ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 case "${XDG_DATA_HOME:-}" in
   /*) data_home=$XDG_DATA_HOME ;;
@@ -29,26 +36,23 @@ link_path="$man_dir/linto.1"
 
 "$repo_root/groups/linto/refresh.sh"
 if [ ! -f "$source_man" ]; then
-  printf 'error: generated man page not found: %s\n' "$source_man" >&2
-  exit 1
+  die "generated man page not found: %s" "$source_man"
 fi
 
 mkdir -p "$man_dir"
 if [ -L "$link_path" ]; then
   existing_target=$(readlink -f -- "$link_path" || true)
   if [ "$existing_target" = "$source_man" ]; then
-    printf 'Man page already linked: %s\n' "$link_path"
+    printf "$(_ 'Man page already linked: %s')\n" "$link_path"
   else
-    printf 'error: refusing to replace existing symbolic link: %s\n' "$link_path" >&2
-    exit 1
+    die "refusing to replace existing symbolic link: %s" "$link_path"
   fi
 elif [ -e "$link_path" ]; then
-  printf 'error: refusing to replace existing file: %s\n' "$link_path" >&2
-  exit 1
+  die "refusing to replace existing file: %s" "$link_path"
 else
   ln -s "$source_man" "$link_path"
-  printf 'Linked %s -> %s\n' "$link_path" "$source_man"
+  printf "$(_ 'Linked %s -> %s')\n" "$link_path" "$source_man"
 fi
 
-printf '\nIf `man linto` is not found, add this to your shell configuration:\n'
+printf '\n%s\n' "$(_ 'If `man linto` is not found, add this to your shell configuration:')"
 printf 'export MANPATH="%s:${MANPATH:-}"\n' "$data_home/man"

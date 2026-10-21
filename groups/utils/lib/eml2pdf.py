@@ -31,7 +31,6 @@ NOTE SUR THUNDERBIRD
   courriels, ce script est plus sur et reproductible.
 """
 
-import argparse
 import base64
 import html
 import mimetypes
@@ -44,6 +43,9 @@ import tempfile
 from email import policy
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+from clibase import Parser, _, fail  # noqa: E402
 
 # --------------------------------------------------------------------------
 # Gabarit HTML
@@ -361,19 +363,21 @@ def nom_cible(chemin, sortie):
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Conversion de courriels .eml en PDF pour bordereau.",
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cible", nargs="?", default=".",
-                    help="fichier .eml ou dossier (defaut : dossier courant)")
-    ap.add_argument("-o", "--sortie", help="dossier de destination des PDF")
-    ap.add_argument("--force", action="store_true",
-                    help="ecrase les PDF existants")
+    ap = Parser(
+        "utils", "eml2pdf",
+        description=_("Convert .eml emails to PDF for an exhibit list. Each PDF starts with the\n"
+                      "full header block, then the body and the list of attachments."),
+        epilog=_("Rendering engines are detected in this order: wkhtmltopdf, weasyprint, chromium."),
+        raw=True)
+    ap.add_argument("cible", nargs="?", default=".", metavar="TARGET",
+                    help=_(".eml file or directory (default: current directory)"))
+    ap.add_argument("-o", "--sortie", metavar="DIR", help=_("output directory for the PDFs"))
+    ap.add_argument("--force", action="store_true", help=_("overwrite existing PDFs"))
     ap.add_argument("--html-only", action="store_true",
-                    help="produit les .html sans convertir")
+                    help=_("write the .html files without converting them"))
     ap.add_argument("--attachments", action="store_true",
-                    help="extrait les pieces jointes dans un sous-dossier")
-    ap.add_argument("--moteur", help="wkhtmltopdf, weasyprint ou chromium:BIN")
+                    help=_("also extract the attachments into a subdirectory"))
+    ap.add_argument("--moteur", metavar="ENGINE", help=_("wkhtmltopdf, weasyprint or chromium:BIN"))
     args = ap.parse_args()
 
     import datetime
@@ -386,26 +390,23 @@ def main():
     elif os.path.isfile(args.cible):
         fichiers = [args.cible]
     else:
-        print("Cible introuvable : %s" % args.cible, file=sys.stderr)
-        return 1
+        return fail("eml2pdf", _("target not found: {}").format(args.cible))
 
     if not fichiers:
-        print("Aucun fichier .eml trouvé.")
+        print(_("No .eml file found."))
         return 0
 
     moteur = None
     if not args.html_only:
         moteur = detecter_moteur(args.moteur)
         if not moteur:
-            print("Aucun moteur de rendu PDF détecté.\n"
-                  "Installez l'un des suivants :\n"
+            return fail("eml2pdf", _("no PDF rendering engine found.\n"
+                  "Install one of:\n"
                   "  sudo apt install wkhtmltopdf\n"
                   "  pip install weasyprint\n"
                   "  sudo apt install chromium-browser\n"
-                  "Ou relancez avec --html-only pour produire seulement le HTML.",
-                  file=sys.stderr)
-            return 1
-        print("Moteur de rendu : %s" % moteur)
+                  "Or run again with --html-only to write only the HTML."))
+        print(_("Rendering engine: {}").format(moteur))
 
     if args.sortie:
         os.makedirs(args.sortie, exist_ok=True)
@@ -414,7 +415,7 @@ def main():
     for chemin in fichiers:
         pdf = nom_cible(chemin, args.sortie)
         if os.path.exists(pdf) and not args.force and not args.html_only:
-            print("  = déjà présent : %s" % os.path.basename(pdf))
+            print(_("  = already present: {}").format(os.path.basename(pdf)))
             ignores += 1
             continue
 
@@ -422,8 +423,7 @@ def main():
             msg = lire_message(chemin)
             doc, pj = construire_html(msg, os.path.basename(chemin), horodatage)
         except Exception as e:
-            print("  ! lecture impossible : %s (%s)"
-                  % (os.path.basename(chemin), e), file=sys.stderr)
+            print(_("  ! cannot read: {} ({})").format(os.path.basename(chemin), e), file=sys.stderr)
             echecs += 1
             continue
 
@@ -454,22 +454,21 @@ def main():
             os.unlink(chemin_html)
 
         if reussi:
-            suffixe = " (%d pj)" % len(pj) if pj else ""
+            suffixe = _(" ({} attachments)").format(len(pj)) if pj else ""
             print("  + %s%s" % (os.path.basename(pdf), suffixe))
             ok += 1
         else:
-            print("  ! échec : %s\n    %s" % (os.path.basename(chemin),
-                                              err.strip()[:300]),
+            print(_("  ! failed: {}\n    {}").format(os.path.basename(chemin), err.strip()[:300]),
                   file=sys.stderr)
             echecs += 1
 
-    print("\n==================== RAPPORT ====================")
-    print("Convertis ................. %d" % ok)
-    print("Déjà présents ............. %d" % ignores)
-    print("Échecs .................... %d" % echecs)
+    print("\n" + _("==================== REPORT ===================="))
+    print(_("Converted ................ {}").format(ok))
+    print(_("Already present .......... {}").format(ignores))
+    print(_("Failures ................. {}").format(echecs))
     if ok:
-        print("\nRelancez ensuite copie-pieces.sh : les nouveaux PDF seront\n"
-              "repris automatiquement à la place des .eml.")
+        print("\n" + _("Then run copie-pieces.sh again: the new PDFs will be used\n"
+                       "automatically in place of the .eml files."))
     return 0 if echecs == 0 else 1
 
 

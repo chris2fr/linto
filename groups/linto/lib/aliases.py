@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import importlib.util
 import os
 import shutil
@@ -10,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
+from clibase import Parser, _, fail  # noqa: E402
 
 SHELLS = ("fish", "bash", "sh", "ksh", "zsh")
 
@@ -75,12 +76,12 @@ def detect_current_shell() -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install Linto shell aliases.")
+    parser = Parser("linto", "aliases", description=_("Install Linto shell aliases."))
     parser.add_argument(
-        "-s", "--shell",
+        "-s", "--shell", metavar="SHELL",
         choices=[*SHELLS, "all"],
         default=detect_current_shell(),
-        help="Target shell (defaults to the invoking shell; 'all' updates fish, bash, sh, ksh, and zsh)",
+        help=_("Target shell (defaults to the invoking shell; 'all' updates fish, bash, sh, ksh, and zsh)"),
     )
     args = parser.parse_args()
     target_shells = SHELLS if args.shell == "all" else (args.shell,)
@@ -89,8 +90,7 @@ def main() -> int:
     config_path = repo_root / "lib" / "config.py"
     spec = importlib.util.spec_from_file_location("linto_config", config_path)
     if spec is None or spec.loader is None:
-        print("error: could not load Linto config helper", file=sys.stderr)
-        return 1
+        return fail("aliases", _("could not load the Linto config helper"))
     linto_config = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(linto_config)
 
@@ -102,15 +102,13 @@ def main() -> int:
         )
         aliases = linto_config.configdata(data, "linto").get("aliases", {})
     except (OSError, ValueError) as exc:
-        print(f"error: failed to read Linto configuration: {exc}", file=sys.stderr)
-        return 1
+        return fail("aliases", _("failed to read Linto configuration: {}").format(exc))
 
     if not isinstance(aliases, dict) or any(
         not isinstance(name, str) or not isinstance(command, str)
         for name, command in aliases.items()
     ):
-        print("error: groups.linto.configdata.aliases must map names to command strings", file=sys.stderr)
-        return 1
+        return fail("aliases", _("groups.linto.configdata.aliases must map names to command strings"))
 
     home = Path.home()
     errors = []
@@ -135,13 +133,13 @@ def main() -> int:
                 update_sh_aliases(home / ".kshrc", aliases)
                 update_ksh_profile(home / ".profile")
                 destination = f"{home / '.kshrc'} (ENV set in .profile)"
-            print(f"Aliases updated for {target_shell}: {destination}")
+            print(_("Aliases updated for {}: {}").format(target_shell, destination))
         except (OSError, RuntimeError) as exc:
             errors.append(f"{target_shell}: {exc}")
 
     if errors:
         for error in errors:
-            print(f"error updating aliases for {error}", file=sys.stderr)
+            fail("aliases", _("error updating aliases for {}").format(error))
         return 1
     return 0
 
@@ -204,7 +202,7 @@ def _fish_quote(value: str) -> str:
 
 def update_fish_aliases(aliases: dict[str, str]) -> None:
     if shutil.which("fish") is None:
-        raise RuntimeError("fish executable was not found on PATH")
+        raise RuntimeError(_("fish executable was not found on PATH"))
     for name, command in aliases.items():
         fish_command = f"alias --save {name} {_fish_quote(command)}"
         result = subprocess.run(
@@ -212,7 +210,7 @@ def update_fish_aliases(aliases: dict[str, str]) -> None:
         )
         if result.returncode:
             detail = result.stderr.strip() or result.stdout.strip()
-            raise RuntimeError(f"could not save alias {name}: {detail}")
+            raise RuntimeError(_("could not save alias {}: {}").format(name, detail))
 
 
 if __name__ == "__main__":

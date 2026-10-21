@@ -123,6 +123,8 @@ shortcuts:
   prettyprint: "utils prettyprint"
   stripaccents: "utils stripaccents"
   slug: "utils stripaccents"
+  qrencode: "utils qrencode"
+  qrdecode: "utils qrdecode"
   guillemets2quotes: "quarto guillemets2quotes"
 ```
 

@@ -130,16 +130,28 @@ if "$root/groups/bib/bib-order-props.sh" -i "$tmpdir/unterminated.bib" >/dev/nul
 fi
 cmp -s "$tmpdir/unterminated.bib" "$tmpdir/unterminated.original" || fail "unterminated input was modified"
 
-assert_output 'eml2pdf
+assert_output 'base64decode
+base64encode
+countdown
+eml2pdf
 lorem
 prettyprint
+qrdecode
+qrencode
 stripaccents
-timezone' "$root/bin/linto" --list-commands utils
+timer
+timezone
+token
+urldecode
+urlencode
+uuid' "$root/bin/linto" --list-commands utils
 launch_output=$("$root/bin/linto-launch")
 [ "$launch_output" = "$(printf 'Commands in group launch:\n  zed')" ] || fail "launch group wrapper output: $launch_output"
 
 assert_output 'guillemets2quotes
 prettyprint
+qrdecode
+qrencode
 slug
 stripaccents' "$root/bin/linto" --list-shortcuts
 if "$root/bin/linto" render --help >"$tmpdir/unqualified.out" 2>&1; then

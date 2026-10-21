@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Generate placeholder text in Latin, French or English."""
 
-import argparse
+import os
 import random
 import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+from clibase import Parser, _  # noqa: E402
 
 WORDS = {
     "la": (
@@ -84,29 +87,27 @@ def generate(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        prog="lorem", description="Generate placeholder text."
-    )
+    parser = Parser("utils", "lorem", description=_("Generate placeholder text."))
     parser.add_argument(
         "count", nargs="?", type=int, default=3,
-        help="how many units to produce (default: 3)",
+        help=_("how many units to produce (default: 3)"),
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-p", "--paragraphs", dest="unit", action="store_const",
-                       const="paragraphs", help="produce paragraphs (default)")
+                       const="paragraphs", help=_("produce paragraphs (default)"))
     group.add_argument("-s", "--sentences", dest="unit", action="store_const",
-                       const="sentences", help="produce sentences")
+                       const="sentences", help=_("produce sentences"))
     group.add_argument("-w", "--words", dest="unit", action="store_const",
-                       const="words", help="produce words")
+                       const="words", help=_("produce words"))
     parser.add_argument("-l", "--lang", choices=sorted(WORDS), default="la",
-                        help="language of the text (default: la)")
+                        help=_("language of the text (default: la)"))
     parser.add_argument("--seed", type=int,
-                        help="seed the generator for reproducible output")
+                        help=_("seed the generator for reproducible output"))
     parser.add_argument("--no-classic-opening", action="store_true",
-                        help='do not start with "Lorem ipsum"')
+                        help=_('do not start with "Lorem ipsum"'))
     args = parser.parse_args()
     if args.count < 1:
-        parser.error("count must be at least 1")
+        parser.error(_("count must be at least 1"))
     print(generate(args.unit or "paragraphs", args.count, args.lang, args.seed,
                    not args.no_classic_opening))
     return 0

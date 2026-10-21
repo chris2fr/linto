@@ -1,0 +1,3 @@
+#!/bin/sh
+bin_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+exec "$bin_dir/linto" utils base64decode "$@"

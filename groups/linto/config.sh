@@ -7,17 +7,29 @@
 set -eu
 
 usage() {
-  cat <<'EOF'
-Usage: config.sh [-h|--help] [--group GROUP [--command COMMAND] | --effective]
-                 [--edit] [--editor PROGRAM]
+  _ "$(cat <<'EOF'
+Usage: linto linto config [-h|--help] [--group GROUP [--command COMMAND] | --effective]
+                          [--edit] [--editor PROGRAM]
 
 Without options, print the user config directory and file. --group shows the
 selected group's effective configdata; --command includes command-level
 configdata. --effective prints the full configuration with defaults merged.
 With --edit, open config.yml with `linto launch zed`; --editor selects another
 executable instead. Editing creates an empty user override file if needed.
+
+Options:
+  -g, --group GROUP     Show the effective configdata of GROUP.
+  -c, --command NAME    With --group, include command-level configdata.
+      --effective       Print the full merged configuration.
+  -e, --edit            Open config.yml in an editor.
+      --editor PROGRAM  Editor program to use (implies --edit).
+  -h, --help            Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 edit=false
 show_effective=false
@@ -39,46 +51,43 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     -g|--group)
-      [ "$#" -ge 2 ] || { echo 'config: --group requires a name' >&2; exit 2; }
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       group=$2
       shift 2
       ;;
     --group=*)
       group=${1#*=}
-      [ -n "$group" ] || { echo 'config: --group requires a name' >&2; exit 2; }
+      [ -n "${1#*=}" ] || die_usage "option %s needs an argument" "--group"
       shift
       ;;
     -c|--command)
-      [ "$#" -ge 2 ] || { echo 'config: --command requires a name' >&2; exit 2; }
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       command=$2
       shift 2
       ;;
     --command=*)
       command=${1#*=}
-      [ -n "$command" ] || { echo 'config: --command requires a name' >&2; exit 2; }
+      [ -n "${1#*=}" ] || die_usage "option %s needs an argument" "--command"
       shift
       ;;
     --editor)
-      [ "$#" -ge 2 ] || { echo 'config: --editor requires a program' >&2; exit 2; }
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       editor=$2
       edit=true
       shift 2
       ;;
     --editor=*)
       editor=${1#*=}
-      [ -n "$editor" ] || { echo 'config: --editor requires a program' >&2; exit 2; }
+      [ -n "${1#*=}" ] || die_usage "option %s needs an argument" "--editor"
       edit=true
       shift
       ;;
     --)
       shift
-      [ "$#" -eq 0 ] || { usage >&2; exit 2; }
+      [ "$#" -eq 0 ] || die_usage "unexpected argument: %s" "$1"
       ;;
-    *)
-      printf 'config: unknown argument: %s\n' "$1" >&2
-      usage >&2
-      exit 2
-      ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
+    *) die_usage "unexpected argument: %s" "$1" ;;
   esac
 done
 
@@ -88,32 +97,29 @@ case "${XDG_CONFIG_HOME:-}" in
 esac
 config_dir="$config_home/linto"
 config_file="$config_dir/config.yml"
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)
+repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 
 if [ "$edit" = true ] && { [ "$show_effective" = true ] || [ -n "$group" ] || [ -n "$command" ]; }; then
-  echo 'config: --edit cannot be combined with --effective, --group, or --command' >&2
-  exit 2
+  die_usage "--edit cannot be combined with --effective, --group, or --command"
 fi
 if [ "$show_effective" = true ] && { [ -n "$group" ] || [ -n "$command" ]; }; then
-  echo 'config: --effective cannot be combined with --group or --command' >&2
-  exit 2
+  die_usage "--effective cannot be combined with --group or --command"
 fi
 if [ -n "$command" ] && [ -z "$group" ]; then
-  echo 'config: --command requires --group' >&2
-  exit 2
+  die_usage "--command requires --group"
 fi
 
 if [ "$show_effective" = true ]; then
-  exec python3 "$script_dir/lib/config.py" "$script_dir/config.yml" effective
+  exec python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" effective
 fi
 if [ -n "$group" ]; then
   if [ -n "$command" ]; then
-    exec python3 "$script_dir/lib/config.py" "$script_dir/config.yml" configdata "$group" "$command"
+    exec python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" configdata "$group" "$command"
   fi
-  exec python3 "$script_dir/lib/config.py" "$script_dir/config.yml" configdata "$group"
+  exec python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" configdata "$group"
 fi
 if [ "$edit" != true ]; then
-  printf 'User config directory: %s\nUser config file: %s\n' "$config_dir" "$config_file"
+  printf "$(_ 'User config directory: %s')\n$(_ 'User config file: %s')\n" "$config_dir" "$config_file"
   exit 0
 fi
 
@@ -124,10 +130,9 @@ fi
 
 if [ -n "$editor" ]; then
   command -v "$editor" >/dev/null 2>&1 || {
-    printf 'config: editor not found: %s\n' "$editor" >&2
-    exit 1
+    die "editor not found: %s" "$editor"
   }
   exec "$editor" "$config_file"
 fi
 
-exec "$script_dir/bin/linto" launch zed "$config_file"
+exec "$repo_dir/bin/linto" launch zed "$config_file"

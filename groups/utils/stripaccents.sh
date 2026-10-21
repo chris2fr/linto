@@ -8,10 +8,10 @@
 # filename. File mode preserves the extension and refuses to overwrite a target.
 
 usage() {
-  cat <<EOF
-Usage: $0 [-h|--help] [--min LENGTH] [--max LENGTH] [TEXT ...]
-       $0 [-h|--help] [--min LENGTH] [--max LENGTH] -f|--file FILE
-       $0 [-h|--help] [--min LENGTH] [--max LENGTH] -d|--dir DIR
+  _ "$(cat <<'EOF'
+Usage: linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] [TEXT ...]
+       linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] -f|--file FILE
+       linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] -d|--dir DIR
 
 Without --file or --dir, reads text from stdin (or from TEXT arguments when
 stdin is a terminal) and writes normalized slugs to stdout.
@@ -24,8 +24,13 @@ Options:
   -d, --dir DIR     Rename DIR to its slugified directory name.
   --min LENGTH      Minimum slug length; shorter slugs are padded with "_" (default: 1).
   --max LENGTH      Maximum slug length; truncation prefers a word boundary (default: 48).
+  -h, --help        Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 MINLEN=1
 MAXLEN=48
@@ -35,51 +40,26 @@ TEXT=
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    -h|--help)
-      usage
-      exit 0
-      ;;
+    -h|--help) usage; exit 0 ;;
     -f|--file)
-      if [ "$#" -lt 2 ]; then
-        echo "$0: $1 requires a file path" >&2
-        usage >&2
-        exit 2
-      fi
-      if [ -n "$FILE" ]; then
-        echo "$0: --file may only be specified once" >&2
-        exit 2
-      fi
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
+      [ -z "$FILE" ] || die_usage "%s may only be specified once" "--file"
       FILE=$2
       shift 2
       ;;
     -d|--dir)
-      if [ "$#" -lt 2 ]; then
-        echo "$0: $1 requires a directory path" >&2
-        usage >&2
-        exit 2
-      fi
-      if [ -n "$DIR" ]; then
-        echo "$0: --dir may only be specified once" >&2
-        exit 2
-      fi
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
+      [ -z "$DIR" ] || die_usage "%s may only be specified once" "--dir"
       DIR=$2
       shift 2
       ;;
     --min)
-      if [ "$#" -lt 2 ]; then
-        echo "$0: --min requires a length" >&2
-        usage >&2
-        exit 2
-      fi
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       MINLEN=$2
       shift 2
       ;;
     --max)
-      if [ "$#" -lt 2 ]; then
-        echo "$0: --max requires a length" >&2
-        usage >&2
-        exit 2
-      fi
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       MAXLEN=$2
       shift 2
       ;;
@@ -90,11 +70,7 @@ while [ "$#" -gt 0 ]; do
         shift
       done
       ;;
-    -* )
-      echo "$0: unknown option: $1" >&2
-      usage >&2
-      exit 2
-      ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
     *)
       TEXT="${TEXT}${TEXT:+ }$1"
       shift
@@ -103,19 +79,13 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$MINLEN" in
-  ''|*[!0-9]*) echo "$0: --min must be a positive integer" >&2; exit 2 ;;
+  ''|*[!0-9]*) die_usage "%s must be a positive integer" "--min" ;;
 esac
 case "$MAXLEN" in
-  ''|*[!0-9]*) echo "$0: --max must be a positive integer" >&2; exit 2 ;;
+  ''|*[!0-9]*) die_usage "%s must be a positive integer" "--max" ;;
 esac
-if [ "$MINLEN" -lt 1 ] || [ "$MAXLEN" -lt 1 ]; then
-  echo "$0: --min and --max must be at least 1" >&2
-  exit 2
-fi
-if [ "$MINLEN" -gt "$MAXLEN" ]; then
-  echo "$0: --min cannot be greater than --max" >&2
-  exit 2
-fi
+[ "$MINLEN" -ge 1 ] && [ "$MAXLEN" -ge 1 ] || die_usage "--min and --max must be at least 1"
+[ "$MINLEN" -le "$MAXLEN" ] || die_usage "--min cannot be greater than --max"
 
 slugify() {
   iconv -f UTF-8 -t ASCII//TRANSLIT//IGNORE \
@@ -144,25 +114,21 @@ slugify() {
 
 if [ -n "$FILE" ] || [ -n "$DIR" ]; then
   if [ -n "$FILE" ] && [ -n "$DIR" ]; then
-    echo "$0: do not combine --file and --dir" >&2
-    exit 2
+    die_usage "do not combine --file and --dir"
   fi
   if [ -n "$TEXT" ]; then
-    echo "$0: do not combine --file/--dir with text arguments" >&2
-    exit 2
+    die_usage "do not combine --file/--dir with text arguments"
   fi
 
   if [ -n "$FILE" ]; then
     if [ ! -f "$FILE" ]; then
-      echo "$0: not a regular file: $FILE" >&2
-      exit 1
+      die "not a regular file: %s" "$FILE"
     fi
     source_path=$FILE
     name=$(basename -- "$FILE")
   else
     if [ ! -d "$DIR" ]; then
-      echo "$0: not a directory: $DIR" >&2
-      exit 1
+      die "not a directory: %s" "$DIR"
     fi
     source_path=$DIR
     name=$(basename -- "$DIR")
@@ -188,8 +154,7 @@ if [ -n "$FILE" ] || [ -n "$DIR" ]; then
 
   slug=$(printf '%s\n' "$stem" | slugify) || exit 1
   if [ -z "$slug" ]; then
-    echo "$0: name produces an empty slug: $source_path" >&2
-    exit 1
+    die "name produces an empty slug: %s" "$source_path"
   fi
 
   target=$parent_dir/$slug$extension
@@ -198,20 +163,17 @@ if [ -n "$FILE" ] || [ -n "$DIR" ]; then
     exit 0
   fi
   if [ -e "$target" ]; then
-    echo "$0: destination already exists: $target" >&2
-    exit 1
+    die "destination already exists: %s" "$target"
   fi
 
   if mv -n -- "$source_path" "$target"; then
     # Some mv implementations return success even when -n declined to move.
     if [ -e "$source_path" ]; then
-      echo "$0: destination already exists: $target" >&2
-      exit 1
+      die "destination already exists: %s" "$target"
     fi
     echo "$target"
   else
-    echo "$0: could not rename '$source_path' to '$target'" >&2
-    exit 1
+    die "could not rename '%s' to '%s'" "$source_path" "$target"
   fi
   exit 0
 fi
@@ -221,7 +183,5 @@ if [ -n "$TEXT" ]; then
 elif [ ! -t 0 ]; then
   slugify
 else
-  echo "$0: provide text, pipe input, or use --file FILE / --dir DIR" >&2
-  usage >&2
-  exit 2
+  die_usage "provide text, pipe input, or use --file FILE / --dir DIR"
 fi

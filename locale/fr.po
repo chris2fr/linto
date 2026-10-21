@@ -967,3 +967,909 @@ msgstr "aucun _quarto.yml trouvé dans %s ni dans ses dossiers parents"
 
 msgid "project.output-dir not found in %s"
 msgstr "project.output-dir introuvable dans %s"
+
+msgid ""
+"Usage: linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] [TEXT ...]\n"
+"       linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] -f|--file FILE\n"
+"       linto utils stripaccents [-h|--help] [--min LENGTH] [--max LENGTH] -d|--dir DIR\n"
+"\n"
+"Without --file or --dir, reads text from stdin (or from TEXT arguments when\n"
+"stdin is a terminal) and writes normalized slugs to stdout.\n"
+"With --file, slugifies only the part before the final dot and preserves that\n"
+"suffix (including the dot). With --dir, renames DIR in its parent directory.\n"
+"Neither mode overwrites an existing destination.\n"
+"\n"
+"Options:\n"
+"  -f, --file FILE   Rename FILE to its slugified filename.\n"
+"  -d, --dir DIR     Rename DIR to its slugified directory name.\n"
+"  --min LENGTH      Minimum slug length; shorter slugs are padded with \"_\" (default: 1).\n"
+"  --max LENGTH      Maximum slug length; truncation prefers a word boundary (default: 48).\n"
+"  -h, --help        Show this help and exit."
+msgstr ""
+"Usage: linto utils stripaccents [-h|--help] [--min LONGUEUR] [--max LONGUEUR] [TEXTE ...]\n"
+"       linto utils stripaccents [-h|--help] [--min LONGUEUR] [--max LONGUEUR] -f|--file FICHIER\n"
+"       linto utils stripaccents [-h|--help] [--min LONGUEUR] [--max LONGUEUR] -d|--dir RÉPERTOIRE\n"
+"\n"
+"Sans --file ni --dir, lit le texte sur stdin (ou dans les arguments TEXTE quand\n"
+"stdin est un terminal) et écrit les slugs normalisés sur stdout.\n"
+"Avec --file, ne transforme que la partie avant le dernier point et conserve le\n"
+"suffixe (point compris). Avec --dir, renomme RÉPERTOIRE dans son répertoire parent.\n"
+"Aucun mode n'écrase une destination existante.\n"
+"\n"
+"Options :\n"
+"  -f, --file FICHIER      Renomme FICHIER selon son nom en slug.\n"
+"  -d, --dir RÉPERTOIRE    Renomme RÉPERTOIRE selon son nom en slug.\n"
+"  --min LONGUEUR          Longueur minimale du slug ; un slug plus court est complété par « _ » (défaut : 1).\n"
+"  --max LONGUEUR          Longueur maximale du slug ; la coupure préfère une limite de mot (défaut : 48).\n"
+"  -h, --help              Affiche cette aide et quitte."
+
+msgid "%s may only be specified once"
+msgstr "%s ne peut être indiqué qu'une fois"
+
+msgid "%s must be a positive integer"
+msgstr "%s doit être un entier positif"
+
+msgid "--min and --max must be at least 1"
+msgstr "--min et --max doivent valoir au moins 1"
+
+msgid "--min cannot be greater than --max"
+msgstr "--min ne peut pas dépasser --max"
+
+msgid "do not combine --file and --dir"
+msgstr "ne pas combiner --file et --dir"
+
+msgid "do not combine --file/--dir with text arguments"
+msgstr "ne pas combiner --file/--dir avec des arguments texte"
+
+msgid "not a regular file: %s"
+msgstr "pas un fichier ordinaire : %s"
+
+msgid "name produces an empty slug: %s"
+msgstr "le nom donne un slug vide : %s"
+
+msgid "destination already exists: %s"
+msgstr "la destination existe déjà : %s"
+
+msgid "could not rename '%s' to '%s'"
+msgstr "impossible de renommer « %s » en « %s »"
+
+msgid "provide text, pipe input, or use --file FILE / --dir DIR"
+msgstr "indiquer du texte, fournir stdin, ou utiliser --file FICHIER / --dir RÉPERTOIRE"
+
+msgid ""
+"Usage: linto utils prettyprint [-w COLS] [-f FONT] [-h] [TEXT...]\n"
+"\n"
+"Render TEXT as 5-line-high block ASCII art, wrapped to the terminal width.\n"
+"\n"
+"Options:\n"
+"  -w, --width COLS   Force the maximum output width, in columns.\n"
+"  -f, --font FONT    Select a font (classic or outlined; default: classic).\n"
+"  -h, --help         Show this help and exit.\n"
+"\n"
+"With no TEXT arguments the input is read from standard input."
+msgstr ""
+"Usage: linto utils prettyprint [-w COLS] [-f POLICE] [-h] [TEXTE...]\n"
+"\n"
+"Affiche TEXTE en grandes lettres ASCII de 5 lignes de haut, à la largeur du terminal.\n"
+"\n"
+"Options :\n"
+"  -w, --width COLS   Impose la largeur maximale de sortie, en colonnes.\n"
+"  -f, --font POLICE  Choisit une police (classic ou outlined ; défaut : classic).\n"
+"  -h, --help         Affiche cette aide et quitte.\n"
+"\n"
+"Sans argument TEXTE, le texte est lu sur l'entrée standard."
+
+msgid "unknown or unreadable font: %s"
+msgstr "police inconnue ou illisible : %s"
+
+msgid "option %s needs a column count"
+msgstr "l'option %s demande un nombre de colonnes"
+
+msgid "option %s needs a font name"
+msgstr "l'option %s demande un nom de police"
+
+msgid "Generate placeholder text."
+msgstr "Génère du texte de remplissage."
+
+msgid "how many units to produce (default: 3)"
+msgstr "nombre d'unités à produire (défaut : 3)"
+
+msgid "produce paragraphs (default)"
+msgstr "produit des paragraphes (défaut)"
+
+msgid "produce sentences"
+msgstr "produit des phrases"
+
+msgid "produce words"
+msgstr "produit des mots"
+
+msgid "language of the text (default: la)"
+msgstr "langue du texte (défaut : la)"
+
+msgid "seed the generator for reproducible output"
+msgstr "initialise le générateur pour une sortie reproductible"
+
+msgid "count must be at least 1"
+msgstr "le nombre doit valoir au moins 1"
+
+msgid "do not start with \"Lorem ipsum\""
+msgstr "ne pas commencer par « Lorem ipsum »"
+
+msgid "Convert an ISO date/time between IANA time zones."
+msgstr "Convertit une date/heure ISO entre fuseaux horaires IANA."
+
+msgid "ISO date/time, e.g. 2027-12-28T14:30 or 2027-12-28T14:30-02:00"
+msgstr "date/heure ISO, par ex. 2027-12-28T14:30 ou 2027-12-28T14:30-02:00"
+
+msgid "source IANA time zone; defaults to the destination zone"
+msgstr "fuseau IANA source ; par défaut, le fuseau de destination"
+
+msgid "destination IANA time zone (default: Europe/Paris)"
+msgstr "fuseau IANA de destination (défaut : Europe/Paris)"
+
+msgid ""
+"Convert .eml emails to PDF for an exhibit list. Each PDF starts with the\n"
+"full header block, then the body and the list of attachments."
+msgstr ""
+"Convertit des courriels .eml en PDF pour un bordereau de pièces. Chaque PDF commence\n"
+"par le bloc complet des en-têtes, puis le corps et la liste des pièces jointes."
+
+msgid "Rendering engines are detected in this order: wkhtmltopdf, weasyprint, chromium."
+msgstr "Les moteurs de rendu sont détectés dans cet ordre : wkhtmltopdf, weasyprint, chromium."
+
+msgid ".eml file or directory (default: current directory)"
+msgstr "fichier .eml ou répertoire (défaut : répertoire courant)"
+
+msgid "output directory for the PDFs"
+msgstr "répertoire de destination des PDF"
+
+msgid "overwrite existing PDFs"
+msgstr "écrase les PDF existants"
+
+msgid "write the .html files without converting them"
+msgstr "écrit les fichiers .html sans les convertir"
+
+msgid "also extract the attachments into a subdirectory"
+msgstr "extrait aussi les pièces jointes dans un sous-répertoire"
+
+msgid "wkhtmltopdf, weasyprint or chromium:BIN"
+msgstr "wkhtmltopdf, weasyprint ou chromium:BIN"
+
+msgid "target not found: {}"
+msgstr "cible introuvable : {}"
+
+msgid "No .eml file found."
+msgstr "Aucun fichier .eml trouvé."
+
+msgid ""
+"no PDF rendering engine found.\n"
+"Install one of:\n"
+"  sudo apt install wkhtmltopdf\n"
+"  pip install weasyprint\n"
+"  sudo apt install chromium-browser\n"
+"Or run again with --html-only to write only the HTML."
+msgstr ""
+"aucun moteur de rendu PDF détecté.\n"
+"Installez l'un des suivants :\n"
+"  sudo apt install wkhtmltopdf\n"
+"  pip install weasyprint\n"
+"  sudo apt install chromium-browser\n"
+"Ou relancez avec --html-only pour produire seulement le HTML."
+
+msgid "Rendering engine: {}"
+msgstr "Moteur de rendu : {}"
+
+msgid "  = already present: {}"
+msgstr "  = déjà présent : {}"
+
+msgid "  ! cannot read: {} ({})"
+msgstr "  ! lecture impossible : {} ({})"
+
+msgid " ({} attachments)"
+msgstr " ({} pj)"
+
+msgid ""
+"  ! failed: {}\n"
+"    {}"
+msgstr ""
+"  ! échec : {}\n"
+"    {}"
+
+msgid "==================== REPORT ===================="
+msgstr "==================== RAPPORT ===================="
+
+msgid "Converted ................ {}"
+msgstr "Convertis ................ {}"
+
+msgid "Already present .......... {}"
+msgstr "Déjà présents ............ {}"
+
+msgid "Failures ................. {}"
+msgstr "Échecs ................... {}"
+
+msgid ""
+"Then run copie-pieces.sh again: the new PDFs will be used\n"
+"automatically in place of the .eml files."
+msgstr ""
+"Relancez ensuite copie-pieces.sh : les nouveaux PDF seront\n"
+"repris automatiquement à la place des .eml."
+
+msgid ""
+"Usage: linto beta test [-h|--help]\n"
+"\n"
+"Print \"Beta Test\". Used to check that the beta group is wired up.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto beta test [-h|--help]\n"
+"\n"
+"Affiche « Beta Test ». Sert à vérifier que le groupe beta est bien branché.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid ""
+"Usage: linto launch zed [OPTIONS] [PATH]\n"
+"\n"
+"Open PATH in Zed. PATH may be a file or a directory.\n"
+"\n"
+"If PATH is a file, its parent directory is opened as the project and the\n"
+"file itself is opened as the focused buffer. If PATH is a directory, the\n"
+"directory is opened as the project.\n"
+"\n"
+"Options:\n"
+"  -p, --projectdir DIR     Project directory to open in Zed\n"
+"                           (overrides the directory derived from PATH).\n"
+"  -u, --userdatadir DIR    Root directory above \".zed\"; the user data dir is\n"
+"                           always \"$DIR/.zed\". Defaults to the project directory.\n"
+"                           Projects using the same root share this Zed data.\n"
+"  -r, --reuse              Open in an existing Zed window (default).\n"
+"  -n, --new                Always open a new workspace.\n"
+"  -h, --help               Show this help message and exit.\n"
+"\n"
+"Arguments:\n"
+"  PATH                     File or directory to open (default: ./).\n"
+"\n"
+"For a non-default user-data root, the first launch opens a temporary Zed window\n"
+"and waits for you to close it while initializing shared languages and extensions.\n"
+"Projects opened with the same --userdatadir share those components."
+msgstr ""
+"Usage: linto launch zed [OPTIONS] [CHEMIN]\n"
+"\n"
+"Ouvre CHEMIN dans Zed. CHEMIN peut être un fichier ou un répertoire.\n"
+"\n"
+"Si CHEMIN est un fichier, son répertoire parent est ouvert comme projet et le\n"
+"fichier lui-même comme tampon actif. Si CHEMIN est un répertoire, il est ouvert\n"
+"comme projet.\n"
+"\n"
+"Options :\n"
+"  -p, --projectdir RÉP     Répertoire de projet à ouvrir dans Zed\n"
+"                           (remplace celui déduit de CHEMIN).\n"
+"  -u, --userdatadir RÉP    Répertoire racine au-dessus de « .zed » ; les données\n"
+"                           utilisateur sont toujours dans « $RÉP/.zed ». Par défaut,\n"
+"                           le répertoire du projet. Les projets qui partagent la\n"
+"                           même racine partagent ces données Zed.\n"
+"  -r, --reuse              Ouvre dans une fenêtre Zed existante (défaut).\n"
+"  -n, --new                Ouvre toujours un nouvel espace de travail.\n"
+"  -h, --help               Affiche cette aide et quitte.\n"
+"\n"
+"Arguments :\n"
+"  CHEMIN                   Fichier ou répertoire à ouvrir (défaut : ./).\n"
+"\n"
+"Pour une racine de données autre que celle par défaut, le premier lancement\n"
+"ouvre une fenêtre Zed temporaire et attend sa fermeture pendant l'initialisation\n"
+"des langages et extensions partagés. Les projets ouverts avec le même\n"
+"--userdatadir partagent ces composants."
+
+msgid "Linto version is missing from config.yml; refusing shared-data initialization"
+msgstr "la version de Linto est absente de config.yml ; initialisation des données partagées refusée"
+
+msgid "refusing to replace invalid marker path: %s"
+msgstr "remplacement refusé du chemin de marqueur invalide : %s"
+
+msgid "refusing to replace non-directory data path: %s"
+msgstr "remplacement refusé du chemin de données qui n'est pas un répertoire : %s"
+
+msgid "refusing to replace existing symlink: %s"
+msgstr "remplacement refusé du lien symbolique existant : %s"
+
+msgid "refusing to remove unmarked local data path: %s (move it manually, or initialize from a clean .zed directory)"
+msgstr "suppression refusée du chemin de données local non marqué : %s (déplacez-le à la main, ou initialisez depuis un répertoire .zed vierge)"
+
+msgid "failed to write shared-data marker: %s"
+msgstr "écriture impossible du marqueur de données partagées : %s"
+
+msgid "Initializing shared Zed data in %s from %s..."
+msgstr "Initialisation des données Zed partagées dans %s depuis %s..."
+
+msgid ""
+"Usage: linto linto github [-h|--help]\n"
+"\n"
+"Open the GitHub repository of Linto.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto github [-h|--help]\n"
+"\n"
+"Ouvre le dépôt GitHub de Linto.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid ""
+"Usage: linto linto refresh [-h|--help]\n"
+"\n"
+"Refresh user-level group/command and shortcut wrappers, Fish completion, and\n"
+"man pages. Mutable generated files are written under the user's Linto data\n"
+"directory; the installation tree is read-only.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto refresh [-h|--help]\n"
+"\n"
+"Régénère les wrappers de groupes, de commandes et de raccourcis de l'utilisateur,\n"
+"la complétion Fish et les pages de manuel. Les fichiers générés sont écrits dans\n"
+"le répertoire de données Linto de l'utilisateur ; l'arbre d'installation reste\n"
+"en lecture seule.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid "dispatcher not executable: %s"
+msgstr "le répartiteur n'est pas exécutable : %s"
+
+msgid "config or config helper is missing"
+msgstr "config ou son outil est absent"
+
+msgid "mandown is required to generate topic man pages (run linto linto mdsetup)"
+msgstr "mandown est requis pour générer les pages de manuel des sujets (lancez linto linto mdsetup)"
+
+msgid "groff is required to validate topic man pages"
+msgstr "groff est requis pour valider les pages de manuel des sujets"
+
+msgid "guide directory not found: %s"
+msgstr "répertoire du guide introuvable : %s"
+
+msgid "generated wrapper name collision: %s"
+msgstr "collision de noms de wrappers générés : %s"
+
+msgid "refusing to replace non-file path: %s"
+msgstr "remplacement refusé du chemin qui n'est pas un fichier : %s"
+
+msgid "refusing to replace unrecognized path: %s"
+msgstr "remplacement refusé du chemin non reconnu : %s"
+
+msgid "invalid guide topic filename: %s"
+msgstr "nom de fichier de sujet du guide invalide : %s"
+
+msgid "Refreshed %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s)."
+msgstr "Actualisé : %d groupe(s) actif(s), wrappers, complétions, page de manuel du répartiteur et %d page(s) de manuel de sujets du guide."
+
+msgid ""
+"Usage: linto linto addgroup [-h|--help] DIRECTORY\n"
+"\n"
+"Register a command group. DIRECTORY may name an existing installed/user group\n"
+"or an outside directory, which is copied into the user's Linto data directory.\n"
+"Executable *.sh files are exposed through generated user-level wrappers.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto addgroup [-h|--help] RÉPERTOIRE\n"
+"\n"
+"Enregistre un groupe de commandes. RÉPERTOIRE peut désigner un groupe installé\n"
+"ou utilisateur existant, ou un répertoire extérieur, qui est copié dans le\n"
+"répertoire de données Linto de l'utilisateur. Les fichiers *.sh exécutables sont\n"
+"exposés par des wrappers générés au niveau utilisateur.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid "invalid or reserved group name: %s"
+msgstr "nom de groupe invalide ou réservé : %s"
+
+msgid "group directory already exists: %s"
+msgstr "le répertoire du groupe existe déjà : %s"
+
+msgid "installation configuration file not found: %s"
+msgstr "fichier de configuration de l'installation introuvable : %s"
+
+msgid "could not update user group configuration"
+msgstr "impossible de mettre à jour la configuration des groupes de l'utilisateur"
+
+msgid "Copied group directory: %s"
+msgstr "Répertoire du groupe copié : %s"
+
+msgid "Registered group %s with %d executable script(s)."
+msgstr "Groupe %s enregistré avec %d script(s) exécutable(s)."
+
+msgid "Available via: linto %s"
+msgstr "Disponible via : linto %s"
+
+msgid "directory"
+msgstr "répertoire"
+
+msgid ""
+"Usage: linto linto setup [--shell SHELL] [--man] [-h|--help]\n"
+"\n"
+"Configure Linto for the current user's shell by adding the package and\n"
+"user-generated command directories to PATH and installing shell completion.\n"
+"The invoking shell is detected automatically; use --shell to select one\n"
+"explicitly. Configuration lines are not duplicated. Use --man to also install\n"
+"the Linto man page.\n"
+"\n"
+"On NixOS, no files are changed; the matching NixOS options are printed instead.\n"
+"\n"
+"Supported shells: zsh, bash, fish, ksh, sh. Completion is installed for zsh,\n"
+"bash and fish; ksh and sh only get the PATH entries (ksh through ~/.kshrc,\n"
+"loaded via ENV from ~/.profile; sh through ~/.profile).\n"
+"\n"
+"Options:\n"
+"  --shell SHELL  Shell to configure (default: the invoking one).\n"
+"  --man          Also install the man page.\n"
+"  -h, --help     Show this help and exit."
+msgstr ""
+"Usage: linto linto setup [--shell SHELL] [--man] [-h|--help]\n"
+"\n"
+"Configure Linto pour le shell de l'utilisateur en ajoutant au PATH les\n"
+"répertoires de commandes du paquet et ceux générés pour l'utilisateur, et en\n"
+"installant la complétion. Le shell appelant est détecté automatiquement ;\n"
+"--shell permet d'en choisir un. Les lignes de configuration ne sont pas\n"
+"dupliquées. --man installe aussi la page de manuel de Linto.\n"
+"\n"
+"Sous NixOS, aucun fichier n'est modifié ; les options NixOS correspondantes\n"
+"sont affichées à la place.\n"
+"\n"
+"Shells pris en charge : zsh, bash, fish, ksh, sh. La complétion est installée\n"
+"pour zsh, bash et fish ; ksh et sh n'obtiennent que les entrées du PATH (ksh\n"
+"via ~/.kshrc, chargé par ENV depuis ~/.profile ; sh via ~/.profile).\n"
+"\n"
+"Options :\n"
+"  --shell SHELL  Shell à configurer (défaut : celui qui appelle).\n"
+"  --man          Installe aussi la page de manuel.\n"
+"  -h, --help     Affiche cette aide et quitte."
+
+msgid ""
+"This is NixOS: PATH and shell completion are managed declaratively, so no shell\n"
+"files were changed. Add Linto to your NixOS configuration instead:\n"
+"\n"
+"  imports = [ inputs.linto.nixosModules.default ];\n"
+"  programs.linto = {\n"
+"    enable = true;\n"
+"    # Optional system-wide settings, written to /etc/linto/linto.yml:\n"
+"    # settings.groups.quarto.configdata.extension = \"chris2fr/quarto\";\n"
+"  };\n"
+"\n"
+"The module installs the linto command, Bash/Fish/Zsh completions, and the\n"
+"runtime dependencies. Per-user settings stay in ~/.config/linto/config.yml."
+msgstr ""
+"Ceci est NixOS : le PATH et la complétion sont gérés de façon déclarative, donc\n"
+"aucun fichier de shell n'a été modifié. Ajoutez plutôt Linto à votre configuration NixOS :\n"
+"\n"
+"  imports = [ inputs.linto.nixosModules.default ];\n"
+"  programs.linto = {\n"
+"    enable = true;\n"
+"    # Réglages facultatifs pour tout le système, écrits dans /etc/linto/linto.yml :\n"
+"    # settings.groups.quarto.configdata.extension = \"chris2fr/quarto\";\n"
+"  };\n"
+"\n"
+"Le module installe la commande linto, les complétions Bash/Fish/Zsh et les\n"
+"dépendances d'exécution. Les réglages par utilisateur restent dans\n"
+"~/.config/linto/config.yml."
+
+msgid "unsupported shell '%s' (supported: zsh, bash, fish, ksh, sh)"
+msgstr "shell « %s » non pris en charge (pris en charge : zsh, bash, fish, ksh, sh)"
+
+msgid "dispatcher not found or not executable: %s"
+msgstr "répartiteur introuvable ou non exécutable : %s"
+
+msgid "could not update Zsh completion order in %s"
+msgstr "impossible de mettre à jour l'ordre de complétion Zsh dans %s"
+
+msgid "Configured Linto for %s in %s"
+msgstr "Linto configuré pour %s dans %s"
+
+msgid "Reload with: . %q"
+msgstr "Rechargez avec : . %q"
+
+msgid "Reload with: source %q"
+msgstr "Rechargez avec : source %q"
+
+msgid "Run linto linto addman or repeat with --man to install the man page."
+msgstr "Lancez linto linto addman ou recommencez avec --man pour installer la page de manuel."
+
+msgid ""
+"Usage: linto linto path [-h|--help]\n"
+"\n"
+"Print the absolute path to the Linto installation directory.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto path [-h|--help]\n"
+"\n"
+"Affiche le chemin absolu du répertoire d'installation de Linto.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid ""
+"Usage: linto linto addman [-h|--help]\n"
+"\n"
+"Generate and install the user's Linto man page in the XDG data directory.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto addman [-h|--help]\n"
+"\n"
+"Génère et installe la page de manuel de Linto de l'utilisateur dans le\n"
+"répertoire de données XDG.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid "generated man page not found: %s"
+msgstr "page de manuel générée introuvable : %s"
+
+msgid "refusing to replace existing symbolic link: %s"
+msgstr "remplacement refusé du lien symbolique existant : %s"
+
+msgid "refusing to replace existing file: %s"
+msgstr "remplacement refusé du fichier existant : %s"
+
+msgid "Man page already linked: %s"
+msgstr "Page de manuel déjà liée : %s"
+
+msgid "Linked %s -> %s"
+msgstr "Lien créé %s -> %s"
+
+msgid "If `man linto` is not found, add this to your shell configuration:"
+msgstr "Si `man linto` est introuvable, ajoutez ceci à la configuration de votre shell :"
+
+msgid ""
+"Usage: linto linto config [-h|--help] [--group GROUP [--command COMMAND] | --effective]\n"
+"                          [--edit] [--editor PROGRAM]\n"
+"\n"
+"Without options, print the user config directory and file. --group shows the\n"
+"selected group's effective configdata; --command includes command-level\n"
+"configdata. --effective prints the full configuration with defaults merged.\n"
+"With --edit, open config.yml with `linto launch zed`; --editor selects another\n"
+"executable instead. Editing creates an empty user override file if needed.\n"
+"\n"
+"Options:\n"
+"  -g, --group GROUP     Show the effective configdata of GROUP.\n"
+"  -c, --command NAME    With --group, include command-level configdata.\n"
+"      --effective       Print the full merged configuration.\n"
+"  -e, --edit            Open config.yml in an editor.\n"
+"      --editor PROGRAM  Editor program to use (implies --edit).\n"
+"  -h, --help            Show this help and exit."
+msgstr ""
+"Usage: linto linto config [-h|--help] [--group GROUPE [--command COMMANDE] | --effective]\n"
+"                          [--edit] [--editor PROGRAMME]\n"
+"\n"
+"Sans option, affiche le répertoire et le fichier de configuration de\n"
+"l'utilisateur. --group montre les configdata effectives du groupe choisi ;\n"
+"--command ajoute celles de la commande. --effective affiche toute la\n"
+"configuration, valeurs par défaut fusionnées. Avec --edit, ouvre config.yml avec\n"
+"`linto launch zed` ; --editor choisit un autre programme. L'édition crée au\n"
+"besoin un fichier de surcharge utilisateur vide.\n"
+"\n"
+"Options :\n"
+"  -g, --group GROUPE      Montre les configdata effectives de GROUPE.\n"
+"  -c, --command NOM       Avec --group, inclut les configdata de la commande.\n"
+"      --effective         Affiche toute la configuration fusionnée.\n"
+"  -e, --edit              Ouvre config.yml dans un éditeur.\n"
+"      --editor PROGRAMME  Éditeur à utiliser (implique --edit).\n"
+"  -h, --help              Affiche cette aide et quitte."
+
+msgid "--edit cannot be combined with --effective, --group, or --command"
+msgstr "--edit ne peut pas être combiné avec --effective, --group ou --command"
+
+msgid "--effective cannot be combined with --group or --command"
+msgstr "--effective ne peut pas être combiné avec --group ou --command"
+
+msgid "--command requires --group"
+msgstr "--command exige --group"
+
+msgid "editor not found: %s"
+msgstr "éditeur introuvable : %s"
+
+msgid "User config directory: %s"
+msgstr "Répertoire de configuration utilisateur : %s"
+
+msgid "User config file: %s"
+msgstr "Fichier de configuration utilisateur : %s"
+
+msgid ""
+"Usage: linto linto mdsetup [-h|--help]\n"
+"\n"
+"Install available Markdown viewers and mandown for Linto guide pages. Linto\n"
+"selects the first installed viewer in this order: md-tui, mdcat, mandown,\n"
+"glow, bat, mdfried, mdless. It falls back to plain cat when none is installed.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto mdsetup [-h|--help]\n"
+"\n"
+"Installe les visionneuses Markdown disponibles et mandown pour les pages du\n"
+"guide de Linto. Linto choisit la première visionneuse installée dans cet ordre :\n"
+"md-tui, mdcat, mandown, glow, bat, mdfried, mdless. À défaut, il utilise cat.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid "missing %s; install packages %s with pacman as root (sudo is unavailable)"
+msgstr "%s manquant ; installez les paquets %s avec pacman en tant que root (sudo est indisponible)"
+
+msgid "missing %s; install packages %s with apt-get as root (sudo is unavailable)"
+msgstr "%s manquant ; installez les paquets %s avec apt-get en tant que root (sudo est indisponible)"
+
+msgid "missing %s; install packages %s with dnf as root (sudo is unavailable)"
+msgstr "%s manquant ; installez les paquets %s avec dnf en tant que root (sudo est indisponible)"
+
+msgid "missing %s; install mdcat and mandown with your system package manager (or install mdcat with cargo)"
+msgstr "%s manquant ; installez mdcat et mandown avec le gestionnaire de paquets du système (ou mdcat avec cargo)"
+
+msgid "installation did not provide: %s"
+msgstr "l'installation n'a pas fourni : %s"
+
+msgid "Markdown viewer: %s"
+msgstr "Visionneuse Markdown : %s"
+
+msgid "No supported Markdown viewer is installed; Linto will use cat."
+msgstr "Aucune visionneuse Markdown prise en charge n'est installée ; Linto utilisera cat."
+
+msgid "Markdown prerequisites are already installed."
+msgstr "Les prérequis Markdown sont déjà installés."
+
+msgid "no Homebrew formula or Cargo available for mandown; install it separately."
+msgstr "aucune formule Homebrew ni Cargo disponible pour mandown ; installez-le séparément."
+
+msgid "install mandown with your system package manager."
+msgstr "installez mandown avec le gestionnaire de paquets du système."
+
+msgid "Markdown prerequisites are ready (mdcat, mandown)."
+msgstr "Les prérequis Markdown sont prêts (mdcat, mandown)."
+
+msgid ""
+"Usage: linto linto rmgroup [-h|--help] GROUP\n"
+"\n"
+"Disable a command group in the user's Linto configuration without deleting its\n"
+"installed or user data directory. Generated wrappers and completions are\n"
+"reconciled by refresh.\n"
+"\n"
+"Options:\n"
+"  -h, --help  Show this help and exit."
+msgstr ""
+"Usage: linto linto rmgroup [-h|--help] GROUPE\n"
+"\n"
+"Désactive un groupe de commandes dans la configuration Linto de l'utilisateur\n"
+"sans supprimer son répertoire installé ou utilisateur. Les wrappers et\n"
+"complétions générés sont réconciliés par refresh.\n"
+"\n"
+"Options :\n"
+"  -h, --help  Affiche cette aide et quitte."
+
+msgid "group directory not found: %s"
+msgstr "répertoire du groupe introuvable : %s"
+
+msgid "Unregistered group %s."
+msgstr "Groupe %s retiré."
+
+msgid "Group files left untouched: %s"
+msgstr "Fichiers du groupe laissés intacts : %s"
+
+msgid "group"
+msgstr "groupe"
+
+msgid "Install Linto shell aliases."
+msgstr "Installe les alias de shell de Linto."
+
+msgid "Target shell (defaults to the invoking shell; 'all' updates fish, bash, sh, ksh, and zsh)"
+msgstr "Shell cible (par défaut, celui qui appelle ; « all » met à jour fish, bash, sh, ksh et zsh)"
+
+msgid "could not load the Linto config helper"
+msgstr "impossible de charger l'outil de configuration de Linto"
+
+msgid "failed to read Linto configuration: {}"
+msgstr "lecture impossible de la configuration de Linto : {}"
+
+msgid "groups.linto.configdata.aliases must map names to command strings"
+msgstr "groups.linto.configdata.aliases doit associer des noms à des chaînes de commande"
+
+msgid "Aliases updated for {}: {}"
+msgstr "Alias mis à jour pour {} : {}"
+
+msgid "error updating aliases for {}"
+msgstr "erreur de mise à jour des alias pour {}"
+
+msgid "fish executable was not found on PATH"
+msgstr "l'exécutable fish est introuvable dans le PATH"
+
+msgid "could not save alias {}: {}"
+msgstr "enregistrement impossible de l'alias {} : {}"
+
+msgid "Generate random tokens or passwords."
+msgstr "Génère des jetons ou mots de passe aléatoires."
+
+msgid "token length (default: 32)"
+msgstr "longueur du jeton (défaut : 32)"
+
+msgid "how many tokens to print (default: 1)"
+msgstr "nombre de jetons à afficher (défaut : 1)"
+
+msgid "include upper-case letters (default: yes)"
+msgstr "inclut les majuscules (défaut : oui)"
+
+msgid "include lower-case letters (default: yes)"
+msgstr "inclut les minuscules (défaut : oui)"
+
+msgid "include digits (default: yes)"
+msgstr "inclut les chiffres (défaut : oui)"
+
+msgid "include symbols (default: no)"
+msgstr "inclut les symboles (défaut : non)"
+
+msgid "length must be at least 1"
+msgstr "la longueur doit valoir au moins 1"
+
+msgid "enable at least one character class"
+msgstr "activer au moins une classe de caractères"
+
+msgid "length must be at least the number of enabled classes ({})"
+msgstr "la longueur doit valoir au moins le nombre de classes activées ({})"
+
+msgid "Generate UUIDs."
+msgstr "Génère des UUID."
+
+msgid "how many UUIDs to print (default: 1)"
+msgstr "nombre d'UUID à afficher (défaut : 1)"
+
+msgid "UUID version: 1 (time and host), 4 (random) or 7 (time-ordered); default: 4"
+msgstr "version d'UUID : 1 (heure et machine), 4 (aléatoire) ou 7 (ordonné par l'heure) ; défaut : 4"
+
+msgid "print in upper case"
+msgstr "affiche en majuscules"
+
+msgid "print without hyphens"
+msgstr "affiche sans tirets"
+
+msgid "Percent-encode text for use in a URL."
+msgstr "Encode du texte en pourcentage pour une URL."
+
+msgid "characters to leave unencoded (default: none)"
+msgstr "caractères à ne pas encoder (défaut : aucun)"
+
+msgid "encode spaces as plus signs"
+msgstr "encode les espaces en signes plus"
+
+msgid "Decode percent-encoded text."
+msgstr "Décode du texte encodé en pourcentage."
+
+msgid "decode + as a space"
+msgstr "décode + en espace"
+
+msgid "text to convert (default: read standard input)"
+msgstr "texte à convertir (défaut : lit l'entrée standard)"
+
+msgid "no text: give TEXT or provide stdin"
+msgstr "aucun texte : indiquer TEXTE ou fournir stdin"
+
+msgid "not valid UTF-8 after decoding: {}"
+msgstr "UTF-8 invalide après décodage : {}"
+
+msgid "Encode text or data as Base64."
+msgstr "Encode du texte ou des données en Base64."
+
+msgid "Decode Base64 text."
+msgstr "Décode du texte Base64."
+
+msgid "use the URL-safe alphabet (- and _ instead of + and /)"
+msgstr "utilise l'alphabet adapté aux URL (- et _ au lieu de + et /)"
+
+msgid "omit the = padding"
+msgstr "omet le remplissage ="
+
+msgid "invalid Base64 input: {}"
+msgstr "entrée Base64 invalide : {}"
+
+msgid "Encode text as a QR code: write an image file and print the code as terminal art."
+msgstr "Encode du texte en code QR : écrit un fichier image et affiche le code en art de terminal."
+
+msgid "image file to write; the format follows the extension: png, svg, pdf, eps (default: qr.png)"
+msgstr "fichier image à écrire ; le format suit l'extension : png, svg, pdf, eps (défaut : qr.png)"
+
+msgid "error correction level L, M, Q or H (default: M)"
+msgstr "niveau de correction d'erreur L, M, Q ou H (défaut : M)"
+
+msgid "pixels per module in the image (default: 10)"
+msgstr "pixels par module dans l'image (défaut : 10)"
+
+msgid "quiet zone around the code, in modules (default: 4)"
+msgstr "zone de silence autour du code, en modules (défaut : 4)"
+
+msgid "print the terminal art only, write no file"
+msgstr "affiche seulement l'art de terminal, n'écrit aucun fichier"
+
+msgid "write the image only, print no terminal art"
+msgstr "écrit seulement l'image, n'affiche pas d'art de terminal"
+
+msgid "terminal art for a light terminal background"
+msgstr "art de terminal pour un fond de terminal clair"
+
+msgid "overwrite an existing image file"
+msgstr "écrase un fichier image existant"
+
+msgid "text to encode (default: read standard input)"
+msgstr "texte à encoder (défaut : lit l'entrée standard)"
+
+msgid "--scale must be at least 1 and --border at least 0"
+msgstr "--scale doit valoir au moins 1 et --border au moins 0"
+
+msgid "--no-image and --no-ascii cannot be combined"
+msgstr "--no-image et --no-ascii ne peuvent pas être combinés"
+
+msgid "nothing to encode"
+msgstr "rien à encoder"
+
+msgid "the Python module segno is required (pip install segno)"
+msgstr "le module Python segno est requis (pip install segno)"
+
+msgid "cannot encode the text: {}"
+msgstr "impossible d'encoder le texte : {}"
+
+msgid "refusing to overwrite {} (use --force)"
+msgstr "écrasement refusé de {} (utiliser --force)"
+
+msgid "cannot write {}: {}"
+msgstr "écriture impossible de {} : {}"
+
+msgid "wrote {}"
+msgstr "écrit {}"
+
+msgid "Read the QR codes found in image files and print their text."
+msgstr "Lit les codes QR trouvés dans des fichiers image et affiche leur texte."
+
+msgid "image file to read"
+msgstr "fichier image à lire"
+
+msgid "the Python module cv2 is required (pip install opencv-python-headless)"
+msgstr "le module Python cv2 est requis (pip install opencv-python-headless)"
+
+msgid "cannot read image: {}"
+msgstr "image illisible : {}"
+
+msgid "no QR code found in {}"
+msgstr "aucun code QR trouvé dans {}"
+
+msgid "Count down from a duration, then ring the terminal bell."
+msgstr "Décompte à partir d'une durée, puis sonne la cloche du terminal."
+
+msgid "seconds, M:SS, H:MM:SS, or units such as 90s, 5m, 1h30m"
+msgstr "secondes, M:SS, H:MM:SS, ou unités comme 90s, 5m, 1h30m"
+
+msgid "message printed when time is up (default: Time is up!)"
+msgstr "message affiché à la fin du décompte (défaut : Time is up!)"
+
+msgid "do not ring the bell"
+msgstr "ne pas sonner la cloche"
+
+msgid "invalid duration: {}"
+msgstr "durée invalide : {}"
+
+msgid "Time is up!"
+msgstr "Le temps est écoulé !"
+
+msgid "Count up from zero until interrupted with Ctrl-C, then print the elapsed time."
+msgstr "Compte à partir de zéro jusqu'à l'interruption par Ctrl-C, puis affiche le temps écoulé."
+
+msgid "press Enter to record a lap (needs a terminal)"
+msgstr "Entrée enregistre un tour (nécessite un terminal)"
+
+msgid "lap {}: {} (total {})"
+msgstr "tour {} : {} (total {})"

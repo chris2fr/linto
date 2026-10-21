@@ -13,7 +13,7 @@
 }:
 
 let
-  python = python3.withPackages (ps: [ ps.pyyaml ps.bibtexparser ]);
+  python = python3.withPackages (ps: [ ps.pyyaml ps.bibtexparser ps.segno ps.opencv4 ]);
   runtimeInputs = [
     bash
     coreutils
