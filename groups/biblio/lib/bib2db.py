@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""fr.bib -> fr.db.   Usage: fr_bib2db.py fr.bib fr.db [--apply] [--add-columns] [--prune]
+"""fr.bib -> fr.db.   Usage: bib2db.py fr.bib fr.db [--apply] [--prune] [--as-override]
 
-Default is a DRY RUN: it prints what would change and touches nothing.
-  --apply        write the changes (one transaction)
-  --add-columns  turn BibTeX fields that have no column yet into new TEXT columns (otherwise they abort the import)
-  --prune        delete rows whose key is not in the .bib (otherwise they are only reported)
-The markdown column is never read or written, except that a brand-new entry gets an empty markdown.
-Read-only fields (xpiecefond, xsourcefile, xpages, xmentiontelerecours) are ignored; edit the frontmatter JSON instead.
+Par défaut : SIMULATION (rien n'est écrit), la liste des changements est affichée champ par champ.
+  --apply        écrire les changements (une seule transaction)
+  --prune        supprimer les lignes dont la clé est absente du .bib (sinon : seulement signalées)
+  --as-override  une valeur modifiée dans le .bib pour un champ non surchargé devient une surcharge "bibtex"
+                 (la valeur de base est conservée); par défaut elle remplace la valeur de base.
+Règles : un champ déjà surchargé voit sa surcharge mise à jour; un champ supprimé du .bib reçoit une surcharge
+null (la valeur de base n'est jamais perdue); un champ inconnu devient une surcharge (il n'existe que dans le .bib).
+La colonne markdown n'est jamais lue ni modifiée (une entrée nouvelle reçoit un markdown vide).
+Les champs en lecture seule (xpiecefond, xsourcefile, xpages, xmentiontelerecours) sont ignorés.
 """
-import base64, json, re, sqlite3, sys
-
-STRUCT = {'n','id','entrytype','frontmatter','markdown','entry_order','bibtex_order'}
-RO = {'xpiecefond','xsourcefile','xpages','xmentiontelerecours'}
-DEFAULT_ORDER = 'key,frontmatter,markdown,bibtex'
+import base64, copy, json, os, re, sqlite3, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from frlib import BIBSET, RO, apply_bib, entry_from_bib, entry_to_row, order_like, put_field, reorder, row_to_entry, set_bibtex
 
 # ------------------------------------------------------------------ BibTeX parser (tolerant, no dependencies)
 def _braced(t, i):                       # t[i] == '{' ; returns (content, index after the closing brace)
@@ -85,86 +86,90 @@ def parse_bib(t):
     return entries
 
 # ------------------------------------------------------------------ import
-def reconcile(base, bibfields, ei):
-    keep = [f for f in base if f in ('ID', 'ENTRYTYPE') or f in bibfields]
-    return keep + [f for f in bibfields if f not in keep]
+ABSENT = object()
 
-def main(bibpath, dbpath, apply=False, add_columns=False, prune=False):
+def describe(old, new):
+    """Différences champ par champ entre deux entrées (markdown exclu)."""
+    out = []
+    for name in list(old) + [n for n in new if n not in old]:
+        if name in ('markdown', 'key'): continue
+        a, b = old.get(name, ABSENT), new.get(name, ABSENT)
+        if name == 'bibtex':
+            a = old.get(name) ; b = new.get(name)
+            a, b = a or {}, b or {}
+            for f in list(a) + [f for f in b if f not in a]:
+                if a.get(f, ABSENT) != b.get(f, ABSENT): out.append((f'bibtex.{f}', a.get(f, ABSENT), b.get(f, ABSENT)))
+        elif a != b:
+            out.append((name, a, b))
+    return out
+
+def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
     entries = parse_bib(open(bibpath, encoding='utf-8').read())
     db = sqlite3.connect(dbpath); db.row_factory = sqlite3.Row
-    info = db.execute('PRAGMA table_xinfo(pieces)').fetchall()
-    cols = [r['name'] for r in info if r['hidden'] == 0 and r['name'] not in STRUCT]
     rows = {r['id']: r for r in db.execute('SELECT * FROM pieces')}
-    seen, unknown, changes, new, ro_warn = set(), {}, [], [], []
+    seen, changes, new_rows, ro_warn = set(), [], [], []
     for typ, key, fields in entries:
-        if key in seen: sys.exit(f'duplicate key in .bib: {key}')
+        if key in seen: sys.exit(f'clé en double dans le .bib : {key}')
         seen.add(key)
-        bib, meta, names = {}, {}, []
+        meta, bibfields = None, []
         for f, v in fields:
-            if f == 'xdbmeta':
-                meta = json.loads(base64.b64decode(v).decode('utf-8'))
-            elif f in RO: bib.setdefault('_ro', {})[f] = v
-            elif f in STRUCT: sys.exit(f'ABORT: {key}: field "{f}" clashes with an internal column name')
-            elif f in cols or f in unknown.get(key, ()): bib[f] = v; names.append(f)
-            else: unknown.setdefault(key, []).append(f); bib[f] = v; names.append(f)
+            if f == 'xdbmeta': meta = json.loads(base64.b64decode(v).decode('utf-8'))
+            elif f in RO: ro_warn.append((key, f, v))
+            else: bibfields.append((f, v))
         r = rows.get(key)
-        has_meta = any(f == 'xdbmeta' for f, _ in fields)
         if r is None:
-            new.append((key, typ, bib, names, meta)); continue
-        ch = {}
-        if typ != r['entrytype']: ch['entrytype'] = (r['entrytype'], typ)
-        for c in cols:
-            if r[c] != bib.get(c): ch[c] = (r[c], bib.get(c))
-        for f in unknown.get(key, ()):
-            if bib.get(f) is not None: ch[f] = (None, bib[f])
-        for f, v in bib.get('_ro', {}).items():
-            if str(r[f]) != v: ro_warn.append((key, f, r[f], v))
-        # layout: keep the db's order for existing fields, append new ones; ENTRYTYPE/ID keep their place
-        if json.loads(r['bibtex_order']):
-            order = reconcile(json.loads(r['bibtex_order']), names, None)
-        else:                                          # wiped db: rebuild from the .bib (+ meta['ei'])
-            order = list(names); ei = meta.get('ei', len(order)); order[ei:ei] = ['ENTRYTYPE', 'ID']
-        if order != json.loads(r['bibtex_order']): ch['bibtex_order'] = (r['bibtex_order'], json.dumps(order))
-        if has_meta:
-            fm = json.dumps(meta.get('frontmatter', {}), ensure_ascii=False)
-            if fm != r['frontmatter']: ch['frontmatter'] = (r['frontmatter'], fm)
-            eo = meta.get('entry_order', DEFAULT_ORDER)
-            if eo != r['entry_order']: ch['entry_order'] = (r['entry_order'], eo)
-        if ch: changes.append((key, ch))
+            new_rows.append((key, entry_from_bib(key, typ, bibfields, meta, markdown=''))); continue
+        old = row_to_entry(r); old_order = json.loads(r['field_order'])
+        with_md = 'markdown' in old or not old_order
+        if meta is not None:
+            new = entry_from_bib(key, typ, bibfields, meta, markdown=r['markdown'] if with_md else None)
+            ov = dict(new.get('bibtex') or {})
+            for f in [f for f in old if f in BIBSET]:
+                if f not in new:                                   # champ supprimé du .bib : on garde la valeur de base
+                    put_field(new, f, old[f]); ov[f] = None
+                elif as_override and new[f] != old[f] and f not in meta.get('base', {}):
+                    ov[f] = new[f]; new[f] = old[f]                # modification -> surcharge
+            set_bibtex(new, reorder(ov, list(old.get('bibtex') or {})))   # l'ordre des surcharges ne change pas
+        else:
+            new = copy.deepcopy(old)
+            apply_bib(new, typ, bibfields, as_override)
+            if with_md and 'markdown' not in new: new['markdown'] = r['markdown']
+        if old_order: new = order_like(new, old)
+        row = entry_to_row(new)
+        upd = {c: v for c, v in row.items() if c not in ('markdown', 'id') and r[c] != v}
+        if upd: changes.append((key, old, new, upd))
     missing = [k for k in rows if k not in seen]
 
-    short = lambda v: (repr(v)[:70] + '…') if v is not None and len(repr(v)) > 70 else repr(v)
-    print(f'.bib: {len(entries)} entries | db: {len(rows)} rows')
-    print(f'  unchanged: {len(entries) - len(changes) - len(new)}   changed: {len(changes)}   new: {len(new)}   '
-          f'missing from .bib: {len(missing)}')
-    for key, ch in changes[:25]:
-        for c, (a, b) in ch.items(): print(f'  ~ {key}  {c}: {short(a)} -> {short(b)}')
-    if len(changes) > 25: print(f'  … {len(changes) - 25} more changed entries')
-    for key, *_ in new[:10]: print(f'  + new entry {key} (markdown will be empty)')
-    for k in missing[:10]: print(f'  - not in .bib: {k}' + ('  (will be deleted)' if prune else '  (kept)'))
-    for key, f, a, b in ro_warn[:10]: print(f'  ! read-only field {f} edited on {key} ({a!r} -> {b!r}): ignored, edit frontmatter instead')
-    newcols = sorted({f for fl in unknown.values() for f in fl})
-    if newcols and not add_columns:
-        sys.exit(f'ABORT: fields without a column: {newcols}. Re-run with --add-columns to create them.')
+    short = lambda v: '(absent)' if v is ABSENT else 'null (supprimé du .bib)' if v is None else (repr(v)[:70] + '…' if len(repr(v)) > 70 else repr(v))
+    print(f'.bib : {len(entries)} entrées | db : {len(rows)} lignes')
+    print(f'  inchangées : {len(entries) - len(changes) - len(new_rows)}   modifiées : {len(changes)}   '
+          f'nouvelles : {len(new_rows)}   absentes du .bib : {len(missing)}')
+    shown = 0
+    for key, old, new, upd in changes:
+        diffs = describe(old, new)
+        if not diffs and set(upd) == {'field_order'}: diffs = [('(ordre des champs)', None, None)]
+        for name, a, b in diffs:
+            if shown < 40: print(f'  ~ {key}  {name}: {short(a)} -> {short(b)}')
+            shown += 1
+    if shown > 40: print(f'  … {shown - 40} autres différences')
+    for key, _ in new_rows[:10]: print(f'  + entrée nouvelle {key} (markdown vide)')
+    for k in missing[:10]: print(f'  - absente du .bib : {k}' + ('  (sera supprimée)' if prune else '  (conservée)'))
+    for key, f, v in ro_warn:
+        if str(rows.get(key)[f] if key in rows else None) != v:
+            print(f'  ! champ en lecture seule {f} modifié sur {key} : ignoré')
     if not apply:
-        print('dry run: nothing written (use --apply)'); return
+        print('simulation : rien n\'a été écrit (utilisez --apply)'); return
     with db:
-        for c in newcols:
-            db.execute(f'ALTER TABLE pieces ADD COLUMN "{c}" TEXT'); cols.append(c)
-        for key, ch in changes:
-            sets = ', '.join(f'"{c}" = ?' for c in ch)
-            db.execute(f'UPDATE pieces SET {sets} WHERE id = ?', [b for _, b in ch.values()] + [key])
-        for key, typ, bib, names, meta in new:
-            order = list(names); ei = meta.get('ei', len(order)); order[ei:ei] = ['ENTRYTYPE', 'ID']
-            vals = {'id': key, 'entrytype': typ, 'markdown': '',
-                    'frontmatter': json.dumps(meta.get('frontmatter', {}), ensure_ascii=False),
-                    'entry_order': meta.get('entry_order', DEFAULT_ORDER), 'bibtex_order': json.dumps(order)}
-            vals.update({c: bib.get(c) for c in cols})
-            db.execute(f'INSERT INTO pieces ({",".join(chr(34)+c+chr(34) for c in vals)}) VALUES ({",".join("?"*len(vals))})', list(vals.values()))
+        for key, old, new, upd in changes:
+            sets = ', '.join(f'"{c}" = ?' for c in upd)
+            db.execute(f'UPDATE pieces SET {sets} WHERE id = ?', list(upd.values()) + [key])
+        for key, e in new_rows:
+            row = entry_to_row(e)
+            db.execute(f'INSERT INTO pieces ({",".join(row)}) VALUES ({",".join("?"*len(row))})', list(row.values()))
         if prune:
             for k in missing: db.execute('DELETE FROM pieces WHERE id = ?', (k,))
-    print('applied.')
+    print('appliqué.')
 
 if __name__ == '__main__':
     a = sys.argv[1:]
-    main(a[0], a[1], '--apply' in a, '--add-columns' in a, '--prune' in a)
+    main(a[0], a[1], '--apply' in a, '--prune' in a, '--as-override' in a)

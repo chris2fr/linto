@@ -7,9 +7,10 @@ usage() {
   cat <<EOF
 Usage: $0 [-h|--help] [-i[.bak]] <entrée.json>
 
-Reconstruit un fichier BibTeX à partir du champ bibtex du JSON. La clé de
-chaque entrée BibTeX est le nom de sa propriété dans le JSON (un éventuel ID
-dans le champ bibtex est ignoré).
+Reconstruit un fichier BibTeX à partir du JSON : champs BibTeX de premier
+niveau (ENTRYTYPE compris), remplacés par les surcharges du champ bibtex
+(null supprime le champ). La clé de chaque entrée BibTeX est le nom de sa
+propriété dans le JSON.
 Par défaut, écrit le résultat sur stdout. -i remplace l'entrée JSON par le BibTeX;
 -i.bak conserve une copie de l'entrée sous le nom <entrée.json>.bak.
 EOF
@@ -47,8 +48,7 @@ else
   output_tmp=
 fi
 
-jq -r 'to_entries[] | select(.value.bibtex == null) | .key' "$json_in" \
-  | sed 's/^/Ignorée (pas de champ bibtex) : /' >&2
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
 if [ "$in_place" -eq 1 ]; then
   exec_target=$output_tmp
@@ -56,18 +56,7 @@ else
   exec_target=/dev/stdout
 fi
 
-jq -r '
-  to_entries[]
-  | select(.value.bibtex != null)
-  | .key as $citekey
-  | .value.bibtex as $b
-  | "@\($b.ENTRYTYPE){\($citekey),\n"
-    + ([ $b | to_entries[]
-         | select(.key | IN("ENTRYTYPE","ID") | not)
-         | "  \(.key) = {\(.value | tostring | gsub("(?<!\\\\)%"; "\\%"))}" ]
-       | join(",\n"))
-    + "\n}\n"
-' "$json_in" > "$exec_target"
+python3 "$script_dir/lib/json2bib.py" "$json_in" > "$exec_target"
 
 if [ "$in_place" -eq 1 ]; then
   if [ -n "$backup_suffix" ]; then

@@ -53,9 +53,20 @@ done
 # files are intentionally relative to it. Locate the bibliography builder
 # relative to this script so the renderer can be launched from any directory.
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-# No YAML mappings is a valid project setup; the helper reports that there is
-# nothing to build and exits successfully in that case.
-"$script_dir/../biblio/bibyml2bib.sh"
+# Rebuild mappings when present. The biblio helper uses exit 1 for both the
+# expected no-mappings case and genuine generation failures, so only suppress
+# its specific no-mappings diagnostic.
+bib_output=$(
+  "$script_dir/../biblio/bibyml2bib.sh" 2>&1
+) || bib_status=$?
+bib_status=${bib_status:-0}
+if [ "$bib_status" -ne 0 ]; then
+  case "$bib_output" in
+    *'error: no _pieces-*.yml files found; provide BIBTEX_FILE YAML_FILE'*) ;;
+    *) printf '%s\n' "$bib_output" >&2; exit "$bib_status" ;;
+  esac
+fi
+[ -z "$bib_output" ] || printf '%s\n' "$bib_output"
 
 # Render explicit arguments, or every *.qmd in the caller's project root.
 if [ "$#" -eq 0 ]; then

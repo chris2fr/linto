@@ -2,16 +2,19 @@
 # linto-complete: opt -j,--json *.json Input JSON to complete
 # linto-complete: opt -o,--output *.json Output JSON file (default: stdout)
 # linto-complete: flag -i,-i.bak Replace the -j file in place (-i.bak keeps a backup)
+# linto-complete: flag --as-override Store a modified, non-overridden field as a "bibtex" override
 # linto-complete: arg 1 *.bib
 set -eu
 
 usage() {
   cat <<EOF
 Usage: $0 [-h|--help] [-j|--json entrée.json] [-o|--output sortie.json]
-          [-i[.bak]] [--] <fichier.bib>
+          [-i[.bak]] [--as-override] [--] <fichier.bib>
 
-Injecte les entrées BibTeX dans le champ bibtex des clés JSON existantes et
-crée une clé pour chaque entrée BibTeX absente du JSON (bibtex et frontmatter).
+Répercute les entrées BibTeX sur les clés JSON existantes et crée une clé pour
+chaque entrée BibTeX absente du JSON (champs au premier niveau). Champ déjà
+surchargé dans "bibtex" : la surcharge est mise à jour; sinon la valeur du
+premier niveau est mise à jour; champ disparu du BibTeX : surcharge null.
 Chaque enregistrement commence par "key", qui répète le nom de sa propriété.
 
 Options :
@@ -23,6 +26,9 @@ Options :
   -i                    Remplace le JSON d'entrée (-j est requis; incompatible
                         avec -o).
   -i.bak                Comme -i, en conservant une copie dans <entrée.json>.bak.
+  --as-override         Une valeur modifiée dans le BibTeX, pour un champ qui n'a
+                        pas encore de surcharge, devient une surcharge "bibtex"
+                        (la valeur du premier niveau est conservée).
   -h, --help            Affiche cette aide et quitte.
 EOF
 }
@@ -34,12 +40,14 @@ fail_usage() {
 }
 
 in_place=0
+as_override=
 backup_suffix=
 json_in=
 json_out=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
+    --as-override) as_override=1; shift ;;
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -j|--json|-o|--output)
@@ -86,74 +94,9 @@ if [ "$in_place" -eq 1 ]; then
   json_out=$output_tmp
 fi
 
-# une seule fois
-# python3 -m pip install bibtexparser
-
-# pip install bibtexparser
-
-python3 - "$bib" "$json_in" "$json_out" <<'PY'
-import json, sys, bibtexparser
-from bibtexparser.bparser import BibTexParser
-
-bib_path, json_in, json_out = sys.argv[1:4]
-
-parser = BibTexParser(
-    common_strings=True,
-    ignore_nonstandard_types=False,   # accepte @misc, @article, ...
-    homogenize_fields=False,          # conserve xtype, xtheme, xcounter...
-)
-parser.customization = None
-
-with open(bib_path) as f:
-    bib = bibtexparser.load(f, parser=parser)
-
-by_id = {entry['ID']: entry for entry in bib.entries}
-
-if not json_in:
-    data = {}
-else:
-    with open(json_in) as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        raise SystemExit(f"Le JSON doit contenir un objet indexé par clé : {json_in}")
-
-normalize = lambda entry: {k: v.replace('\\%', '%') if isinstance(v, str) else v
-                           for k, v in entry.items() if k != 'ID'}
-
-# Refresh entries already represented in JSON without disturbing their other fields.
-for key, entry in data.items():
-    if key in by_id:
-        entry['bibtex'] = normalize(by_id[key])
-
-# Add bibliography entries absent from JSON. These are new records, so their
-# frontmatter starts as an independent copy of the normalized BibTeX fields.
-created = []
-for key, bib_entry in by_id.items():
-    if key not in data:
-        fields = normalize(bib_entry)
-        data[key] = {'bibtex': fields, 'frontmatter': fields.copy()}
-        created.append(key)
-
-# Every record starts with "key": its own property name, so it stays
-# identifiable once taken out of the mapping.
-for key, entry in data.items():
-    if isinstance(entry, dict):
-        data[key] = {'key': key, **{name: value for name, value in entry.items() if name != 'key'}}
-
-to_stdout = not json_out
-if to_stdout:
-    json.dump(data, sys.stdout, indent=2, ensure_ascii=False)
-    sys.stdout.write('\n')
-else:
-    with open(json_out, 'w') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-if created:
-    report = sys.stderr if to_stdout else sys.stdout
-    print(f"Nouvelles clés créées depuis {bib_path} :", file=report)
-    for key in created:
-        print("  -", key, file=report)
-PY
+# prérequis, une seule fois : python3 -m pip install bibtexparser
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+python3 "$script_dir/lib/bib2json.py" "$bib" "$json_in" "$json_out" "$as_override"
 
 if [ "$in_place" -eq 1 ]; then
   if [ -n "$backup_suffix" ]; then
