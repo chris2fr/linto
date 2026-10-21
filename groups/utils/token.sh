@@ -1,6 +1,7 @@
 #!/bin/sh
 # linto-complete: opt -l,--length value Token length (default: 32)
 # linto-complete: opt -n,--count value How many tokens to print (default: 1)
+# linto-complete: opt -f,--format value Character classes: u l n s (default: uln)
 # linto-complete: flag --upper Include upper-case letters (default)
 # linto-complete: flag --no-upper Leave out upper-case letters
 # linto-complete: flag --lower Include lower-case letters (default)

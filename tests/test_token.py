@@ -28,5 +28,31 @@ class TokenTests(unittest.TestCase):
         self.assertFalse(set("".join(chosen)) & set(token.SYMBOLS))
 
 
+class FormatTests(unittest.TestCase):
+    def run_token(self, *args):
+        import subprocess
+        return subprocess.run([str(ROOT / "bin" / "linto"), "utils", "token", "-l", "40", *args],
+                              capture_output=True, text=True)
+
+    def test_default_is_uln(self):
+        out = self.run_token().stdout.strip()
+        self.assertTrue(set(out) <= set(string.ascii_letters + string.digits))
+        self.assertTrue(any(c.isupper() for c in out) and any(c.islower() for c in out))
+
+    def test_format_letters(self):
+        out = self.run_token("-f", "s").stdout.strip()
+        self.assertTrue(set(out) <= set(token.SYMBOLS))
+        out = self.run_token("-f", "ul").stdout.strip()
+        self.assertTrue(out.isalpha())
+
+    def test_flags_override_format(self):
+        out = self.run_token("-f", "uln", "--no-upper", "--symbols").stdout.strip()
+        self.assertFalse(any(c.isupper() for c in out))
+        self.assertTrue(any(c in token.SYMBOLS for c in out))
+
+    def test_unknown_letter_is_rejected(self):
+        self.assertEqual(self.run_token("-f", "x").returncode, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1703,18 +1703,6 @@ msgstr "longueur du jeton (défaut : 32)"
 msgid "how many tokens to print (default: 1)"
 msgstr "nombre de jetons à afficher (défaut : 1)"
 
-msgid "include upper-case letters (default: yes)"
-msgstr "inclut les majuscules (défaut : oui)"
-
-msgid "include lower-case letters (default: yes)"
-msgstr "inclut les minuscules (défaut : oui)"
-
-msgid "include digits (default: yes)"
-msgstr "inclut les chiffres (défaut : oui)"
-
-msgid "include symbols (default: no)"
-msgstr "inclut les symboles (défaut : non)"
-
 msgid "length must be at least 1"
 msgstr "la longueur doit valoir au moins 1"
 
@@ -1873,3 +1861,21 @@ msgstr "Entrée enregistre un tour (nécessite un terminal)"
 
 msgid "lap {}: {} (total {})"
 msgstr "tour {} : {} (total {})"
+
+msgid "character classes to use, among u (upper case), l (lower case), n (numbers), s (symbols) (default: uln)"
+msgstr "classes de caractères à utiliser, parmi u (majuscules), l (minuscules), n (chiffres), s (symboles) (défaut : uln)"
+
+msgid "include upper-case letters (overrides --format)"
+msgstr "inclut les majuscules (prime sur --format)"
+
+msgid "include lower-case letters (overrides --format)"
+msgstr "inclut les minuscules (prime sur --format)"
+
+msgid "include digits (overrides --format)"
+msgstr "inclut les chiffres (prime sur --format)"
+
+msgid "include symbols (overrides --format)"
+msgstr "inclut les symboles (prime sur --format)"
+
+msgid "unknown format letter(s): {} (use u, l, n, s)"
+msgstr "lettre(s) de format inconnue(s) : {} (utiliser u, l, n, s)"
