@@ -7,14 +7,13 @@ groups:
     configdata:
       aliases:
         zz: "linto launch zed"
+        cb: "flatpak run app.getclipboard.Clipboard"
   quarto: default
   utils: default
   old:
     enable: false
 shortcuts:
-  prettyprint: "utils prettyprint"
-  stripaccents: "utils stripaccents"
+  pp: "utils prettyprint"
   slug: "utils stripaccents"
-  qrencode: "utils qrencode"
-  qrdecode: "utils qrdecode"
   guillemets2quotes: "quarto guillemets2quotes"
+  zz: "launch zed"
