@@ -5,92 +5,62 @@
 set -eu
 
 usage() {
-  cat <<'EOF'
-Usage: bib2awk.sh [-t THEME] [-f FORMAT] [--] FILE.bib
+  cat <<EOF
+Usage: linto bib $prog [-h|--help] [-t THÈME] [-f FORMAT] [--] <fichier.bib>
 
-Extract BibTeX fields using the selected output handler:
-  csv   semicolon-separated CSV (default)
-  sed   shell commands for replacing howpublished with publisher
-  bibs  write one JSON file per entry under ./bib/
+Extrait les champs BibTeX avec le gestionnaire de sortie choisi :
+  csv   CSV séparé par des points-virgules (défaut)
+  sed   commandes shell remplaçant howpublished par publisher
+  bibs  un fichier JSON par entrée dans ./bib/
 
-Options:
-  -t, --theme THEME   Keep entries whose keywords match THEME (comma-separated).
-  -f, --format FORMAT Select a handler name (csv, sed, bibs), or a legacy number (1, 2, 3).
-  -h, --help          Show this help and exit.
+Options :
+  -t, --theme THÈME     Garde les entrées dont les mots-clés correspondent à
+                        THÈME (séparés par des virgules).
+  -f, --format FORMAT   Nom du gestionnaire (csv, sed, bibs) ou ancien numéro
+                        (1, 2, 3).
+  -h, --help            Affiche cette aide et quitte.
 
-Formats 1 and 2 write to standard output. Format 3 writes JSON files in the
-current directory. GNU awk (gawk) is required.
+Les formats 1 et 2 écrivent sur stdout; le format 3 écrit des fichiers JSON
+dans le répertoire courant. GNU awk (gawk) est requis.
 EOF
 }
 
-fail() {
-  printf 'bib2awk: %s\n' "$*" >&2
-  exit 1
-}
+. "$(dirname -- "$0")/lib/common.sh"
 
 theme=
 format=1
 input=
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    -t|--theme)
-      [ "$#" -ge 2 ] || { echo 'bib2awk: --theme requires a value' >&2; exit 2; }
-      theme=$2
+    -h|--help) usage; exit 0 ;;
+    -t|--theme|-f|--format)
+      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert un argument"
+      case "$1" in -t|--theme) theme=$2 ;; *) format=$2 ;; esac
       shift 2
       ;;
-    --theme=*)
-      theme=${1#*=}
-      shift
-      ;;
-    -f|--format)
-      [ "$#" -ge 2 ] || { echo 'bib2awk: --format requires a value' >&2; exit 2; }
-      format=$2
-      shift 2
-      ;;
-    --format=*)
-      format=${1#*=}
-      shift
-      ;;
-    --)
-      shift
-      while [ "$#" -gt 0 ]; do
-        [ -z "$input" ] || { echo 'bib2awk: only one input file may be supplied' >&2; exit 2; }
-        input=$1
-        shift
-      done
-      ;;
-    -* )
-      printf 'bib2awk: unknown option: %s\n' "$1" >&2
-      usage >&2
-      exit 2
-      ;;
-    *)
-      [ -z "$input" ] || { echo 'bib2awk: only one input file may be supplied' >&2; exit 2; }
-      input=$1
-      shift
-      ;;
+    --theme=*) theme=${1#*=}; shift ;;
+    --format=*) format=${1#*=}; shift ;;
+    --) shift; break ;;
+    -?*) die_usage "option inconnue : $1" ;;
+    *) break ;;
   esac
 done
+[ "$#" -eq 1 ] || die_usage "un seul fichier BibTeX est attendu"
+input=$1
 
-[ -n "$input" ] || { usage >&2; exit 2; }
-[ -f "$input" ] && [ -r "$input" ] || fail "input file absent or unreadable: $input"
+require_file "fichier BibTeX" "$input"
 case "$format" in
   1|csv) format=csv ;;
   2|sed) format=sed ;;
   3|bibs) format=bibs ;;
-  *) printf 'bib2awk: invalid format: %s\n' "$format" >&2; exit 2 ;;
+  *) die_usage "format invalide : $format (attendu : csv, sed ou bibs)" ;;
 esac
-command -v gawk >/dev/null 2>&1 || fail 'GNU awk (gawk) is required'
+require_cmd gawk
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 lib_dir="$script_dir/lib"
 awk_file="$lib_dir/bib2awk/$format.awk"
-[ -r "$lib_dir/bib2awk.awk" ] || fail "AWK parser not found: $lib_dir/bib2awk.awk"
-[ -r "$awk_file" ] || fail "unknown or unreadable output format: $format ($awk_file)"
+[ -r "$lib_dir/bib2awk.awk" ] || die "analyseur AWK introuvable : $lib_dir/bib2awk.awk"
+[ -r "$awk_file" ] || die "format de sortie inconnu ou illisible : $format ($awk_file)"
 input_path=$(CDPATH= cd -- "$(dirname -- "$input")" && pwd -P)/$(basename -- "$input")
 cd "$lib_dir"
 if [ "$format" = bibs ]; then

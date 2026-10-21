@@ -7,55 +7,40 @@
 set -eu
 
 usage() {
-  cat <<'EOF2'
-Usage: bib2db.sh [--apply] [--prune] [--as-override] <fichier.bib> <fichier.db>
+  cat <<EOF
+Usage: linto bib $prog [-h|--help] [--apply] [--prune] [--as-override] [--]
+          <fichier.bib> <fichier.db>
 
-Compare a BibTeX file with the SQLite pieces table. By default, show the
-changes field by field without writing anything.
+Compare un fichier BibTeX avec la table SQLite « pieces ». Par défaut,
+affiche les changements champ par champ sans rien écrire.
 
 Options :
-  --apply        Apply the changes.
-  --prune        Delete database rows whose keys are absent from the BibTeX file.
-  --as-override  A value modified in the BibTeX file for a field that has no
-                 override yet is stored as a "bibtex" override, the base value
-                 being kept (default: it replaces the base value).
-  -h, --help     Show this help and exit.
+  --apply        Applique les changements.
+  --prune        Supprime les lignes dont la clé est absente du BibTeX.
+  --as-override  Une valeur modifiée dans le BibTeX, pour un champ qui n'a pas
+                 encore de surcharge, devient une surcharge "bibtex" (la valeur
+                 de base est conservée; par défaut, elle remplace la base).
+  -h, --help     Affiche cette aide et quitte.
 
-A field removed from the BibTeX file gets a null override (its base value is
-kept). A field unknown to the schema becomes an override too.
-EOF2
+Un champ disparu du BibTeX reçoit une surcharge null (sa valeur de base est
+conservée). Un champ inconnu du schéma devient aussi une surcharge.
+EOF
 }
 
-bib=
-db=
+. "$(dirname -- "$0")/lib/common.sh"
+
 flags=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --apply|--prune|--as-override) flags="$flags $1"; shift ;;
-    --)
-      shift
-      while [ "$#" -gt 0 ]; do
-        if [ -z "$bib" ]; then bib=$1
-        elif [ -z "$db" ]; then db=$1
-        else echo 'bib2db: trop d’arguments' >&2; usage >&2; exit 2
-        fi
-        shift
-      done
-      ;;
-    -*) echo "bib2db: option inconnue : $1" >&2; usage >&2; exit 2 ;;
-    *)
-      if [ -z "$bib" ]; then bib=$1
-      elif [ -z "$db" ]; then db=$1
-      else echo 'bib2db: trop d’arguments' >&2; usage >&2; exit 2
-      fi
-      shift
-      ;;
+    --) shift; break ;;
+    -?*) die_usage "option inconnue : $1" ;;
+    *) break ;;
   esac
 done
+[ "$#" -eq 2 ] || die_usage "deux arguments sont attendus : fichier.bib et fichier.db"
+require_file "fichier BibTeX" "$1"
 
-[ -n "$bib" ] && [ -n "$db" ] || { usage >&2; exit 2; }
-
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 # shellcheck disable=SC2086
-exec python3 "$script_dir/lib/bib2db.py" "$bib" "$db" $flags
+exec python3 "$script_dir/lib/bib2db.py" "$1" "$2" $flags

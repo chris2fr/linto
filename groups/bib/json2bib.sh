@@ -5,69 +5,45 @@ set -eu
 
 usage() {
   cat <<EOF
-Usage: $0 [-h|--help] [-i[.bak]] <entrée.json>
+Usage: linto bib $prog [-h|--help] [-i[.bak]] [--] <entrée.json>
 
 Reconstruit un fichier BibTeX à partir du JSON : champs BibTeX de premier
 niveau (ENTRYTYPE compris), remplacés par les surcharges du champ bibtex
 (null supprime le champ). La clé de chaque entrée BibTeX est le nom de sa
 propriété dans le JSON.
-Par défaut, écrit le résultat sur stdout. -i remplace l'entrée JSON par le BibTeX;
--i.bak conserve une copie de l'entrée sous le nom <entrée.json>.bak.
+
+Options :
+  -i           Remplace le JSON d'entrée par le BibTeX.
+  -i.bak       Comme -i, en conservant une copie dans <entrée.json>.bak.
+  -h, --help   Affiche cette aide et quitte.
+
+Par défaut, le résultat est écrit sur stdout.
 EOF
 }
 
+. "$(dirname -- "$0")/lib/common.sh"
+
 in_place=0
 backup_suffix=
-case "${1-}" in
-  -h|--help) usage; exit 0 ;;
-  -i) in_place=1; shift ;;
-  -i.bak) in_place=1; backup_suffix=.bak; shift ;;
-  --) shift ;;
-  -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
-esac
-if [ "$#" -ne 1 ]; then
-  usage >&2
-  exit 2
-fi
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -i) in_place=1; shift ;;
+    -i.bak) in_place=1; backup_suffix=.bak; shift ;;
+    --) shift; break ;;
+    -?*) die_usage "option inconnue : $1" ;;
+    *) break ;;
+  esac
+done
+[ "$#" -eq 1 ] || die_usage "un seul fichier JSON est attendu"
 
 json_in=$1
-[ -f "$json_in" ] && [ -r "$json_in" ] || {
-  echo "$0: fichier JSON absent ou illisible : $json_in" >&2
-  exit 1
-}
-if [ "$in_place" -eq 1 ] && [ -L "$json_in" ]; then
-  echo "$0: refus de remplacer un lien symbolique : $json_in" >&2
-  exit 1
-fi
+require_file "fichier JSON" "$json_in"
 
 if [ "$in_place" -eq 1 ]; then
-  output_dir=$(CDPATH= cd -- "$(dirname -- "$json_in")" && pwd -P)
-  output_tmp=$(mktemp "$output_dir/.json2bib.XXXXXX")
-  trap 'rm -f -- "$output_tmp"' EXIT HUP INT TERM
+  inplace_begin "$json_in"
+  python3 "$script_dir/lib/json2bib.py" "$json_in" > "$output_tmp"
+  inplace_commit "$json_in" "$backup_suffix"
 else
-  output_tmp=
-fi
-
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-
-if [ "$in_place" -eq 1 ]; then
-  exec_target=$output_tmp
-else
-  exec_target=/dev/stdout
-fi
-
-python3 "$script_dir/lib/json2bib.py" "$json_in" > "$exec_target"
-
-if [ "$in_place" -eq 1 ]; then
-  if [ -n "$backup_suffix" ]; then
-    backup_path="$json_in$backup_suffix"
-    [ ! -e "$backup_path" ] && [ ! -L "$backup_path" ] || {
-      echo "$0: refus d'écraser la sauvegarde existante : $backup_path" >&2
-      exit 1
-    }
-    cp -p -- "$json_in" "$backup_path"
-  fi
-  chmod --reference="$json_in" "$output_tmp"
-  mv -f -- "$output_tmp" "$json_in"
-  trap - EXIT HUP INT TERM
+  python3 "$script_dir/lib/json2bib.py" "$json_in"
 fi

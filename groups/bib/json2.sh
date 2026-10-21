@@ -5,7 +5,7 @@ set -eu
 
 usage() {
   cat <<USAGE
-Usage: $0 [-h|--help] [-s|--sort] [<fichier.json>]
+Usage: linto bib $prog [-h|--help] [-s|--sort] [--] [<fichier.json>]
 
 Liste les propriétés de premier niveau d'un fichier JSON, une par ligne, dans
 l'ordre du fichier. Sans fichier (ou avec « - »), lit stdin.
@@ -16,26 +16,26 @@ Options :
 USAGE
 }
 
+. "$(dirname -- "$0")/lib/common.sh"
+
 keys='keys_unsorted'
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -s|--sort) keys='keys'; shift ;;
     --) shift; break ;;
-    -?*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
+    -?*) die_usage "option inconnue : $1" ;;
     *) break ;;
   esac
 done
-[ "$#" -le 1 ] || { usage >&2; exit 2; }
+[ "$#" -le 1 ] || die_usage "au plus un fichier JSON est attendu"
 
 input=${1--}
 if [ "$input" != - ]; then
-  [ -f "$input" ] && [ -r "$input" ] || {
-    echo "$0: fichier JSON absent ou illisible : $input" >&2
-    exit 1
-  }
+  require_file "fichier JSON" "$input"
 fi
 
+require_cmd jq
 filter="if type == \"object\" then $keys[] else error(\"le JSON doit être un objet\") end"
 if [ "$input" = - ]; then
   exec jq -r "$filter"

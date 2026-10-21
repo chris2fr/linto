@@ -4,17 +4,27 @@
 set -eu
 
 usage() {
-  cat <<'EOF'
-Usage: db2json.sh <entrée.db> <sortie.json>
+  cat <<EOF
+Usage: linto bib $prog [-h|--help] [--] <entrée.db> <sortie.json>
 
-Export the SQLite pieces table to JSON.
+Exporte la table SQLite « pieces » en JSON.
+
+Options :
+  -h, --help   Affiche cette aide et quitte.
 EOF
 }
 
-case "${1-}" in
-  -h|--help) usage; exit 0 ;;
-esac
-[ "$#" -eq 2 ] || { usage >&2; exit 2; }
+. "$(dirname -- "$0")/lib/common.sh"
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --) shift; break ;;
+    -?*) die_usage "option inconnue : $1" ;;
+    *) break ;;
+  esac
+done
+[ "$#" -eq 2 ] || die_usage "deux arguments sont attendus : entrée.db et sortie.json"
+require_file "fichier SQLite" "$1"
+
 exec python3 "$script_dir/lib/db2json.py" "$1" "$2"

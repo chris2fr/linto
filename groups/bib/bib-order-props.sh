@@ -12,70 +12,56 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-Usage: $0 [-i[.bak]] [-o|--order FIELD,...]... [-h|--help] [--] <file.bib>
+Usage: linto bib $prog [-h|--help] [-i[.bak]] [-o|--order CHAMP,...]... [--]
+          <fichier.bib>
 
-Sort properties in every BibTeX entry. Properties are alphabetical by default.
-Specify preferred properties with repeatable -o/--order options; commas may
-separate multiple properties. Unspecified properties follow alphabetically.
+Trie les propriétés de chaque entrée BibTeX, par ordre alphabétique par
+défaut. Les options répétables -o/--order désignent les propriétés à placer en
+premier; des virgules peuvent séparer plusieurs propriétés. Les autres
+suivent par ordre alphabétique.
 
-Only entries with one single-line property per line are supported. The script
-fails without changing the input if it encounters unsupported or ambiguous
-entry syntax (including multiline values, comments or directives inside an
-entry, duplicate fields, or unbalanced delimiters).
+Seules les entrées à une propriété par ligne, avec une valeur sur une seule
+ligne, sont prises en charge. Le script échoue sans modifier l'entrée devant
+une syntaxe non prise en charge ou ambiguë (valeur sur plusieurs lignes,
+commentaire ou directive dans une entrée, champ en double, délimiteurs
+déséquilibrés).
 
-Options:
-  -i                            Replace the input file in place.
-  -i.bak                        Replace in place, saving the original as FILE.bak.
-  -o, --order FIELD[,FIELD...]  Put these fields first, in the specified order.
-  -h, --help                    Show this help and exit.
+Options :
+  -i                            Remplace le fichier d'entrée.
+  -i.bak                        Comme -i, en conservant l'original dans FICHIER.bak.
+  -o, --order CHAMP[,CHAMP...]  Place ces champs en premier, dans cet ordre.
+  -h, --help                    Affiche cette aide et quitte.
 
-By default, the sorted result is written to standard output and the input is
-left unchanged.
+Par défaut, le résultat trié est écrit sur stdout et l'entrée reste inchangée.
 EOF
 }
+
+. "$(dirname -- "$0")/lib/common.sh"
 
 orders=()
 in_place=0
 backup_suffix=
-input=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     -i) in_place=1; shift ;;
     -i.bak) in_place=1; backup_suffix=.bak; shift ;;
     -o|--order)
-      [ "$#" -ge 2 ] || { echo "error: $1 requires a field list" >&2; exit 2; }
+      [ "$#" -ge 2 ] || die_usage "l'option $1 requiert une liste de champs"
       orders+=("$2")
       shift 2
       ;;
     --order=*) orders+=("${1#*=}"); shift ;;
     -o?*) orders+=("${1#-o}"); shift ;;
-    --)
-      shift
-      while [ "$#" -gt 0 ]; do
-        [ -z "$input" ] || { echo "error: only one input file may be supplied" >&2; exit 2; }
-        input=$1
-        shift
-      done
-      ;;
-    -* ) echo "error: unknown option: $1" >&2; usage >&2; exit 2 ;;
-    *)
-      [ -z "$input" ] || { echo "error: only one input file may be supplied" >&2; exit 2; }
-      input=$1
-      shift
-      ;;
+    --) shift; break ;;
+    -?*) die_usage "option inconnue : $1" ;;
+    *) break ;;
   esac
 done
+[ "$#" -eq 1 ] || die_usage "un seul fichier BibTeX est attendu"
+input=$1
 
-if [ -z "$input" ]; then usage >&2; exit 2; fi
-if [ ! -f "$input" ] || [ ! -r "$input" ]; then
-  echo "$0: input file absent or unreadable: $input" >&2
-  exit 1
-fi
-if [ "$in_place" -eq 1 ] && [ -L "$input" ]; then
-  echo "$0: refusing to replace a symbolic link: $input" >&2
-  exit 1
-fi
+require_file "fichier BibTeX" "$input"
 
 order_list=
 separator=$(printf '\037')
@@ -84,11 +70,10 @@ for field_list in "${orders[@]}"; do
   IFS=',' read -r -a fields <<< "$field_list"
   for field in "${fields[@]}"; do
     field=${field//[[:space:]]/}
-    [ -n "$field" ] || { echo "error: field names in --order cannot be empty" >&2; exit 2; }
+    [ -n "$field" ] || die_usage "les noms de champs de --order ne peuvent pas être vides"
     normalized_field=${field,,}
     if [[ -v seen_fields[$normalized_field] ]]; then
-      echo "error: duplicate field in --order: $field" >&2
-      exit 2
+      die_usage "champ en double dans --order : $field"
     fi
     seen_fields[$normalized_field]=1
     [ -z "$order_list" ] || order_list+=$separator
@@ -96,8 +81,12 @@ for field_list in "${orders[@]}"; do
   done
 done
 
-output_tmp=$(mktemp "${input}.tmp.XXXXXX")
-trap 'rm -f -- "$output_tmp"' EXIT
+if [ "$in_place" -eq 1 ]; then
+  inplace_begin "$input"
+else
+  output_tmp=$(mktemp)
+  trap 'rm -f -- "$output_tmp"' EXIT HUP INT TERM
+fi
 
 # Parse and validate the entire file before the temporary output is installed.
 if ! awk -v order_list="$order_list" '
@@ -207,27 +196,14 @@ if ! awk -v order_list="$order_list" '
     if (in_entry && !failed) fail("unterminated entry")
   }
 ' "$input" > "$output_tmp"; then
-  echo "$0: refusing to replace input because parsing/validation failed: $input" >&2
-  exit 1
+  die "analyse ou validation échouée, entrée inchangée : $input"
 fi
 
-if [ ! -s "$output_tmp" ]; then
-  echo "$0: no output generated for: $input" >&2
-  exit 1
-fi
+[ -s "$output_tmp" ] || die "aucune sortie générée pour : $input"
 if [ "$in_place" -eq 0 ]; then
   cat -- "$output_tmp"
   exit 0
 fi
 
-if [ -n "$backup_suffix" ]; then
-  backup_path="$input$backup_suffix"
-  [ ! -e "$backup_path" ] && [ ! -L "$backup_path" ] || {
-    echo "$0: refusing to overwrite existing backup: $backup_path" >&2
-    exit 1
-  }
-  cp -p -- "$input" "$backup_path"
-fi
-chmod --reference="$input" "$output_tmp"
-mv -f -- "$output_tmp" "$input"
+inplace_commit "$input" "$backup_suffix"
 printf '%s\n' "$input"
