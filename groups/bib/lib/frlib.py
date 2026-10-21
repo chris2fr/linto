@@ -14,6 +14,8 @@ Une entrée du JSON, dans cet ordre :
 Vue BibTeX d'une entrée = champs BIB de premier niveau, surchargés par « bibtex ».
 """
 import json
+import sys
+from pathlib import Path
 
 BIB = ['title','author','abstract','note','number','organization','type','xtype','keywords',
        'xtheme','date','year','language','xcounter','xacronym','shorthand','url',
@@ -26,10 +28,40 @@ RO = {'xpiecefond': 'piece_fond', 'xsourcefile': 'fichier_source', 'xpages': 'pa
       'xmentiontelerecours': 'mention_telerecours'}
 
 # ---------------------------------------------------------------- ordre
-def reorder(d, order):
-    out = {k: d[k] for k in order if k in d}
-    out.update({k: v for k, v in d.items() if k not in out})
-    return out
+# L'ordre des champs n'est plus stocké : il est alphabétique, ou celui de configdata.bib.field-order
+# (config.yml) pour les champs listés, les autres suivant par ordre alphabétique.
+_HEAD = ('key', 'ENTRYTYPE')            # toujours en tête d'une entrée
+_TAIL = ('markdown', 'bibtex')          # toujours en fin d'entrée
+_field_order = None
+
+def field_order():
+    """Liste configurée configdata.bib.field-order (vide si absente ou illisible)."""
+    global _field_order
+    if _field_order is None:
+        _field_order = []
+        root = Path(__file__).resolve().parents[3]
+        try:
+            sys.path.insert(0, str(root / 'lib'))
+            import config
+            data = config.load(root / 'config.yml', defaults_root=root, data_root=config.data_directory(),
+                               overlays=config.config_overlays())
+            order = config.configdata(data, 'bib').get('bib', {}).get('field-order', [])
+            if isinstance(order, list) and all(isinstance(n, str) for n in order):
+                _field_order = list(dict.fromkeys(order))
+        except Exception:
+            pass
+    return _field_order
+
+def _rank(name):
+    order = field_order()
+    if name in _HEAD: return (0, _HEAD.index(name), '')
+    if name in _TAIL: return (3, _TAIL.index(name), '')
+    if name in order: return (1, order.index(name), '')
+    return (2, 0, name)
+
+def reorder(d, order=None):
+    """d rangé dans l'ordre des champs (configuré, sinon alphabétique)."""
+    return {k: d[k] for k in sorted(d, key=_rank)}
 
 def put_field(entry, name, value):
     """Écrit un champ de premier niveau. Un nouveau champ BIB va après le dernier champ BIB, un autre avant markdown."""
@@ -50,13 +82,6 @@ def set_bibtex(entry, ov):
     entry.pop('bibtex', None)
     if ov: entry['bibtex'] = ov
 
-def order_like(new, old):
-    """new, rangé dans l'ordre de old pour les champs existants; les nouveaux champs sont placés au mieux."""
-    out = {k: new[k] for k in old if k in new}
-    for k, v in new.items():
-        if k not in out: put_field(out, k, v)
-    return out
-
 # ---------------------------------------------------------------- vue BibTeX
 def bibtex_view(entry):
     """-> (type d'entrée, [(champ, valeur), ...]) tel qu'il doit apparaître dans le .bib."""
@@ -71,6 +96,7 @@ def bibtex_view(entry):
     for name, v in ov.items():
         if name in seen or name in ('ENTRYTYPE', 'ID'): continue
         if v is not None: fields.append((name, v))
+    fields.sort(key=lambda f: _rank(f[0]))
     return et, fields
 
 def apply_bib(entry, et, fields, as_override=False):
@@ -106,7 +132,7 @@ def apply_bib(entry, et, fields, as_override=False):
 
 def entry_from_bib(key, typ, fields, meta=None, markdown=None):
     """Reconstruit une entrée à partir d'un .bib et de son champ xdbmeta (meta = dict décodé).
-    meta : extra (champs « autres »), base (valeur de base des champs surchargés), order, bibtex_order."""
+    meta : extra (champs « autres »), base (valeur de base des champs surchargés)."""
     meta = meta or {}
     base, extra = meta.get('base', {}), meta.get('extra', {})
     top, ov = {'key': key}, {}
@@ -133,10 +159,8 @@ def entry_from_bib(key, typ, fields, meta=None, markdown=None):
             ov[f] = None
     top.update(extra)
     if markdown is not None: top['markdown'] = markdown
-    if 'bibtex_order' in meta: ov = reorder(ov, meta['bibtex_order'])
-    if ov: top['bibtex'] = ov
-    if 'order' in meta: top = reorder(top, meta['order'])
-    return top
+    if ov: top['bibtex'] = reorder(ov)
+    return reorder(top)
 
 def check_braces(key, field, v):
     depth = 0
@@ -150,13 +174,13 @@ def check_braces(key, field, v):
 def entry_to_row(entry):
     key = entry['key']
     row = {'id': key, 'entrytype': entry.get('ENTRYTYPE'), 'markdown': entry.get('markdown', ''),
-           'bibtex': None, 'field_order': json.dumps(list(entry))}
+           'bibtex': None}
     if row['entrytype'] is not None and not isinstance(row['entrytype'], str):
         raise ValueError(f'{key}.ENTRYTYPE: valeur non textuelle')
     if 'bibtex' in entry:
         for f, v in entry['bibtex'].items():
             if v is not None and not isinstance(v, str): raise ValueError(f'{key}.bibtex.{f}: valeur non textuelle')
-        row['bibtex'] = json.dumps(entry['bibtex'], ensure_ascii=False)
+        row['bibtex'] = json.dumps(reorder(entry['bibtex']), ensure_ascii=False)
     for c in BIB: row[c] = None
     extra = {}
     for name, v in entry.items():
@@ -166,28 +190,17 @@ def entry_to_row(entry):
             row[name] = v
         else:
             extra[name] = v
-    row['extra'] = json.dumps(extra, ensure_ascii=False)
+    row['extra'] = json.dumps(reorder(extra), ensure_ascii=False)
     return row
-
-_MISSING = object()
 
 def row_to_entry(r):
     extra = json.loads(r['extra'])
     ov = json.loads(r['bibtex']) if r['bibtex'] is not None else None
-    def value(name):
-        if name == 'key': return r['id']
-        if name == 'markdown': return r['markdown']
-        if name == 'bibtex': return ov if ov is not None else _MISSING
-        if name == 'ENTRYTYPE': return r['entrytype'] if r['entrytype'] is not None else _MISSING
-        if name in BIBSET: return r[name] if r[name] is not None else _MISSING
-        return extra.get(name, _MISSING)
-    entry = {}
-    for name in json.loads(r['field_order']):
-        v = value(name)
-        if v is not _MISSING: entry[name] = v
-    if 'key' not in entry: entry = {'key': r['id'], **entry}
-    for c in BIB:                                   # colonnes renseignées après coup
-        if r[c] is not None and c not in entry: put_field(entry, c, r[c])
-    for name, v in extra.items():
-        if name not in entry: put_field(entry, name, v)
-    return entry
+    entry = {'key': r['id']}
+    if r['entrytype'] is not None: entry['ENTRYTYPE'] = r['entrytype']
+    for c in BIB:
+        if r[c] is not None: entry[c] = r[c]
+    entry.update(extra)
+    entry['markdown'] = r['markdown']
+    if ov is not None: entry['bibtex'] = ov
+    return reorder(entry)
