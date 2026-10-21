@@ -149,11 +149,9 @@ launch_output=$("$root/bin/linto-launch")
 [ "$launch_output" = "$(printf 'Commands in group launch:\n  zed')" ] || fail "launch group wrapper output: $launch_output"
 
 assert_output 'guillemets2quotes
-prettyprint
-qrdecode
-qrencode
+pp
 slug
-stripaccents' "$root/bin/linto" --list-shortcuts
+zz' "$root/bin/linto" --list-shortcuts
 if "$root/bin/linto" render --help >"$tmpdir/unqualified.out" 2>&1; then
     fail "command from a shortcuts-disabled group ran unqualified"
 fi
