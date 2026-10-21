@@ -2055,3 +2055,23 @@ msgstr "quoi faire"
 
 msgid "unknown action: {}"
 msgstr "action inconnue : {}"
+
+msgid "no memo at position {}"
+msgstr "aucun mémo à la position {}"
+
+msgid "invalid date: {}"
+msgstr "date invalide : {}"
+
+msgid "no memo {:02d} on {}: {} that day"
+msgstr "aucun mémo {:02d} le {} : {} ce jour-là"
+
+msgid ""
+"REF is one of:\n"
+"  N              a number from 0 to 100: the N-th memo from the top of `list` (0 is the first)\n"
+"  YYYY-MM-DD-NN  the NN-th memo (from 00, oldest first) created on that day, local time\n"
+"  ID             a memo id such as 123 or memos/123 (ids up to 100 need the memos/ prefix)"
+msgstr ""
+"REF est l'un des suivants :\n"
+"  N              un nombre de 0 à 100 : le N-ième mémo en partant du haut de `list` (0 est le premier)\n"
+"  AAAA-MM-JJ-NN  le NN-ième mémo (à partir de 00, du plus ancien au plus récent) créé ce jour-là, heure locale\n"
+"  ID             un identifiant de mémo comme 123 ou memos/123 (les identifiants jusqu'à 100 demandent le préfixe memos/)"

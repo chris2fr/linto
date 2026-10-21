@@ -69,3 +69,8 @@ through its REST API v1: `list` (`-t TAG`, `-q TEXT`, `--visibility`, `-n`,
 standard input. Set the server in `groups.web.configdata.memos.url` (or
 `LINTO_MEMOS_URL`) and a personal access token in
 `groups.web.configdata.memos.token-file` (or `LINTO_MEMOS_TOKEN`).
+
+`linto web memos get REF` accepts a number from 0 to 100 (the N-th memo from
+the top of `list`; 0 is the first), `YYYY-MM-DD-NN` (the NN-th memo created on
+that day in local time, from `00`, oldest first), or a memo id such as `123`
+or `memos/123`. Ids up to 100 need the `memos/` prefix.

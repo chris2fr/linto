@@ -6,7 +6,9 @@ Usage: memos.py ACTION [OPTIONS]   (ACTION: list, get, add, edit, delete)
 
 import json
 import os
+import re
 import sys
+from datetime import datetime, date
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -74,6 +76,56 @@ def memo_id(text):
     if not ident:
         raise MemosError(_("invalid memo id: {}").format(text))
     return ident
+
+
+def list_pages(limit=None, query=None):
+    """Yield memos in the server's order (the order of `list`), page after page."""
+    token, count = None, 0
+    while limit is None or count < limit:
+        reply = request("GET", "memos", query={"pageSize": 100, "pageToken": token, **(query or {})}) or {}
+        for memo in reply.get("memos") or reply.get("data") or []:
+            yield memo
+            count += 1
+        token = reply.get("nextPageToken")
+        if not token:
+            return
+
+
+def local_date(memo):
+    """Calendar date (local time zone) and instant of a memo's creation time."""
+    stamp = re.sub(r"(\.\d{6})\d+", r"\1", str(memo.get("createTime", "")))
+    moment = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    return moment.astimezone().date(), moment
+
+
+def resolve(ref):
+    """Memo selected by REF: N (0-100, N-th from the top of `list`), YYYY-MM-DD-NN
+    (NN-th memo of that day, oldest first) or an id such as 123 or memos/123."""
+    ref = ref.strip()
+    if re.fullmatch(r"\d{1,3}", ref) and int(ref) <= 100:
+        position = int(ref)
+        for index, memo in enumerate(list_pages(position + 1)):
+            if index == position:
+                return memo
+        raise MemosError(_("no memo at position {}").format(position))
+    found = re.fullmatch(r"(\d{4}-\d{2}-\d{2})-(\d{2})", ref)
+    if found:
+        try:
+            day = date.fromisoformat(found.group(1))
+        except ValueError:
+            raise MemosError(_("invalid date: {}").format(found.group(1)))
+        number, same_day = int(found.group(2)), []
+        for memo in list_pages():
+            when, moment = local_date(memo)
+            if when == day:
+                same_day.append((moment, memo))
+            elif when < day and not memo.get("pinned"):
+                break
+        same_day.sort(key=lambda pair: pair[0])
+        if number >= len(same_day):
+            raise MemosError(_("no memo {:02d} on {}: {} that day").format(number, day, len(same_day)))
+        return same_day[number][1]
+    return request("GET", f"memos/{memo_id(ref)}")
 
 
 # ------------------------------------------------------------------ helpers
@@ -149,11 +201,15 @@ def do_list(argv):
 
 
 def do_get(argv):
-    p = Parser("web", "memos get", description=_("Show one memo."))
-    p.add_argument("id", metavar="ID")
+    p = Parser("web", "memos get", description=_("Show one memo."), raw=True, epilog=_(
+        """REF is one of:
+  N              a number from 0 to 100: the N-th memo from the top of `list` (0 is the first)
+  YYYY-MM-DD-NN  the NN-th memo (from 00, oldest first) created on that day, local time
+  ID             a memo id such as 123 or memos/123 (ids up to 100 need the memos/ prefix)"""))
+    p.add_argument("id", metavar="REF")
     p.add_argument("--json", action="store_true", help=_("print the memo as JSON"))
     args = p.parse_args(argv)
-    memo = request("GET", f"memos/{memo_id(args.id)}")
+    memo = resolve(args.id)
     if args.json:
         print(json.dumps(memo, ensure_ascii=False, indent=2))
     else:

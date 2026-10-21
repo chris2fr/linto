@@ -82,7 +82,7 @@ class MemosTests(unittest.TestCase):
 
     def memos(self, *args, token=TOKEN, stdin=None):
         env = dict(os.environ, LC_ALL="C", LINTO_MEMOS_URL=f"http://127.0.0.1:{self.server.server_port}",
-                   NO_PROXY="127.0.0.1", no_proxy="127.0.0.1")
+                   NO_PROXY="127.0.0.1", no_proxy="127.0.0.1", TZ="UTC")
         env["LINTO_MEMOS_TOKEN"] = token
         return subprocess.run([LINTO, "web", "memos", *args], capture_output=True, text=True, env=env,
                               input=stdin if stdin is not None else "", timeout=30)
@@ -103,6 +103,33 @@ class MemosTests(unittest.TestCase):
         self.assertEqual((method, path, query["updateMask"], body), ("PATCH", "/api/v1/memos/2", "content", {"content": "New text"}))
         self.assertEqual(self.memos("delete", "2", "--yes").returncode, 0)
         self.assertEqual(self.memos("get", "2").returncode, 1)
+
+    def seed(self, stamps):
+        for i, stamp in enumerate(stamps, 1):
+            FakeMemos.memos[f"memos/{i * 100 + 7}"] = {
+                "name": f"memos/{i * 100 + 7}", "content": f"memo {i}", "visibility": "PRIVATE", "createTime": stamp}
+
+    def test_get_by_position_from_the_top(self):
+        self.seed(["2026-03-02T10:00:00Z", "2026-03-01T10:00:00Z", "2026-02-28T10:00:00Z"])
+        self.assertIn("memo 1", self.memos("get", "0").stdout)
+        self.assertIn("memo 3", self.memos("get", "2").stdout)
+        missing = self.memos("get", "3")
+        self.assertEqual(missing.returncode, 1)
+        self.assertIn("no memo at position 3", missing.stderr)
+
+    def test_get_by_day_and_number(self):
+        self.seed(["2026-03-02T09:00:00Z", "2026-03-01T18:00:00Z", "2026-03-01T08:00:00Z", "2026-02-28T10:00:00Z"])
+        self.assertIn("memo 3", self.memos("get", "2026-03-01-00").stdout)
+        self.assertIn("memo 2", self.memos("get", "2026-03-01-01").stdout)
+        missing = self.memos("get", "2026-03-01-02")
+        self.assertEqual(missing.returncode, 1)
+        self.assertIn("2 that day", missing.stderr)
+        self.assertIn("invalid date", self.memos("get", "2026-13-01-00").stderr)
+
+    def test_get_by_id_still_works(self):
+        self.seed(["2026-03-02T10:00:00Z"])
+        self.assertIn("memo 1", self.memos("get", "memos/107").stdout)
+        self.assertIn("memo 1", self.memos("get", "107").stdout)
 
     def test_list_filters_and_pagination(self):
         for i in range(5):
