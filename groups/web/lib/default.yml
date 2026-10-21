@@ -4,3 +4,8 @@ configdata:
     url: ""
     # File holding a personal access token (or set LINTO_MEMOS_TOKEN)
     token-file: ""
+  # Markdown viewers for `get`, tried in order; each reads Markdown on standard input.
+  markdown:
+    - mdcat
+    - glow -
+    - bat --language md --paging=never --style plain

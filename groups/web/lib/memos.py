@@ -4,9 +4,13 @@
 Usage: memos.py ACTION [OPTIONS]   (ACTION: list, get, add, edit, delete)
 """
 
+import argparse
 import json
 import os
 import re
+import shlex
+import shutil
+import subprocess
 import sys
 from datetime import datetime, date
 import urllib.error
@@ -161,12 +165,43 @@ def short_id(memo):
     return str(memo.get("name", "")).split("/")[-1]
 
 
-def print_memo(memo):
+def markdown_command():
+    """First installed command of groups.web.configdata.markdown (a string or a list), or None.
+
+    Each entry is a command line that reads Markdown on standard input,
+    e.g. "mdcat" or "bat --language md --paging=never".
+    """
+    candidates = group_configdata("web").get("markdown") or []
+    if isinstance(candidates, str):
+        candidates = [candidates]
+    for candidate in candidates:
+        try:
+            words = shlex.split(str(candidate))
+        except ValueError:
+            continue
+        if words and shutil.which(words[0]):
+            return words
+    return None
+
+
+def render_markdown(text, command):
+    """Pipe TEXT through the viewer COMMAND; False if it could not be run or failed."""
+    sys.stdout.flush()
+    try:
+        return subprocess.run(command, input=text.encode("utf-8"), check=False).returncode == 0
+    except OSError:
+        return False
+
+
+def print_memo(memo, render=False):
     tags = " ".join("#" + t for t in memo.get("tags") or [])
     head = f"{memo.get('name', '')}  {memo.get('visibility', '')}  {str(memo.get('createTime', ''))[:19]}"
     print(head + (f"  {tags}" if tags else "") + ("  ★" if memo.get("pinned") else ""))
     print()
-    print(memo.get("content", ""))
+    content = memo.get("content", "")
+    command = markdown_command() if render else None
+    if not (command and render_markdown(content, command)):
+        print(content)
 
 
 # ------------------------------------------------------------------ actions
@@ -208,12 +243,14 @@ def do_get(argv):
   ID             a memo id such as 123 or memos/123 (ids up to 100 need the memos/ prefix)"""))
     p.add_argument("id", metavar="REF")
     p.add_argument("--json", action="store_true", help=_("print the memo as JSON"))
+    p.add_argument("--markdown", action=argparse.BooleanOptionalAction, default=None,
+                   help=_("render the content with groups.web.configdata.markdown (default: only on a terminal)"))
     args = p.parse_args(argv)
     memo = resolve(args.id)
     if args.json:
         print(json.dumps(memo, ensure_ascii=False, indent=2))
     else:
-        print_memo(memo)
+        print_memo(memo, render=sys.stdout.isatty() if args.markdown is None else args.markdown)
     return 0
 
 

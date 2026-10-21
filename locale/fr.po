@@ -2075,3 +2075,6 @@ msgstr ""
 "  N              un nombre de 0 à 100 : le N-ième mémo en partant du haut de `list` (0 est le premier)\n"
 "  AAAA-MM-JJ-NN  le NN-ième mémo (à partir de 00, du plus ancien au plus récent) créé ce jour-là, heure locale\n"
 "  ID             un identifiant de mémo comme 123 ou memos/123 (les identifiants jusqu'à 100 demandent le préfixe memos/)"
+
+msgid "render the content with groups.web.configdata.markdown (default: only on a terminal)"
+msgstr "affiche le contenu avec groups.web.configdata.markdown (défaut : seulement sur un terminal)"

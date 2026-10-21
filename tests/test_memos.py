@@ -126,6 +126,34 @@ class MemosTests(unittest.TestCase):
         self.assertIn("2 that day", missing.stderr)
         self.assertIn("invalid date", self.memos("get", "2026-13-01-00").stderr)
 
+    def test_get_renders_with_the_configured_markdown_viewer(self):
+        import tempfile
+        self.seed(["2026-03-02T10:00:00Z"])
+        with tempfile.TemporaryDirectory() as home:
+            viewer = Path(home) / "fakeview"
+            viewer.write_text("#!/bin/sh\nprintf '<<'; cat; printf '>>\\n'\n")
+            viewer.chmod(0o755)
+            config = Path(home) / ".config" / "linto"
+            config.mkdir(parents=True)
+            (config / "config.yml").write_text(f'groups:\n  web:\n    configdata:\n      markdown:\n        - no-such-viewer-xyz\n        - "{viewer} --x"\n')
+            env = dict(os.environ, LC_ALL="C", LINTO_MEMOS_URL=f"http://127.0.0.1:{self.server.server_port}",
+                       LINTO_MEMOS_TOKEN=TOKEN, NO_PROXY="127.0.0.1", no_proxy="127.0.0.1", TZ="UTC",
+                       HOME=home, XDG_CONFIG_HOME=str(Path(home) / ".config"))
+            run = lambda *a: subprocess.run([LINTO, "web", "memos", "get", "0", *a], capture_output=True, text=True, env=env)
+            self.assertIn("<<memo 1>>", run("--markdown").stdout)
+            self.assertNotIn("<<", run().stdout)              # not a terminal: plain text
+            self.assertNotIn("<<", run("--no-markdown").stdout)
+
+    def test_markdown_command_picks_the_first_installed_viewer(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("memos_mod", ROOT / "groups" / "web" / "lib" / "memos.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.group_configdata = lambda group: {"markdown": ["no-such-viewer-xyz", "sh -c 'cat'", "cat"]}
+        self.assertEqual(module.markdown_command(), ["sh", "-c", "cat"])
+        module.group_configdata = lambda group: {"markdown": "no-such-viewer-xyz"}
+        self.assertIsNone(module.markdown_command())
+
     def test_get_by_id_still_works(self):
         self.seed(["2026-03-02T10:00:00Z"])
         self.assertIn("memo 1", self.memos("get", "memos/107").stdout)

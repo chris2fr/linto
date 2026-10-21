@@ -74,3 +74,9 @@ standard input. Set the server in `groups.web.configdata.memos.url` (or
 the top of `list`; 0 is the first), `YYYY-MM-DD-NN` (the NN-th memo created on
 that day in local time, from `00`, oldest first), or a memo id such as `123`
 or `memos/123`. Ids up to 100 need the `memos/` prefix.
+
+On a terminal, `get` renders the memo's Markdown with the first installed
+viewer of `groups.web.configdata.markdown`: a list of command lines that read
+Markdown on standard input (by default `mdcat`, `glow -`, then `bat`). Use
+`--markdown` or `--no-markdown` to force or disable it; without an installed
+viewer the plain text is printed.
