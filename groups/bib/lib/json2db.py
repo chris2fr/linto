@@ -2,8 +2,8 @@
 """fr.json (remonté) -> fr.db (SQLite), sans perte.  Usage: json2db.py fr.json fr.db
 
 Une ligne par entrée : colonnes pour ENTRYTYPE et chaque champ BibTeX (valeur de base), "extra" (JSON des
-autres champs), "bibtex" (JSON des surcharges), markdown, et "field_order" (ordre des champs, pour un export
-identique à l'octet près)."""
+autres champs), "bibtex" (JSON des surcharges) et markdown. L'ordre des champs n'est pas stocké : alphabétique,
+ou celui de configdata.bib.field-order (config.yml)."""
 import json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cli import _
@@ -26,8 +26,7 @@ CREATE TABLE pieces (
   xpiecefond INTEGER GENERATED ALWAYS AS (json_extract(extra,'$.piece_fond')) VIRTUAL,
   xsourcefile TEXT   GENERATED ALWAYS AS (json_extract(extra,'$.fichier_source')) VIRTUAL,
   xpages INTEGER     GENERATED ALWAYS AS (json_extract(extra,'$.pages')) VIRTUAL,
-  xmentiontelerecours TEXT GENERATED ALWAYS AS (json_extract(extra,'$.mention_telerecours')) VIRTUAL,
-  field_order TEXT NOT NULL CHECK (json_valid(field_order))         -- ordre des clés de l'entrée (JSON)
+  xmentiontelerecours TEXT GENERATED ALWAYS AS (json_extract(extra,'$.mention_telerecours')) VIRTUAL
 )""")
 for k, e in d.items():
     assert e['key'] == k, k

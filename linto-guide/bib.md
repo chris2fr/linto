@@ -52,6 +52,25 @@ The tools share one convention:
 | `lift` | Lift `bibtex` and `frontmatter` fields to the entry level | `-o`, `-i`, `-i.bak` |
 | `yml-renumber` | Renumber a YAML mapping by line number | `-o`, `-i`, `-i.bak` |
 
+## Field order in the database
+
+The SQLite `pieces` table no longer stores a `field_order` column. The commands
+that read or write it (`bib2db`, `db2bib`, `db2json`, `json2db`) order the fields
+of an entry alphabetically, after `key` and `ENTRYTYPE` and before `markdown` and
+`bibtex`. To choose the order, list field names in `config.yml` (or in
+`~/.config/linto/config.yml`):
+
+```yaml
+configdata:
+  bib:
+    field-order: [title, author, date, year]
+```
+
+Listed fields come first, in that order; the others follow alphabetically. The
+same order applies to the `bibtex` overrides and to the fields written by
+`db2bib`. A database that still has the old column keeps working; the column is
+ignored.
+
 ## Sort BibTeX fields
 
 `linto bib bib-order-props [FILE.bib]` sorts the properties of every entry

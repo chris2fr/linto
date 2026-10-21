@@ -5,7 +5,8 @@ Chaque entrée devient un @type{clé, ...} dont les champs sont la vue BibTeX de
 remplacées par les surcharges "bibtex"; les surcharges null sont omises). Sont ajoutés :
   * xpiecefond, xsourcefile, xpages, xmentiontelerecours : informatifs, EN LECTURE SEULE (dérivés de "extra") ;
   * xdbmeta : base64(JSON) de ce que BibTeX ne peut pas montrer : "extra" (champs sans équivalent BibTeX),
-    "base" (valeur de base des champs surchargés) et, si besoin, l'ordre des champs. Opaque à dessein.
+    "base" (valeur de base des champs surchargés). Opaque à dessein.
+L'ordre des champs n'est pas stocké : alphabétique, ou celui de configdata.bib.field-order (config.yml).
 Le script vérifie, pour chaque entrée, que le .bib permet de reconstruire exactement l'entrée (hors markdown).
 La colonne markdown n'est jamais exportée."""
 import base64, json, os, sqlite3, sys
@@ -31,9 +32,6 @@ def main(src, dst):
             if extra: meta['extra'] = extra
             base = {f: e.get(f) for f in ov if f in BIBSET or f == 'ENTRYTYPE'}
             if base: meta['base'] = base
-            rec = entry_from_bib(key, et, fields, meta, markdown=e.get('markdown'))
-            if list(rec) != list(e): meta['order'] = list(e)
-            if list(rec.get('bibtex', {})) != list(ov): meta['bibtex_order'] = list(ov)
             rec = entry_from_bib(key, et, fields, meta, markdown=e.get('markdown'))
             if json.dumps(rec, ensure_ascii=False) != json.dumps(e, ensure_ascii=False):
                 raise ValueError(_('{}: the .bib cannot rebuild the entry').format(key))

@@ -62,9 +62,6 @@ msgstr "%s absent ou illisible : %s"
 msgid "'{}' is not a file"
 msgstr "'{}' n'est pas un fichier"
 
-msgid "(field order)"
-msgstr "(ordre des champs)"
-
 msgid "--output can only be used with a single input file. Use --outdir for several files."
 msgstr "--output ne peut être utilisé qu'avec un seul fichier en entrée. Utilisez --outdir pour plusieurs fichiers."
 

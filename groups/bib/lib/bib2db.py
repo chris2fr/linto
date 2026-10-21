@@ -14,7 +14,7 @@ Les champs en lecture seule (xpiecefond, xsourcefile, xpages, xmentiontelerecour
 import base64, copy, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cli import _
-from frlib import BIBSET, RO, apply_bib, entry_from_bib, entry_to_row, order_like, put_field, reorder, row_to_entry, set_bibtex
+from frlib import BIBSET, RO, apply_bib, entry_from_bib, entry_to_row, put_field, reorder, row_to_entry, set_bibtex
 
 # ------------------------------------------------------------------ BibTeX parser (tolerant, no dependencies)
 def _braced(t, i):                       # t[i] == '{' ; returns (content, index after the closing brace)
@@ -120,8 +120,8 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
         r = rows.get(key)
         if r is None:
             new_rows.append((key, entry_from_bib(key, typ, bibfields, meta, markdown=''))); continue
-        old = row_to_entry(r); old_order = json.loads(r['field_order'])
-        with_md = 'markdown' in old or not old_order
+        old = row_to_entry(r)
+        with_md = True
         if meta is not None:
             new = entry_from_bib(key, typ, bibfields, meta, markdown=r['markdown'] if with_md else None)
             ov = dict(new.get('bibtex') or {})
@@ -130,12 +130,12 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
                     put_field(new, f, old[f]); ov[f] = None
                 elif as_override and new[f] != old[f] and f not in meta.get('base', {}):
                     ov[f] = new[f]; new[f] = old[f]                # modification -> surcharge
-            set_bibtex(new, reorder(ov, list(old.get('bibtex') or {})))   # l'ordre des surcharges ne change pas
+            set_bibtex(new, reorder(ov))
         else:
             new = copy.deepcopy(old)
             apply_bib(new, typ, bibfields, as_override)
             if with_md and 'markdown' not in new: new['markdown'] = r['markdown']
-        if old_order: new = order_like(new, old)
+        new = reorder(new)
         row = entry_to_row(new)
         upd = {c: v for c, v in row.items() if c not in ('markdown', 'id') and r[c] != v}
         if upd: changes.append((key, old, new, upd))
@@ -148,7 +148,6 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
     shown = 0
     for key, old, new, upd in changes:
         diffs = describe(old, new)
-        if not diffs and set(upd) == {'field_order'}: diffs = [(_('(field order)'), None, None)]
         for name, a, b in diffs:
             if shown < 40: print(f'  ~ {key}  {name}: {short(a)} -> {short(b)}')
             shown += 1
@@ -164,8 +163,10 @@ def main(bibpath, dbpath, apply=False, prune=False, as_override=False):
         for key, old, new, upd in changes:
             sets = ', '.join(f'"{c}" = ?' for c in upd)
             db.execute(f'UPDATE pieces SET {sets} WHERE id = ?', list(upd.values()) + [key])
+        legacy = any(c[1] == 'field_order' for c in db.execute('PRAGMA table_info(pieces)'))
         for key, e in new_rows:
             row = entry_to_row(e)
+            if legacy: row['field_order'] = '[]'            # ancienne colonne NOT NULL, ignorée
             db.execute(f'INSERT INTO pieces ({",".join(row)}) VALUES ({",".join("?"*len(row))})', list(row.values()))
         if prune:
             for k in missing: db.execute('DELETE FROM pieces WHERE id = ?', (k,))
