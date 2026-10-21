@@ -145,18 +145,17 @@ stripaccents' "$root/bin/linto" --list-shortcuts
 if "$root/bin/linto" render --help >"$tmpdir/unqualified.out" 2>&1; then
     fail "command from a shortcuts-disabled group ran unqualified"
 fi
-assert_output 'Usage: render.sh [-h|--help] [fichier.qmd ...]
+assert_output 'Usage: linto quarto render [-h|--help] [--] [file.qmd ...]
 
-Régénère les bibliographies (bibyml2bib.sh) puis rend chaque document
-Quarto avec `quarto render`. Sans argument, tous les *.qmd du dossier
-courant sont rendus ; les fichiers .qmd passés en argument sont rendus
-à la place.
+Rebuild the bibliographies (linto bib bibyml2bib), then render each Quarto
+document with `quarto render`. Without arguments, every *.qmd in the current
+directory is rendered; .qmd files given as arguments are rendered instead.
 
-Doit être lancé depuis la racine du projet, où se trouvent les fichiers .qmd.
+Run it from the project root, where the .qmd files are.
 
 Options:
-  -h, --help   Affiche cette aide et quitte.' \
-    "$root/bin/linto" quarto render --help
+  -h, --help  Show this help and exit.' \
+    env LC_ALL=C "$root/bin/linto" quarto render --help
 
 index_help=$(LINTO_MDVIEWER=cat "$root/bin/linto" help)
 case "$index_help" in

@@ -1,23 +1,33 @@
 #!/bin/sh
 # linto-complete: none
+# Add or update the chris2fr/quarto extension in the nearest project.
 set -eu
 
 usage() {
-  cat <<'EOF'
-Usage: setup.sh [-h|--help]
+  _ "$(cat <<'EOF'
+Usage: linto quarto setup [-h|--help]
 
 Find the nearest ancestor containing _extensions/. If it contains
 _extensions/chris2fr, update chris2fr/quarto there; otherwise add it there.
 If no ancestor contains _extensions/, add chris2fr/quarto from the current
 directory.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../bib/lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;
   '') ;;
-  *) usage >&2; exit 2 ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
 esac
+require_cmd quarto
 
 search_dir=$(pwd -P)
 extensions_dir=

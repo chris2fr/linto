@@ -3,18 +3,28 @@
 set -euo pipefail
 
 usage() {
-    cat <<EOF
-Usage: $0 [-h|--help]
+    _ "$(cat <<'EOF'
+Usage: linto quarto firefox-output [-h|--help]
 
 Find the nearest ancestor _quarto.yml, read project.output-dir, and open the
-corresponding output directory for the current directory.
+corresponding output directory for the current directory in Firefox.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+    echo
 }
+
+. "$(dirname -- "$0")/../bib/lib/common.sh"
 
 case "${1-}" in
     -h|--help) usage; exit 0 ;;
-    *) if [[ $# -ne 0 ]]; then usage >&2; exit 2; fi ;;
+    '') ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
+    *) die_usage "unexpected argument: %s" "$1" ;;
 esac
+require_cmd firefox
 
 launch_dir=$(pwd -P)
 search_dir=$launch_dir
@@ -29,8 +39,7 @@ while :; do
 done
 
 if [[ -z "$quarto_yml" ]]; then
-    printf 'error: no _quarto.yml found in %s or its parent directories\n' "$launch_dir" >&2
-    exit 1
+    die "no _quarto.yml found in %s or its parent directories" "$launch_dir"
 fi
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$quarto_yml")" && pwd -P)
@@ -67,8 +76,7 @@ output_dir=$(awk '
 ' "$quarto_yml")
 
 if [[ -z "$output_dir" ]]; then
-    printf 'error: project.output-dir not found in %s\n' "$quarto_yml" >&2
-    exit 1
+    die "project.output-dir not found in %s" "$quarto_yml"
 fi
 
 if [[ "$output_dir" == /* ]]; then

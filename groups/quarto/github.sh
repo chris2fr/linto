@@ -1,28 +1,33 @@
 #!/bin/sh
 # linto-complete: none
+# Open the GitHub repository of the Quarto extension this installation uses.
 set -eu
 
 usage() {
-    cat <<'EOF'
-Usage: github.sh
+  _ "$(cat <<'EOF'
+Usage: linto quarto github [-h|--help]
 
-Opens the Quarto GitHub repository of the extension used in this linto installation
+Open the Quarto GitHub repository of the extension used in this Linto
+installation.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
+
+. "$(dirname -- "$0")/../bib/lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;
   '') ;;
-  *) usage >&2; exit 2 ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
-config_file="$repo_dir/config.yml"
-
-config_helper="$repo_dir/lib/config.py"
-if ! quarto_extension=$(python3 "$config_helper" "$config_file" quarto-extension); then
-  exit 1
-fi
+quarto_extension=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" quarto-extension) ||
+  die "cannot read the Quarto extension from the configuration"
 
 exec xdg-open "https://github.com/$quarto_extension"

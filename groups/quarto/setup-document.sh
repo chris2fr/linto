@@ -1,6 +1,29 @@
 #!/bin/sh
 # linto-complete: none
+# Create a Quarto document from the chris2fr/quarto/document template.
 set -eu
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-exec "$script_dir/setup/template.sh" document chris2fr/quarto/document "$@"
+usage() {
+  _ "$(cat <<'EOF'
+Usage: linto quarto setup-document [-h|--help]
+
+Create a Quarto document from the chris2fr/quarto/document template.
+
+Options:
+  -h, --help  Show this help and exit.
+EOF
+)"
+  echo
+}
+
+. "$(dirname -- "$0")/../bib/lib/common.sh"
+
+case "${1-}" in
+  -h|--help) usage; exit 0 ;;
+  '') ;;
+  -?*) die_usage "unknown option: %s" "$1" ;;
+  *) die_usage "unexpected argument: %s" "$1" ;;
+esac
+require_cmd quarto
+
+exec quarto use template chris2fr/quarto/document

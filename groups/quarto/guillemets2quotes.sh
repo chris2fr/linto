@@ -1,32 +1,34 @@
 #!/bin/sh
 # linto-complete: arg 1 file
+# Replace French guillemets with straight quotes, keeping a .bak backup.
+set -eu
 
 usage() {
-    cat <<EOF
-Usage: $0 [-h|--help] <fichier à traiter>
+  _ "$(cat <<'EOF'
+Usage: linto quarto guillemets2quotes [-h|--help] [--] FILE
 
-Remplace les guillemets français par des guillemets droits.
-Crée une copie de sauvegarde avec le suffixe .bak.
+Replace French guillemets with straight double quotes in FILE.
+A backup copy is kept with the suffix .bak.
+
+Options:
+  -h, --help  Show this help and exit.
 EOF
+)"
+  echo
 }
 
-case "${1-}" in
+. "$(dirname -- "$0")/../bib/lib/common.sh"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
     -h|--help) usage; exit 0 ;;
-    --) shift ;;
-    -*) echo "$0: option inconnue : $1" >&2; usage >&2; exit 2 ;;
-esac
+    --) shift; break ;;
+    -?*) die_usage "unknown option: %s" "$1" ;;
+    *) break ;;
+  esac
+done
+[ "$#" -eq 1 ] || die_usage "exactly one %s is expected" "$(_ "file")"
+[ -f "$1" ] || die "not a file: %s" "$1"
 
-if [ "$#" -ne 1 ]; then
-    usage >&2
-    exit 2
-fi
-
-
-if [ -f "$1" ]; then
-  printf '%s\n' "$1"
-else
-  printf '%s n\047existe pas\n' "$1" >&2
-  exit 1
-fi
-
+printf '%s\n' "$1"
 sed -i.bak -e 's/« \| »/"/g' "$1"
