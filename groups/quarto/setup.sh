@@ -19,7 +19,7 @@ EOF
   echo
 }
 
-. "$(dirname -- "$0")/../bib/lib/common.sh"
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 case "${1-}" in
   -h|--help) usage; exit 0 ;;

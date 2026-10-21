@@ -17,7 +17,7 @@ EOF
   echo
 }
 
-. "$(dirname -- "$0")/../bib/lib/common.sh"
+. "$(dirname -- "$0")/../../lib/common.sh"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
