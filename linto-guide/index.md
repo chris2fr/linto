@@ -9,6 +9,7 @@ text processing, and development helpers. This guide is split into topic pages:
 - `bib` — [BibTeX and bibliography workflow](bib.md)
 - `quarto` — [Quarto workflow](quarto.md)
 - `completion` — [Shell completion and Markdown navigation](completion.md)
+- `i18n` — [Language and translations](i18n.md)
 
 Use `linto help PAGE` to read a page in the terminal, for example `linto help
 config`. If a page name is also an active group name, select it explicitly with

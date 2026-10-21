@@ -42,6 +42,8 @@ one place. Fish's argument rules are in `completions/linto-args.fish`, which
 
 ## Messages and translations
 
+User-facing description: [`linto help i18n`](linto-guide/i18n.md).
+
 Messages are written in English in the source and translated through
 `locale/<lang>.po` (currently `fr.po`). The language comes from `LC_ALL`,
 `LC_MESSAGES` or `LANG`, in that order; C, POSIX and English use the source

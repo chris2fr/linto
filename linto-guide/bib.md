@@ -29,8 +29,9 @@ The tools share one convention:
 - `-i` replaces the input file and `-i.bak` also keeps the original as
   `FILE.bak`; they cannot be combined with `-o` or with standard input;
 - diagnostics and summaries go to standard error, so the output stays clean;
-- messages and help follow `LC_ALL`, `LC_MESSAGES` or `LANG` (English or French);
-  option and command names are never translated.
+- messages and help follow `LC_ALL`, `LC_MESSAGES` or `LANG` (English or French; see
+  [Language and translations](i18n.md)); option and command names are never
+  translated.
 
 | Command | Purpose | Writes in place? |
 | --- | --- | --- |
