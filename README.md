@@ -27,8 +27,8 @@ linto linto update --check    # is a newer version of chris2fr/linto available?
 linto linto update            # download it and reinstall with the same choices
 ```
 
-To work on Linto itself, clone this repository and run `bin/linto linto install --user`
-from the checkout. See [`linto help install`](linto-guide/install.md) for details.
+To work on Linto itself, clone this repository and run `sh install.sh --local --user`
+from the checkout (it installs the checkout without downloading). See [`linto help install`](linto-guide/install.md) for details.
 
 ## Nix and NixOS
 
@@ -76,7 +76,7 @@ The module installs the package and optionally writes `settings` to
 utilities used by Linto and installs Bash, Fish, and Zsh completions. Quarto,
 Zed, `xdg-open`, and optional Markdown viewers remain separate packages; add the
 ones needed by your workflow to your system configuration. The package does
-not ship the installer (`linto linto install`), which is for other
+not ship the installer (`install.sh`), which is for other
 systems, or the development scripts listed in [DEVELOPMENT.md](DEVELOPMENT.md). User configuration
 and generated data stay in the XDG locations noted below, outside the immutable
 Nix store.
@@ -148,7 +148,7 @@ shortcuts:
   under `configdata`; corresponding entries in `config.yml` override them. Runtime
   overrides are then merged from `/etc/linto/linto.yml` and
   `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml` (user settings win). A legacy
-  `~/.linto.yml` is read below the XDG config; `linto linto install` creates it from `etc/linto.yml`. The shipped Quarto extension
+  `~/.linto.yml` is read below the XDG config; the installer creates it from `etc/linto.yml`. The shipped Quarto extension
   default is in
   [`groups/quarto/lib/default.yml`](groups/quarto/lib/default.yml); shell-alias
   defaults are in [`groups/linto/lib/default.yml`](groups/linto/lib/default.yml).
@@ -187,5 +187,5 @@ Use `linto help GROUP` for the live command list. For detailed topics, see
 - [`linto-guide/index.md`](linto-guide/index.md): multi-page topic guide for
   installation, config, command usage, bibliography, Quarto, and completion.
 - [`man/linto.1`](man/linto.1): dispatcher manual, installed with
-  `linto linto addman`.
+  `linto linto build-man`.
 - Run `tests/run.sh` from the checkout to execute the test suite.

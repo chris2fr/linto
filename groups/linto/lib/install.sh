@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
-# linto-complete: flag --user Install for the current user
-# linto-complete: flag --system Install for all users
-# linto-complete: opt --shell choices:all,fish,bash,ksh,sh,zsh Shell to configure with --user (default: all)
-# linto-complete: opt --prefix dir Installation prefix (default: ~/.local with --user, /usr/local with --system)
-# linto-complete: opt --sysconfdir dir Directory holding linto/linto.yml with --system (default: /etc)
-# linto-complete: flag --no-man Do not install the man page
-# linto-complete: flag --no-venv Do not create Linto's Python environment
-# linto-complete: flag --remove-user-install With --system, delete your user installation
-# linto-complete: flag --keep-user-install With --system, keep your user installation
 set -euo pipefail
 
 usage() {
   _ "$(cat <<'EOF'
-Usage: linto linto install [--user | --system] [--shell SHELL]... [--prefix DIR]
-                           [--sysconfdir DIR] [--no-man] [--no-venv]
-                           [--remove-user-install | --keep-user-install] [-h|--help]
+Usage: install.sh [--user | --system] [--shell SHELL]... [--prefix DIR]
+                  [--sysconfdir DIR] [--no-man] [--no-venv]
+                  [--remove-user-install | --keep-user-install] [-h|--help]
 
 Install Linto, for the current user (--user) or for all users (--system). When
 neither is given, ask which. Either way Linto is copied out of this checkout and
@@ -62,8 +53,9 @@ EOF
   echo
 }
 
-. "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
-. "$script_dir/lib/installer.sh"
+linto_lib=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../lib" && pwd -P)
+. "$linto_lib/common.sh"
+. "$script_dir/installer.sh"
 
 mode=
 shells=()
@@ -174,7 +166,7 @@ EOF
   exit 0
 fi
 
-repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
+repo_dir=$(CDPATH= cd -- "$script_dir/../../.." && pwd -P)
 [[ -x "$repo_dir/bin/linto" ]] || die "dispatcher not found or not executable: %s" "$repo_dir/bin/linto"
 init_user_paths
 
@@ -395,7 +387,7 @@ install_user() {
 
   # Build from the installed copy, so the generated wrappers point at it.
   if [[ "$install_man" == true ]]; then
-    XDG_DATA_HOME="$data_home" "$lib_dir/groups/linto/addman.sh"
+    XDG_DATA_HOME="$data_home" "$lib_dir/groups/linto/build-man.sh"
   else
     XDG_DATA_HOME="$data_home" "$lib_dir/groups/linto/build.sh"
   fi

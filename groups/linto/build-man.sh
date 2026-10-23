@@ -4,7 +4,7 @@ set -eu
 
 usage() {
   _ "$(cat <<'EOF'
-Usage: linto linto addman [-h|--help]
+Usage: linto linto build-man [-h|--help]
 
 Generate and install the user's Linto man page in the XDG data directory.
 

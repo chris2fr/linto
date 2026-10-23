@@ -5,7 +5,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-INSTALL = [str(ROOT / "bin" / "linto"), "linto", "install"]
+INSTALL = ["bash", str(ROOT / "groups" / "linto" / "lib" / "install.sh")]
+UNINSTALL = [str(ROOT / "bin" / "linto"), "linto", "uninstall"]
 
 
 def run(*args, env=None, **kwargs):
@@ -32,7 +33,7 @@ class InstallTests(unittest.TestCase):
     def test_help_and_french_help(self):
         english = run("--help")
         french = run("--help", env={"LC_ALL": "fr_FR.UTF-8"})
-        self.assertTrue(english.stdout.startswith("Usage: linto linto install"))
+        self.assertTrue(english.stdout.startswith("Usage: install.sh"))
         self.assertNotEqual(english.stdout, french.stdout)
 
     def test_system_install_into_a_prefix(self):
@@ -171,7 +172,7 @@ class UserInstallTests(unittest.TestCase):
 
     def test_installing_from_the_installed_copy_is_refused(self):
         self.assertEqual(self.install().returncode, 0)
-        result = subprocess.run([str(self.lib / "bin" / "linto"), "linto", "install", "--user", "--no-man"],
+        result = subprocess.run(["bash", str(self.lib / "groups" / "linto" / "lib" / "install.sh"), "--user", "--no-man"],
                                 capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env))
         self.assertEqual(result.returncode, 1)
         self.assertIn("run the installer from a checkout", result.stderr)
@@ -191,11 +192,11 @@ class UserInstallTests(unittest.TestCase):
         self.assertEqual(self.install().returncode, 0)
         (self.home / ".bashrc").write_text("# mine\n" + (self.home / ".bashrc").read_text(encoding="utf-8"), encoding="utf-8")
         refused = run("--user", env=self.env) and subprocess.run(
-            [*INSTALL[:-1], "uninstall", "--user"], capture_output=True, text=True,
+            [*UNINSTALL, "--user"], capture_output=True, text=True,
             env=dict(os.environ, LC_ALL="C", **self.env), stdin=subprocess.DEVNULL)
         self.assertEqual(refused.returncode, 2)                              # no terminal, no --yes
         self.assertTrue(self.lib.exists())
-        result = subprocess.run([*INSTALL[:-1], "uninstall", "--user", "--yes"], capture_output=True, text=True,
+        result = subprocess.run([*UNINSTALL, "--user", "--yes"], capture_output=True, text=True,
                                 env=dict(os.environ, LC_ALL="C", **self.env), stdin=subprocess.DEVNULL)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(self.lib.exists())
@@ -224,7 +225,7 @@ class UserInstallTests(unittest.TestCase):
         prefix = self.home / "usr"
         sysconf = self.home / "etc"
         self.assertEqual(run("--system", "--prefix", str(prefix), "--sysconfdir", str(sysconf), env=self.env).returncode, 0)
-        result = subprocess.run([*INSTALL[:-1], "uninstall", "--system", "--prefix", str(prefix), "--yes"],
+        result = subprocess.run([*UNINSTALL, "--system", "--prefix", str(prefix), "--yes"],
                                 capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env),
                                 stdin=subprocess.DEVNULL)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -234,7 +235,7 @@ class UserInstallTests(unittest.TestCase):
                      "share/fish/vendor_completions.d/linto.fish", "share/linto"):
             self.assertFalse((prefix / path).exists(), path)
         self.assertTrue((sysconf / "linto" / "linto.yml").exists())
-        again = subprocess.run([*INSTALL[:-1], "uninstall", "--system", "--prefix", str(prefix), "--yes"],
+        again = subprocess.run([*UNINSTALL, "--system", "--prefix", str(prefix), "--yes"],
                                capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env))
         self.assertEqual(again.returncode, 1)
         self.assertIn("not a Linto installation", again.stderr)

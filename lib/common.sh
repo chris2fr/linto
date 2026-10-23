@@ -27,7 +27,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 _() {
   case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in
     ''|C|C.*|POSIX|en|en_*|en.*) printf '%s' "$1" ;;
-    *) python3 "$script_dir/../../lib/i18n.py" "$1" ;;
+    *) python3 "${linto_lib:-$script_dir/../../lib}/i18n.py" "$1" ;;
   esac
 }
 

@@ -4,9 +4,10 @@
 #   curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
 #   wget -qO-  https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --system
 #
-# Every argument goes to `linto linto install` (run it with --help to list them); without
-# --user or --system it asks. `linto linto update` runs this script again from the installed
-# copy. Environment (all optional):
+# Every argument goes to the installer, groups/linto/lib/install.sh (run `sh install.sh --help`
+# to list them); without --user or --system it asks. `linto linto update` runs this script again
+# from the installed copy.
+# `sh install.sh --local ...` installs the checkout this script is in, without downloading. Environment (all optional):
 #   LINTO_REPO          GitHub repository (default: chris2fr/linto)
 #   LINTO_REF           branch, tag or commit to install (default: main)
 #   LINTO_GITHUB_TOKEN  token for a private repository or to avoid API rate limits
@@ -49,6 +50,13 @@ main() {
     exit 0
   fi
 
+  if [ "${1-}" = --local ]; then
+    shift
+    here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    [ -f "$here/groups/linto/lib/install.sh" ] || fail "--local must be used from a Linto checkout"
+    exec bash "$here/groups/linto/lib/install.sh" "$@"
+  fi
+
   command -v tar >/dev/null 2>&1 || fail "tar is required"
   command -v bash >/dev/null 2>&1 || fail "bash is required"
   command -v python3 >/dev/null 2>&1 || fail "python3 is required"
@@ -61,7 +69,7 @@ main() {
   mkdir "$work/src"
   fetch "$archive_url" | tar -xzf - -C "$work/src" --strip-components=1 ||
     fail "cannot download or unpack $archive_url"
-  [ -f "$work/src/groups/linto/install.sh" ] || fail "$archive_url is not a Linto archive"
+  [ -f "$work/src/groups/linto/lib/install.sh" ] || fail "$archive_url is not a Linto archive"
 
   # When piped from curl, standard input is the script: give the installer the terminal for its questions.
   if [ ! -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; then
@@ -70,7 +78,7 @@ main() {
     exec_input=/dev/stdin
   fi
   LINTO_SOURCE_REPO=$repo LINTO_SOURCE_REF=$ref LINTO_SOURCE_COMMIT=$commit \
-    bash "$work/src/groups/linto/install.sh" "$@" <"$exec_input"
+    bash "$work/src/groups/linto/lib/install.sh" "$@" <"$exec_input"
 }
 
 # The whole script is parsed before anything runs, so it can safely replace its own file.

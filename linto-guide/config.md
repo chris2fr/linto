@@ -47,11 +47,13 @@ are layered from `lib/default.yml` (root), `groups/GROUP/lib/default.yml` (group
 `configdata`, and matching entries in the installation's `config.yml` override
 them. At runtime, `/etc/linto/linto.yml` (system-wide) is merged next, then
 `~/.linto.yml` (per user), then `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`,
-so the XDG file, when it exists, has the highest precedence. `linto linto install`
-creates `/etc/linto/linto.yml` (`--system`) and `~/.linto.yml` (`--user`) from the
+so the XDG file, when it exists, has the highest precedence. the installer
+(`install.sh`) creates `/etc/linto/linto.yml` (`--system`) and `~/.linto.yml` (`--user`) from the
 template `etc/linto.yml` when they do not exist, and never overwrites them;
-`linto linto config` shows which files are in use, and `addgroup`/`rmgroup`
-write to the XDG file if it exists, `~/.linto.yml` otherwise.
+`linto linto config` shows which files are in use. Groups are switched on and off in
+these files (`groups`); to add your own, put its directory in
+`${XDG_DATA_HOME:-~/.local/share}/linto/groups/NAME`, list `NAME: default` under
+`groups` and run `linto linto build`.
 These files may contain only the settings they override. The config command
 supports these inspection and editing modes:
 

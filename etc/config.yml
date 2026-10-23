@@ -1,5 +1,5 @@
 # Linto installation defaults: the groups that are enabled and the shortcuts
-# every user gets. `linto linto install --system` installs this file as the
+# every user gets. `install.sh --system` installs this file as the
 # installed tree's config.yml, with the version of the checkout. Local changes
 # belong in /etc/linto/linto.yml (system-wide) or ~/.linto.yml (per user), not here.
 version: v0.1.0
