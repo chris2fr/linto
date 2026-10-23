@@ -1,31 +1,39 @@
 # Installation and setup
 
-Add this installation's `bin/` directory to your `PATH`, or run the setup
-helper to configure the current user's shell. It also adds the per-user
-`${XDG_DATA_HOME:-~/.local/share}/linto/bin` directory for user
-wrappers, without modifying the installation:
+Run the installer. It asks whether to install for the current user or for all
+users; give `--user` or `--system` to skip the question:
 
 ```sh
-linto linto setup
+linto linto install --user
+sudo linto linto install --system
 ```
 
-The helper detects the invoking shell (Fish, Zsh, Bash, ksh or sh) and can be run more than once; ksh and sh get the PATH entries but no completion. The
+`--user` runs Linto in place from this checkout. It builds the command
+wrappers, completions and man pages (`linto linto build`) into
+`${XDG_DATA_HOME:-~/.local/share}/linto`, adds this installation's `bin/` and
+that per-user `bin/` directory to your `PATH`, and installs completion, for
+every supported shell by default: Fish, Bash, ksh, sh and Zsh. Choose some with
+`--shell` (repeat it or separate shells with commas). The installer can be run
+more than once; ksh and sh get the PATH entries but no completion. Use
+`--no-man` to skip the man page and `--venv` to create the Python environment
+too (`linto linto venv`).
+
+`--system` copies Linto to `PREFIX/lib/linto`, builds its wrappers into
+`PREFIX/share/linto`, links the commands into `PREFIX/bin`, and installs the
+completions and man pages under `PREFIX/share` (`--prefix`, default
+`/usr/local`). It needs write access to the prefix, normally root. Run it again
+to upgrade. Each user can still add their own configuration and groups, which
+are stored under their home directory. The
 XDG variables are optional: without them, user configuration is stored in
 `~/.config/linto/config.yml`, and custom groups/generated data live in
 `~/.local/share/linto`. No Linto-specific home variable is required. An existing
 `~/.linto.yml` is still read as a lower-priority compatibility config and can be
 moved to `~/.config/linto/config.yml` when you migrate.
 
-On NixOS, `linto linto setup` changes nothing and prints the equivalent
+On NixOS, `linto linto install` changes nothing and prints the equivalent
 `programs.linto` options instead (see the README's Nix section).
 
-To configure shell completion and install the `linto(1)` man page as well:
-
-```sh
-linto linto setup --man
-```
-
-If `man linto` is not found, ensure your user man directory is included in
+The `linto(1)` man page is installed too; if `man linto` is not found, ensure your user man directory is included in
 `MANPATH`. Run `linto linto addman --help` for details.
 
 To set up Markdown-viewer prerequisites, run:

@@ -26,19 +26,21 @@ dispatcher exports `LINTO_ROOT` and `VIRTUAL_ENV` and puts `.venv/bin` first on
 `LINTO_NO_VENV=1` skips it for one run. `.venv` is git-ignored. The Nix package
 provides its own Python with the same packages and does not ship `venv`.
 
-## Refresh and man pages
+## Build and man pages
 
-`linto linto refresh` regenerates command wrappers, Fish completions, the
+`linto linto build` regenerates command wrappers, Fish completions, the
 active-group list in the dispatcher man page, and one man page per
 `linto-guide/*.md` topic. Output goes to `${XDG_DATA_HOME:-~/.local/share}/linto`,
 never into the checkout. It requires `mandown` and `groff`
-(`linto linto mdsetup`). `linto linto addman` runs refresh and links the
-generated man page into the user's man path. `addgroup` and `rmgroup` also run
-refresh.
+(`linto linto mdsetup`); without them the guide man pages are skipped with a
+warning. `linto linto addman` runs build and links the generated man page into
+the user's man path. `addgroup` and `rmgroup` also run build. `linto linto install`
+runs build (or addman) and then configures the shells (`--user`), or copies the
+tree and builds into a prefix (`--system`).
 
-Run refresh after changing configuration or adding or removing executable
-scripts. Like `addgroup` and `rmgroup`, `refresh` and `addman` are removed from
-the Nix package, which provides its own completions and wrappers.
+Run build after changing configuration or adding or removing executable
+scripts. Like `addgroup` and `rmgroup`, `build`, `install` and `addman` are
+removed from the Nix package, which provides its own completions and wrappers.
 
 ## Argument completion
 
@@ -47,7 +49,7 @@ the Nix package, which provides its own completions and wrappers.
 them; the format is described in `linto help completion`). `completions/`
 contains thin Bash, Zsh and Fish front ends that call it, so the logic lives in
 one place. Fish's argument rules are in `completions/linto-args.fish`, which
-`linto.fish` and the file written by `linto linto refresh` both source. Add a
+`linto.fish` and the file written by `linto linto build` both source. Add a
 `# linto-complete:` line to every new command that takes arguments.
 
 ## Messages and translations
