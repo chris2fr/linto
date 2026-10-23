@@ -69,7 +69,9 @@ main() {
   mkdir "$work/src"
   fetch "$archive_url" | tar -xzf - -C "$work/src" --strip-components=1 ||
     fail "cannot download or unpack $archive_url"
-  [ -f "$work/src/groups/linto/lib/install.sh" ] || fail "$archive_url is not a Linto archive"
+  installer=$work/src/groups/linto/lib/install.sh
+  [ -f "$installer" ] || installer=$work/src/groups/linto/install.sh      # layout of older versions
+  [ -f "$installer" ] || fail "$archive_url is not a Linto archive"
 
   # When piped from curl, standard input is the script: give the installer the terminal for its questions.
   if [ ! -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; then
@@ -78,7 +80,7 @@ main() {
     exec_input=/dev/stdin
   fi
   LINTO_SOURCE_REPO=$repo LINTO_SOURCE_REF=$ref LINTO_SOURCE_COMMIT=$commit \
-    bash "$work/src/groups/linto/lib/install.sh" "$@" <"$exec_input"
+    bash "$installer" "$@" <"$exec_input"
 }
 
 # The whole script is parsed before anything runs, so it can safely replace its own file.

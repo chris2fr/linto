@@ -32,7 +32,12 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        body = self.archive if self.path.endswith(".tar.gz") else self.commit.encode()
+        if self.path.endswith(".tar.gz"):
+            body = self.archive
+        elif self.path.endswith("install.sh"):
+            body = (ROOT / "install.sh").read_bytes()
+        else:
+            body = self.commit.encode()
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -59,7 +64,7 @@ class BootstrapTests(unittest.TestCase):
         self.env = dict(
             os.environ, LC_ALL="C", HOME=str(self.home), ZDOTDIR=str(self.home),
             XDG_DATA_HOME=str(self.home / "data"), XDG_CONFIG_HOME=str(self.home / "config"),
-            LINTO_ARCHIVE_URL=f"{self.base}/linto.tar.gz", LINTO_COMMIT_URL=f"{self.base}/commit",
+            LINTO_ARCHIVE_URL=f"{self.base}/linto.tar.gz", LINTO_COMMIT_URL=f"{self.base}/commit", LINTO_BOOTSTRAP_URL=f"{self.base}/install.sh",
             LINTO_SYSTEM_PREFIXES="/nonexistent", NO_PROXY="127.0.0.1", no_proxy="127.0.0.1",
         )
         self.lib = self.home / ".local" / "lib" / "linto"
@@ -124,6 +129,39 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual((self.marker("mode"), self.marker("shells"), self.marker("man")), ("user", "bash", "false"))
         self.assertTrue(kept.exists())                                     # the environment survives
         self.assertIn("up to date", self.linto("linto", "update").stdout)
+
+    def test_update_uses_the_fresh_bootstrap_not_the_installed_one(self):
+        self.assertEqual(self.sh("--user", "--no-man", "--no-venv", "--shell", "bash").returncode, 0)
+        (self.lib / "install.sh").write_text("#!/bin/sh\necho 'old bootstrap, cannot cope' >&2\nexit 1\n", encoding="utf-8")
+        Handler.commit = "d" * 40
+        result = self.linto("linto", "update", "--yes")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.marker("commit"), "d" * 40)
+
+    def test_update_falls_back_to_the_installed_bootstrap_when_the_fresh_one_is_unavailable(self):
+        self.assertEqual(self.sh("--user", "--no-man", "--no-venv", "--shell", "bash").returncode, 0)
+        Handler.commit = "e" * 40
+        self.env["LINTO_BOOTSTRAP_URL"] = "http://127.0.0.1:9/install.sh"      # nothing listens there
+        result = self.linto("linto", "update", "--yes")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.marker("commit"), "e" * 40)
+
+    def test_bootstrap_accepts_the_archive_layout_of_older_versions(self):
+        legacy = Path(self.tmp.name) / "legacy"
+        (legacy / "linto-main" / "groups" / "linto").mkdir(parents=True)
+        (legacy / "linto-main" / "groups" / "linto" / "install.sh").write_text(
+            "#!/bin/bash\necho legacy-installer-ran \"$@\"\n", encoding="utf-8")
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+            archive.add(legacy / "linto-main", arcname="linto-main")
+        saved = Handler.archive
+        Handler.archive = buffer.getvalue()
+        try:
+            result = self.sh("--user")
+        finally:
+            Handler.archive = saved
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("legacy-installer-ran --user", result.stdout)
 
     def test_system_installation_updates_with_the_same_choices(self):
         prefix, sysconf = self.home / "usr", self.home / "etc"

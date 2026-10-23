@@ -67,7 +67,20 @@ export LINTO_REPO="${LINTO_REPO:-$(meta repo)}"
 export LINTO_REF="${ref_override:-${LINTO_REF:-$(meta ref)}}"
 [[ -f "$root/install.sh" ]] || die "bootstrap script not found: %s" "$root/install.sh"
 
-latest=$(sh "$root/install.sh" --latest-commit) ||
+# Use the bootstrap script of the version being installed, not the installed one: the layout
+# of the archive can change between versions, and an old script would not understand a new one.
+# (Fall back to the installed script if the fresh one cannot be fetched.)
+bootstrap_url=${LINTO_BOOTSTRAP_URL:-https://raw.githubusercontent.com/$LINTO_REPO/${LINTO_REF}/install.sh}
+fresh=$(mktemp "${TMPDIR:-/tmp}/linto-bootstrap.XXXXXX")
+trap 'rm -f -- "$fresh"' EXIT
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL ${LINTO_GITHUB_TOKEN:+-H "Authorization: Bearer $LINTO_GITHUB_TOKEN"} "$bootstrap_url" -o "$fresh" 2>/dev/null || : > "$fresh"
+elif command -v wget >/dev/null 2>&1; then
+  wget -qO "$fresh" ${LINTO_GITHUB_TOKEN:+--header="Authorization: Bearer $LINTO_GITHUB_TOKEN"} "$bootstrap_url" 2>/dev/null || : > "$fresh"
+fi
+head -n 1 "$fresh" | grep -q '^#!/bin/sh' || cp -- "$root/install.sh" "$fresh"
+
+latest=$(sh "$fresh" --latest-commit) ||
   die "cannot read the latest commit of %s (%s)" "$LINTO_REPO" "$LINTO_REF"
 
 if [[ "$latest" == "$installed_commit" && -z "$ref_override" ]]; then
@@ -102,4 +115,4 @@ fi
 [[ "$(meta venv)" == false ]] && args+=(--no-venv)
 
 # The bootstrap script parses itself completely before running, so it can replace its own tree.
-exec sh "$root/install.sh" "${args[@]}"
+sh "$fresh" "${args[@]}"
