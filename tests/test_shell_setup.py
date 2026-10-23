@@ -134,6 +134,36 @@ class ShellSetupTests(unittest.TestCase):
             self.assertEqual(zsh_result.returncode, 0, zsh_result.stderr)
             self.assertIn("_linto", zsh_result.stdout)
 
+    def test_fish_setup_replaces_the_static_completion_with_the_generated_one(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is required for this integration test")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            data = home / "data"
+            environment = dict(os.environ, HOME=str(home), SHELL="/usr/bin/fish",
+                               XDG_CONFIG_HOME=str(home / "config"), XDG_DATA_HOME=str(data))
+            config = home / "config" / "fish" / "config.fish"
+
+            def setup():
+                result = subprocess.run([bash, ROOT / "groups" / "linto" / "setup.sh", "--shell", "fish"],
+                                        capture_output=True, text=True, env=environment)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+            setup()                                          # before refresh: the static file in the checkout
+            static = f'source "{ROOT}/completions/linto.fish"'
+            self.assertIn(static, config.read_text(encoding="utf-8").splitlines())
+            (data / "linto" / "completions").mkdir(parents=True)
+            (data / "linto" / "completions" / "linto.fish").write_text("# generated\n", encoding="utf-8")
+            config.write_text(config.read_text(encoding="utf-8") + "function y\nend\n", encoding="utf-8")
+            setup()                                          # after refresh: the generated file
+            setup()                                          # idempotent
+            lines = config.read_text(encoding="utf-8").splitlines()
+            generated = f'source "{data}/linto/completions/linto.fish"'
+            self.assertNotIn(static, lines)
+            self.assertEqual(lines.count(generated), 1)
+            self.assertIn("function y", lines)
+
     def test_setup_detects_invoking_shell_before_shell_environment(self):
         startup_files = {"bash": ".bashrc", "zsh": ".zshrc", "ksh": ".kshrc", "sh": ".profile"}
         for shell in startup_files:

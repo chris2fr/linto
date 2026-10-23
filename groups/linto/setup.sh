@@ -213,6 +213,18 @@ ensure_zsh_completion_order() {
   fi
 }
 
+# The generated fish completion (written by refresh) supersedes the static one in
+# the checkout; drop an earlier line sourcing the static file so rules are not defined twice.
+if [[ "$shell_name" == fish && "$fish_completion" == "$user_data_dir/completions/linto.fish" ]]; then
+  stale_line="source \"$completion_dir/linto.fish\""
+  if grep -Fqx -- "$stale_line" "$config_file"; then
+    temporary=$(mktemp "${config_file}.linto.XXXXXX")
+    grep -Fvx -- "$stale_line" "$config_file" > "$temporary" || true
+    chmod --reference="$config_file" "$temporary" 2>/dev/null || true
+    mv -- "$temporary" "$config_file"
+  fi
+fi
+
 # Zsh must have the completion directory on fpath before compinit runs.
 if [[ "$shell_name" == zsh ]]; then
   ensure_zsh_completion_order
