@@ -11,9 +11,7 @@ Install Linto from GitHub, for yourself or for every user of the machine (it nee
 `curl` or `wget`, `tar`, `bash` and `python3`):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
-# or: wget -qO- https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
-curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --system   # uses sudo
+curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s 
 ```
 
 Without `--user` or `--system` it asks. The script downloads `chris2fr/linto`, installs a
