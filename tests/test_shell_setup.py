@@ -57,7 +57,7 @@ class AliasShellTests(unittest.TestCase):
                     call(home / ".kshrc", ANY),
                 ],
             )
-            zsh_update.assert_called_once_with(home / ".zshrc", home / ".config" / "zsh" / "aliases.zsh", ANY)
+            zsh_update.assert_called_once_with(home / ".zshrc", home / "config" / "zsh" / "aliases.zsh", ANY)
             ksh_profile.assert_called_once_with(home / ".profile")
 
     def test_zsh_aliases_live_in_a_file_that_linto_controls(self):
@@ -93,16 +93,35 @@ class AliasShellTests(unittest.TestCase):
             self.assertNotIn("mine", aliases_file.read_text(encoding="utf-8"))
             self.assertNotIn("quoted", aliases_file.read_text(encoding="utf-8"))
 
+    def test_zsh_block_follows_xdg_config_home(self):
+        for line in aliases.ZSH_ALIASES_BLOCK:
+            self.assertIn("${XDG_CONFIG_HOME:-$HOME/.config}/zsh/", line)
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            with patch.dict(os.environ, {"HOME": str(home), "XDG_CONFIG_HOME": str(home / "xdg"), "ZDOTDIR": str(home),
+                                         "SHELL": "/usr/bin/zsh"}), \
+                 patch.object(sys, "argv", [str(ALIASES_PATH), "--shell", "zsh"]), \
+                 redirect_stdout(StringIO()):
+                self.assertEqual(aliases.main(), 0)
+            self.assertTrue((home / "xdg" / "zsh" / "aliases.zsh").is_file())
+            self.assertFalse((home / ".config" / "zsh").exists())
+
     def test_zsh_block_works_in_a_real_zsh(self):
         zsh = shutil.which("zsh")
         if not zsh:
             self.skipTest("zsh is required")
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
-            aliases.update_zsh_aliases(home / ".zshrc", home / ".config" / "zsh" / "aliases.zsh", {"hello": "echo hi"})
-            result = subprocess.run([zsh, "-ic", "hello"], capture_output=True, text=True,
-                                    env=dict(os.environ, HOME=str(home), ZDOTDIR=str(home)))
-            self.assertEqual(result.stdout.strip().splitlines()[-1], "hi", result.stderr)
+            for xdg in (None, str(home / "xdg")):
+                environment = dict(os.environ, HOME=str(home), ZDOTDIR=str(home))
+                environment.pop("XDG_CONFIG_HOME", None)
+                base = home / ".config"
+                if xdg:
+                    environment["XDG_CONFIG_HOME"] = xdg
+                    base = Path(xdg)
+                aliases.update_zsh_aliases(home / ".zshrc", base / "zsh" / "aliases.zsh", {"hello": "echo hi"})
+                result = subprocess.run([zsh, "-ic", "hello"], capture_output=True, text=True, env=environment)
+                self.assertEqual(result.stdout.strip().splitlines()[-1], "hi", result.stderr)
 
     def test_sh_aliases_replace_the_managed_block_and_quote_values(self):
         with tempfile.TemporaryDirectory() as directory:

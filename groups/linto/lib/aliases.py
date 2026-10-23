@@ -121,7 +121,7 @@ def main() -> int:
                 zdotdir = Path(os.environ.get("ZDOTDIR", str(home)))
                 if not zdotdir.is_absolute():
                     zdotdir = home
-                aliases_file = home / ".config" / "zsh" / "aliases.zsh"
+                aliases_file = linto_config.xdg_directory("XDG_CONFIG_HOME", home / ".config") / "zsh" / "aliases.zsh"
                 update_zsh_aliases(zdotdir / ".zshrc", aliases_file, aliases)
                 destination = f"{aliases_file} ({_('sourced from')} {zdotdir / '.zshrc'})"
             elif target_shell == "bash":
@@ -183,10 +183,10 @@ def update_sh_aliases(rc_path: Path, aliases: dict[str, str]) -> None:
 
 
 ZSH_ALIASES_BLOCK = [
-    'mkdir -p -m 0700 "$HOME/.config/zsh/"',
-    'touch "$HOME/.config/zsh/aliases.zsh"',
-    'chmod 0600 "$HOME/.config/zsh/aliases.zsh"',
-    'source "$HOME/.config/zsh/aliases.zsh"',
+    'mkdir -p -m 0700 "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/"',
+    'touch "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/aliases.zsh"',
+    'chmod 0600 "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/aliases.zsh"',
+    'source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/aliases.zsh"',
 ]
 
 
