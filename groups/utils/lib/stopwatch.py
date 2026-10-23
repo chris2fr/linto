@@ -2,14 +2,16 @@
 """Count down to zero or count up from zero. Usage: stopwatch.py countdown|timer [OPTIONS]"""
 
 import os
+import math
 import re
 import select
+import shutil
 import subprocess
 import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
-from clibase import Parser, _, fail  # noqa: E402
+from clibase import Parser, _, fail, group_configdata  # noqa: E402
 
 UNITS = {"h": 3600, "m": 60, "s": 1}
 PART = re.compile(r"(\d+(?:\.\d+)?)([hms])")
@@ -46,6 +48,25 @@ def show(line: str, live: bool) -> None:
         sys.stderr.flush()
 
 
+def tclock_command(plain):
+    """The tclock program (clock-tui) when it can take over: installed, on a terminal, not disabled."""
+    if plain or group_configdata("utils").get("tclock", True) is False:
+        return None
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    return shutil.which("tclock")
+
+
+def run_tclock(command):
+    """Run tclock; (seconds it ran, exit status). A status of None means it could not start."""
+    started = time.monotonic()
+    try:
+        status = subprocess.run(command, check=False).returncode
+    except OSError:
+        return 0.0, None
+    return time.monotonic() - started, status
+
+
 def countdown(argv) -> int:
     parser = Parser("utils", "countdown", description=_(
         "Count down from a duration, then ring the terminal bell."))
@@ -54,6 +75,7 @@ def countdown(argv) -> int:
     parser.add_argument("-m", "--message", default=None, metavar="TEXT",
                         help=_("message printed when time is up (default: Time is up!)"))
     parser.add_argument("--no-bell", action="store_true", help=_("do not ring the bell"))
+    parser.add_argument("--plain", action="store_true", help=_("do not hand over to tclock even if it is installed"))
     parser.add_argument("command", nargs="*", metavar="COMMAND",
                         help=_("command to run when time is up; put -- before it if it has options"))
     args = parser.parse_args(argv)
@@ -62,18 +84,29 @@ def countdown(argv) -> int:
     except ValueError:
         parser.error(_("invalid duration: {}").format(args.duration))
     live = sys.stderr.isatty()
-    end = time.monotonic() + total
-    try:
-        while True:
-            left = end - time.monotonic()
-            if left <= 0:
-                break
-            show(format_duration(left + 0.999), live)
-            time.sleep(min(0.2, left))
-    except KeyboardInterrupt:
-        show("", live)
-        print(file=sys.stderr)
-        return 130
+    finished = False
+    tclock = tclock_command(args.plain)
+    if tclock:
+        # tclock (clock-tui) draws the countdown; its timer takes a duration. If it ended long
+        # before the time was up, the user quit it; if it failed at once, fall back to our own.
+        ran, status = run_tclock([tclock, "timer", "-d", f"{max(1, math.ceil(total))}s"])
+        if status is not None and (status == 0 or ran >= 1):
+            if ran < total - 1:
+                return 130
+            finished = True
+    if not finished:
+        end = time.monotonic() + total
+        try:
+            while True:
+                left = end - time.monotonic()
+                if left <= 0:
+                    break
+                show(format_duration(left + 0.999), live)
+                time.sleep(min(0.2, left))
+        except KeyboardInterrupt:
+            show("", live)
+            print(file=sys.stderr)
+            return 130
     show("", live)
     if live:
         sys.stderr.write("\r")
@@ -94,7 +127,14 @@ def timer(argv) -> int:
         "Count up from zero until interrupted with Ctrl-C, then print the elapsed time."))
     parser.add_argument("-l", "--laps", action="store_true",
                         help=_("press Enter to record a lap (needs a terminal)"))
+    parser.add_argument("--plain", action="store_true", help=_("do not hand over to tclock even if it is installed"))
     args = parser.parse_args(argv)
+    tclock = None if args.laps else tclock_command(args.plain)      # tclock has no laps
+    if tclock:
+        ran, status = run_tclock([tclock, "stopwatch"])
+        if status is not None and (status == 0 or ran >= 1):
+            print(format_duration(ran, tenths=True))
+            return status
     live = sys.stderr.isatty()
     laps_on = args.laps and sys.stdin.isatty()
     start = last = time.monotonic()

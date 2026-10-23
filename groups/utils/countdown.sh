@@ -1,6 +1,7 @@
 #!/bin/sh
 # linto-complete: opt -m,--message value Message printed when time is up
 # linto-complete: flag --no-bell Do not ring the bell
+# linto-complete: flag --plain Do not hand over to tclock
 # linto-complete: arg 1 value
 # linto-complete: arg * command
 set -eu

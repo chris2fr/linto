@@ -2356,3 +2356,6 @@ msgstr "taille inconnue"
 
 msgid "the installation failed."
 msgstr "l'installation a échoué."
+
+msgid "do not hand over to tclock even if it is installed"
+msgstr "ne pas passer la main à tclock même s'il est installé"

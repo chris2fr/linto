@@ -1,4 +1,7 @@
 configdata:
+  # Hand `timer` and `countdown` over to tclock (clock-tui) when it is installed and
+  # the output is a terminal. Set to false to always use Linto's own display.
+  tclock: true
   qrdecode:
     # Decoders tried in order; the first one available is used.
     #   zbar    the zbarimg command (package zbar-tools): small, no Python packages

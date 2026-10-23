@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import time
 import unittest
 from pathlib import Path
 
@@ -174,3 +175,85 @@ class ExtrasTests(unittest.TestCase):
 
     def test_ensure_is_quiet_when_the_module_is_there(self):
         self.assertTrue(self.extras.ensure("json", "qr-opencv", "Something", "prog"))
+
+
+def run_on_terminal(args, env, timeout=20):
+    """Run linto with a pseudo-terminal as stdin, stdout and stderr; return (status, output)."""
+    import pty
+    import select
+    master, slave = pty.openpty()
+    proc = subprocess.Popen([LINTO, *args], stdin=slave, stdout=slave, stderr=slave, env=env, close_fds=True)
+    os.close(slave)
+    output = b""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        ready, _unused, _unused2 = select.select([master], [], [], 0.2)
+        if ready:
+            try:
+                chunk = os.read(master, 65536)
+            except OSError:
+                break
+            if not chunk:
+                break
+            output += chunk
+        elif proc.poll() is not None:
+            break
+    os.close(master)
+    return proc.wait(timeout=5), output.decode("utf-8", "replace")
+
+
+class TclockTests(unittest.TestCase):
+    """countdown and timer hand over to tclock (clock-tui) when it is installed."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.log = self.dir / "tclock.log"
+        fake = self.dir / "bin" / "tclock"
+        fake.parent.mkdir()
+        fake.write_text(
+            '#!/bin/sh\necho "$@" >> "$TCLOCK_LOG"\n[ -n "$TCLOCK_QUIT" ] && exit 0\n'
+            'case "$1" in timer) n=${3%s}; sleep "$n" ;; stopwatch) sleep 1 ;; esac\n')
+        fake.chmod(0o755)
+        self.env = dict(os.environ, LC_ALL="C", TCLOCK_LOG=str(self.log), HOME=str(self.dir),
+                        XDG_CONFIG_HOME=str(self.dir / "config"), PATH=f"{fake.parent}:{os.environ['PATH']}")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def calls(self):
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def test_countdown_hands_over_to_tclock_timer(self):
+        status, output = run_on_terminal(["utils", "countdown", "2s", "--no-bell", "-m", "done"], self.env)
+        self.assertEqual(status, 0, output)
+        self.assertEqual(self.calls(), ["timer -d 2s"])
+        self.assertIn("done", output)
+
+    def test_quitting_tclock_early_is_an_interruption(self):
+        status, output = run_on_terminal(["utils", "countdown", "30s", "--no-bell", "-m", "done"],
+                                         dict(self.env, TCLOCK_QUIT="1"))
+        self.assertEqual(status, 130, output)
+        self.assertNotIn("done", output)
+
+    def test_plain_and_no_terminal_keep_the_builtin_display(self):
+        status, output = run_on_terminal(["utils", "countdown", "0.2s", "--no-bell", "--plain"], self.env)
+        self.assertEqual((status, self.calls()), (0, []), output)
+        piped = subprocess.run([LINTO, "utils", "countdown", "0.2s", "--no-bell"], capture_output=True,
+                               text=True, env=self.env, stdin=subprocess.DEVNULL)
+        self.assertEqual((piped.returncode, self.calls()), (0, []), piped.stderr)
+
+    def test_configuration_can_turn_tclock_off(self):
+        (self.dir / "config" / "linto").mkdir(parents=True)
+        (self.dir / "config" / "linto" / "config.yml").write_text(
+            "groups:\n  utils:\n    configdata:\n      tclock: false\n", encoding="utf-8")
+        status, output = run_on_terminal(["utils", "countdown", "0.2s", "--no-bell"], self.env)
+        self.assertEqual((status, self.calls()), (0, []), output)
+
+    def test_timer_hands_over_to_tclock_stopwatch_and_prints_the_time(self):
+        status, output = run_on_terminal(["utils", "timer"], self.env)
+        self.assertEqual(status, 0, output)
+        self.assertEqual(self.calls(), ["stopwatch"])
+        self.assertRegex(output, r"00:00:01\.\d")
+        laps, _unused = run_on_terminal(["utils", "timer", "--laps", "--help"], self.env)
+        self.assertEqual(self.calls(), ["stopwatch"])                  # --laps/--help never start tclock

@@ -70,6 +70,15 @@ standard input. Set the server in `groups.web.configdata.memos.url` (or
 `LINTO_MEMOS_URL`) and a personal access token in
 `groups.web.configdata.memos.token-file` (or `LINTO_MEMOS_TOKEN`).
 
+`linto utils timer` and `linto utils countdown DURATION` show their own display, but
+hand over to [`tclock`](https://github.com/race604/clock-tui) (package `clock-tui`) when it is
+installed and the output is a terminal: `timer` runs `tclock stopwatch` and prints the
+elapsed time when you quit it; `countdown` runs `tclock timer -d DURATION` (tclock's own
+`countdown` counts down to a date and time, not for a duration) and then rings the bell,
+prints the message and runs the command if the time ran out, or exits with status 130 if you
+quit it earlier. `--plain`, or `tclock: false` in `groups.utils.configdata`, keeps the
+built-in display; `timer --laps` always does, since tclock has no laps.
+
 `linto utils qrdecode [--backend zbar|opencv] FILE...` reads QR codes with the first
 available backend of `groups.utils.configdata.qrdecode.backends`. The default is
 `[zbar]`: the `zbarimg` command (package `zbar-tools`), which is small and needs no
