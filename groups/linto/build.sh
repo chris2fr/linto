@@ -78,9 +78,6 @@ for group in "${groups[@]}"; do
   add_stub "linto-$group" "$group" '' group
   mapfile -t commands < <("$linto" --list-commands "$group")
   for command in "${commands[@]}"; do
-    case "$group/$command" in
-      linto/addgroup|linto/rmgroup|linto/refresh|linto/setup) continue ;;
-    esac
     add_stub "linto-$group-$command" "$group" "$command" group-command
   done
 done

@@ -394,35 +394,6 @@ def quarto_extension(data: dict) -> str:
     return extension.strip()
 
 
-def set_user_group_enabled(group: str, enabled: bool) -> None:
-    if not valid_name(group):
-        raise ValueError(f"invalid group name: {group!r}")
-    path = user_config_file()
-    data = read_yaml_mapping(path, "user configuration") if path.is_file() else {}
-    groups = data.setdefault("groups", {})
-    if not isinstance(groups, dict):
-        raise ValueError("user config 'groups' must be a mapping")
-    current = groups.get(group)
-    if enabled:
-        if current == "default":
-            pass
-        elif isinstance(current, dict):
-            current["enable"] = True
-        else:
-            groups[group] = "default"
-    elif isinstance(current, dict):
-        current["enable"] = False
-    else:
-        groups[group] = {"enable": False}
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    temporary.write_text(text, encoding="utf-8")
-    temporary.replace(path)
-
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("config", type=Path)
@@ -445,17 +416,10 @@ def main() -> int:
     sub.add_parser("version")
     sub.add_parser("user-config-file")
     sub.add_parser("system-config-file")
-    add_parser = sub.add_parser("add")
-    add_parser.add_argument("group")
-    rm_parser = sub.add_parser("remove")
-    rm_parser.add_argument("group")
     args = parser.parse_args()
 
     try:
         installation_root = Path(__file__).resolve().parent.parent
-        if args.action in {"add", "remove"}:
-            set_user_group_enabled(args.group, args.action == "add")
-            return 0
         user_data = data_directory()
         data = load(
             args.config,

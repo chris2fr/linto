@@ -45,31 +45,26 @@ stdenvNoCC.mkDerivation {
     chmod u+w "$out/lib/linto/config.yml"
     cp ${configFile} "$out/lib/linto/config.yml"
     install -Dm444 ${configFile} "$out/etc/linto/config.yml"
-    # addgroup, rmgroup, build and addman are development scripts, and
+    # build and build-man are development scripts, and
     # install, uninstall, update, mdsetup and venv prepare non-Nix systems; Nix provides PATH and completions and
     # the store tree is read-only, so none of them are shipped.
     rm -f \
-      "$out/lib/linto/groups/linto/addgroup.sh" \
-      "$out/lib/linto/groups/linto/rmgroup.sh" \
       "$out/lib/linto/groups/linto/build.sh" \
-      "$out/lib/linto/groups/linto/addman.sh" \
-      "$out/lib/linto/groups/linto/install.sh" \
+      "$out/lib/linto/groups/linto/build-man.sh" \
+      "$out/lib/linto/groups/linto/lib/install.sh" \
       "$out/lib/linto/groups/linto/uninstall.sh" \
       "$out/lib/linto/groups/linto/update.sh" \
       "$out/lib/linto/install.sh" \
       "$out/lib/linto/groups/linto/lib/installer.sh" \
       "$out/lib/linto/groups/linto/mdsetup.sh" \
       "$out/lib/linto/groups/linto/venv.sh" \
-      "$out/lib/linto/bin/linto-linto-addgroup" \
-      "$out/lib/linto/bin/linto-linto-rmgroup" \
       "$out/lib/linto/bin/linto-linto-build" \
-      "$out/lib/linto/bin/linto-linto-addman" \
-      "$out/lib/linto/bin/linto-linto-install" \
+      "$out/lib/linto/bin/linto-linto-build-man" \
       "$out/lib/linto/bin/linto-linto-uninstall" \
       "$out/lib/linto/bin/linto-linto-update" \
       "$out/lib/linto/bin/linto-linto-mdsetup" \
       "$out/lib/linto/bin/linto-linto-venv" \
-      "$out/lib/linto/bin/linto-beta-addman"
+      "$out/lib/linto/bin/linto-beta-build-man"
     patchShebangs "$out/lib/linto"
 
     mv "$out/lib/linto/bin/linto" "$out/lib/linto/bin/linto-unwrapped"

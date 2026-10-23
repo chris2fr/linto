@@ -1,5 +1,5 @@
 # Python packages every Linto command may need, installed by `linto linto venv`
-# (and by `linto linto install`) into $LINTO_ROOT/.venv. Larger optional
+# (and by the installer, `install.sh`) into $LINTO_ROOT/.venv. Larger optional
 # packages are in requirements/NAME.txt and installed on first use or with
 # `linto linto venv --extra NAME`. The Nix package provides its own copies.
 PyYAML

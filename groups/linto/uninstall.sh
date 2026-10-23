@@ -9,12 +9,12 @@ usage() {
   _ "$(cat <<'EOF'
 Usage: linto linto uninstall [--user | --system] [--prefix DIR] [--yes] [-h|--help]
 
-Remove a Linto installation made by linto linto install, for the current user
+Remove a Linto installation made by the installer (install.sh), for the current user
 (--user) or for all users (--system). When neither is given, ask which.
 
 --user deletes PREFIX/lib/linto (default ~/.local), the launcher in PREFIX/bin, the
 generated wrappers, completions and man page in the per-user data directory, and the
-lines that linto linto install added to your shell start-up files.
+lines that the installer added to your shell start-up files.
 
 --system deletes PREFIX/lib/linto (default /usr/local), the commands linked into
 PREFIX/bin, and the completions and man pages installed under PREFIX/share. When

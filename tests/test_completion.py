@@ -59,7 +59,7 @@ class DispatcherCompletionTests(unittest.TestCase):
         self.assertIn("--output\tOutput JSON file (default: stdout)", reply)
 
     def test_commands_without_arguments_complete_nothing(self):
-        self.assertEqual(complete("linto", "addman", ""), ["none"])
+        self.assertEqual(complete("linto", "build-man", ""), ["none"])
 
     def test_undeclared_commands_complete_any_file(self):
         with tempfile.TemporaryDirectory() as directory:

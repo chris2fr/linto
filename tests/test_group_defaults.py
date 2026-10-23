@@ -190,26 +190,16 @@ class ConfigdataTests(unittest.TestCase):
             )
             self.assertEqual(config.enabled_groups(data, install, data_root), ["custom"])
 
-    def test_group_enablement_writes_to_the_user_config(self):
+    def test_user_config_file_prefers_the_xdg_file_when_it_exists(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             config_home = home / "config"
-            config_home.mkdir()
             environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(config_home)}
             with patch.dict(os.environ, environment):
-                # No user configuration yet: ~/.linto.yml is created.
                 self.assertEqual(config.user_config_file(), home / ".linto.yml")
-                config.set_user_group_enabled("custom", False)
-                saved = config.read_yaml_mapping(home / ".linto.yml", "test user configuration")
-                self.assertEqual(saved, {"groups": {"custom": {"enable": False}}})
-                self.assertFalse((config_home / "linto" / "config.yml").exists())
-                # An existing XDG file takes over, as it is read above ~/.linto.yml.
-                (config_home / "linto").mkdir()
+                (config_home / "linto").mkdir(parents=True)
                 (config_home / "linto" / "config.yml").write_text("{}\n", encoding="utf-8")
                 self.assertEqual(config.user_config_file(), config_home / "linto" / "config.yml")
-                config.set_user_group_enabled("custom", True)
-                saved = config.read_yaml_mapping(config_home / "linto" / "config.yml", "test user configuration")
-                self.assertEqual(saved, {"groups": {"custom": "default"}})
 
     def test_shipped_templates_are_valid_configurations(self):
         for name in ("config.yml", "linto.yml"):

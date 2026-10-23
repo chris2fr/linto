@@ -3,18 +3,15 @@
 Notes for working in a Linto git checkout. These are not part of the Nix
 package or the user guide.
 
-## Group management scripts
+## Groups
 
-`addgroup` and `rmgroup` edit the checkout's own `config.yml`, so they only make
-sense on a mutable source tree. They are removed from the Nix package, whose
-store tree is read-only. Installed systems enable or disable groups through the
-`groups` mapping in `~/.config/linto/config.yml` or `programs.linto.settings`.
-
-- `linto linto addgroup DIRECTORY` registers or re-enables a group.
-- `linto linto rmgroup GROUP` removes a `default` entry or disables a mapped
-  group.
-
-Neither command deletes an existing group directory.
+Which groups are active is a matter of configuration only: the `groups` mapping of
+`config.yml`, `/etc/linto/linto.yml`, `~/.linto.yml` or `~/.config/linto/config.yml` (or
+`programs.linto.settings` on NixOS). `old: {enable: false}` switches a group off, `NAME:
+default` or `NAME: {enable: true}` on. There is no command to add or remove one. To add your
+own group, put its directory in `${XDG_DATA_HOME:-~/.local/share}/linto/groups/NAME` (executable
+`*.sh` files are its commands), list `NAME: default` under `groups` in `~/.linto.yml`, and run
+`linto linto build` to generate its wrappers and completions.
 
 ## Python environment
 
@@ -30,7 +27,7 @@ provides its own Python with the same packages and does not ship `venv`.
 
 `install.sh` at the top of the repository is the bootstrap: it downloads the archive of
 `LINTO_REPO` at `LINTO_REF` (default `chris2fr/linto`, `main`) with curl or wget, unpacks it to a
-temporary directory and runs that copy's `groups/linto/install.sh` with the same arguments,
+temporary directory and runs that copy's `groups/linto/lib/install.sh` with the same arguments,
 exporting `LINTO_SOURCE_REPO`, `LINTO_SOURCE_REF` and `LINTO_SOURCE_COMMIT` (the hash comes from
 the GitHub API; `sh install.sh --latest-commit` prints it). The installer records its choices in
 `.linto-install` of the installed copy (first line: version; then `mode`, `prefix`, `sysconfdir`,
@@ -41,7 +38,7 @@ the GitHub API; `sh install.sh --latest-commit` prints it). The installer record
 ## Python environment and optional packages
 
 `requirements.txt` lists the packages every command may need (PyYAML,
-bibtexparser, segno): about 18 MB, or 5 MB without pip. `linto linto install` creates
+bibtexparser, segno): about 18 MB, or 5 MB without pip. the installer creates
 `$LINTO_ROOT/.venv` from it in the installed copy (`--no-venv` skips it) and keeps
 it across upgrades. Larger optional packages are *extras*: one file
 `requirements/NAME.txt` each, whose first lines say `# download: about N MB`.
@@ -64,7 +61,7 @@ when no backend is present, offers to install the `opencv` extra.
 ## Configuration templates
 
 `etc/config.yml` holds the neutral installation defaults (enabled groups and standard
-shortcuts) that `linto linto install --system` installs as the tree's `config.yml`;
+shortcuts) that the installer's `--system` installs as the tree's `config.yml`;
 `etc/linto.yml` is the commented template for `/etc/linto/linto.yml` and
 `~/.linto.yml`. A checkout's own `config.yml` may hold personal settings and is
 never copied by `--system`.
@@ -76,15 +73,15 @@ active-group list in the dispatcher man page, and one man page per
 `linto-guide/*.md` topic. Output goes to `${XDG_DATA_HOME:-~/.local/share}/linto`,
 never into the checkout. It requires `mandown` and `groff`
 (`linto linto mdsetup`); without them the guide man pages are skipped with a
-warning. `linto linto addman` runs build and links the generated man page into
-the user's man path. `addgroup` and `rmgroup` also run build. `linto linto install`
+warning. `linto linto build-man` runs build and links the generated man page into
+the user's man path. The installer (`groups/linto/lib/install.sh`)
 copies the tree to a prefix and builds from the copy (so the generated wrappers
 point at the installed tree), then configures the shells (`--user`, prefix
 `~/.local`) or links commands and completions under the prefix (`--system`).
 `linto linto uninstall` reverses it; both share `groups/linto/lib/installer.sh`.
 
 Run build after changing configuration or adding or removing executable
-scripts. Like `addgroup` and `rmgroup`, `build`, `install` and `addman` are
+scripts. `build`, the installer and `build-man` are
 removed from the Nix package, which provides its own completions and wrappers.
 
 ## Argument completion

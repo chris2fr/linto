@@ -24,8 +24,8 @@ Run the installer. It asks whether to install for the current user or for all
 users; give `--user` or `--system` to skip the question:
 
 ```sh
-linto linto install --user
-sudo linto linto install --system
+sh install.sh --local --user      # installs this checkout without downloading
+sh install.sh --local --system
 ```
 
 Either way Linto is copied out of the checkout, and the `PATH` entries,
@@ -75,11 +75,11 @@ sets their order (`zbar`, the default, uses the `zbarimg` command from the `zbar
 (including the start-up lines it added), asks for confirmation unless given
 `--yes`, and never deletes your configuration or your own groups.
 
-On NixOS, `linto linto install` changes nothing and prints the equivalent
+On NixOS, the installer changes nothing and prints the equivalent
 `programs.linto` options instead (see the README's Nix section).
 
 The `linto(1)` man page is installed too; if `man linto` is not found, ensure your user man directory is included in
-`MANPATH`. Run `linto linto addman --help` for details.
+`MANPATH`. Run `linto linto build-man --help` for details.
 
 To set up Markdown-viewer prerequisites, run:
 
