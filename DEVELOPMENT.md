@@ -26,6 +26,18 @@ dispatcher exports `LINTO_ROOT` and `VIRTUAL_ENV` and puts `.venv/bin` first on
 `LINTO_NO_VENV=1` skips it for one run. `.venv` is git-ignored. The Nix package
 provides its own Python with the same packages and does not ship `venv`.
 
+## Installing and updating
+
+`install.sh` at the top of the repository is the bootstrap: it downloads the archive of
+`LINTO_REPO` at `LINTO_REF` (default `chris2fr/linto`, `main`) with curl or wget, unpacks it to a
+temporary directory and runs that copy's `groups/linto/install.sh` with the same arguments,
+exporting `LINTO_SOURCE_REPO`, `LINTO_SOURCE_REF` and `LINTO_SOURCE_COMMIT` (the hash comes from
+the GitHub API; `sh install.sh --latest-commit` prints it). The installer records its choices in
+`.linto-install` of the installed copy (first line: version; then `mode`, `prefix`, `sysconfdir`,
+`shells`, `man`, `venv`, `repo`, `ref`, `commit`). `linto linto update` reads that file, compares
+`commit` with the latest one and re-runs `install.sh` with the recorded choices. Tests point
+`LINTO_ARCHIVE_URL` and `LINTO_COMMIT_URL` at a local server (`tests/test_bootstrap.py`).
+
 ## Python environment and optional packages
 
 `requirements.txt` lists the packages every command may need (PyYAML,

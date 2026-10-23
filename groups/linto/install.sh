@@ -178,9 +178,22 @@ repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 [[ -x "$repo_dir/bin/linto" ]] || die "dispatcher not found or not executable: %s" "$repo_dir/bin/linto"
 init_user_paths
 
-# install_tree LIBDIR BINDIR VERSION: copy this checkout to LIBDIR and add the dispatcher launcher.
+# marker_text VERSION PREFIX: the content of .linto-install. The first line is the version;
+# the others record how Linto was installed and where from, for `linto linto update`.
+marker_text() {
+  local shells_csv
+  shells_csv=$(IFS=,; printf '%s' "${selected[*]-}")
+  printf '%s\n' "$1"
+  printf 'mode=%s\nprefix=%s\nsysconfdir=%s\nshells=%s\nman=%s\nvenv=%s\n' \
+    "$mode" "$2" "$sysconfdir" "$shells_csv" "$install_man" "$make_venv"
+  printf 'repo=%s\nref=%s\ncommit=%s\ninstalled=%s\n' \
+    "${LINTO_SOURCE_REPO:-chris2fr/linto}" "${LINTO_SOURCE_REF:-main}" \
+    "${LINTO_SOURCE_COMMIT:-$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
+# install_tree LIBDIR BINDIR VERSION PREFIX: copy this checkout to LIBDIR and add the dispatcher launcher.
 install_tree() {
-  local lib_dir=$1 bin_dir=$2 version=$3 marker
+  local lib_dir=$1 bin_dir=$2 version=$3 prefix_used=$4 marker
   marker="$lib_dir/.linto-install"
   case "$lib_dir" in /*) ;; *) die "the prefix must be an absolute path: %s" "$lib_dir" ;; esac
   if [[ -d "$lib_dir" && "$(CDPATH= cd -- "$lib_dir" && pwd -P)" == "$repo_dir" ]]; then
@@ -197,7 +210,7 @@ install_tree() {
   fi
   priv mkdir -p -- "$lib_dir" "$bin_dir"
   copy_tree "$repo_dir" "$lib_dir"
-  printf '%s\n' "$version" | priv tee "$marker" >/dev/null
+  marker_text "$version" "$prefix_used" | priv tee "$marker" >/dev/null
   # The dispatcher must run from its own tree, so the command is a launcher.
   printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" | priv tee "$bin_dir/linto" >/dev/null
   priv chmod 0755 "$bin_dir/linto"
@@ -222,7 +235,7 @@ install_system() {
   local system_config="$sysconfdir/linto/linto.yml" user_lib answer
 
   setup_privileges "$prefix"
-  install_tree "$lib_dir" "$bin_dir" "$checkout_version"
+  install_tree "$lib_dir" "$bin_dir" "$checkout_version" "$prefix"
 
   # The installed tree gets the neutral defaults, not this checkout's personal config.yml.
   sed "s/^version:.*/version: $checkout_version/" "$repo_dir/etc/config.yml" |
@@ -376,7 +389,7 @@ install_user() {
   local prefix=${prefix:-$default_user_prefix}
   local lib_dir="$prefix/lib/linto" bin_dir="$prefix/bin" shell_name system_prefixes
 
-  install_tree "$lib_dir" "$bin_dir" "$checkout_version"
+  install_tree "$lib_dir" "$bin_dir" "$checkout_version" "$prefix"
 
   make_environment "$lib_dir"
 
