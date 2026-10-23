@@ -1,0 +1,3 @@
+# download: about 30 MB
+# Rendering engine "weasyprint" of `linto utils eml2pdf` (also needs the Pango system library).
+weasyprint

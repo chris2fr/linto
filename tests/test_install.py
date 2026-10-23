@@ -9,6 +9,9 @@ INSTALL = [str(ROOT / "bin" / "linto"), "linto", "install"]
 
 
 def run(*args, env=None, **kwargs):
+    # Installing real packages needs the network: tests skip the Python environment unless they ask for it.
+    if "--help" not in args and "--venv" not in args and "--no-venv" not in args:
+        args = (*args, "--no-venv")
     environment = dict(os.environ, LC_ALL="C")
     environment.update(env or {})
     return subprocess.run([*INSTALL, *args], capture_output=True, text=True, env=environment,
@@ -72,7 +75,7 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("using sudo", result.stderr)
             calls = log.read_text().splitlines()
-            for command in ("rm -rf", "mkdir -p", "tar --no-same-owner", "tee", "ln -sfn", "chmod 0755", "install -m"):
+            for command in ("mkdir -p", "tar --no-same-owner", "tee", "ln -sfn", "chmod 0755", "install -m"):
                 self.assertTrue(any(c.startswith(command) or c.startswith("env ") for c in calls) and
                                 any(command in c for c in calls), command)
             self.assertTrue(any(c.startswith("env ") and "build.sh" in c for c in calls))
@@ -96,6 +99,22 @@ class InstallTests(unittest.TestCase):
             user_config.write_text("# mine\n", encoding="utf-8")
             self.assertEqual(run("--user", "--no-man", "--shell", "bash", env=env).returncode, 0)
             self.assertEqual(user_config.read_text(encoding="utf-8"), "# mine\n")
+
+    def test_the_python_environment_survives_an_upgrade_and_failure_only_warns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            env = {"HOME": str(home), "XDG_DATA_HOME": str(home / "data"), "XDG_CONFIG_HOME": str(home / "config"),
+                   "LINTO_SYSTEM_PREFIXES": "/nonexistent",
+                   "PIP_INDEX_URL": "http://127.0.0.1:9/simple", "PIP_RETRIES": "0", "PIP_TIMEOUT": "1"}
+            kept = home / ".local" / "lib" / "linto" / ".venv" / "extra-package-marker"
+            first = run("--user", "--no-man", "--shell", "bash", "--venv", env=env)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertTrue(kept.parent.is_dir())                         # created even though pip could not download
+            self.assertIn("could not create the Python environment", first.stderr)
+            kept.write_text("x", encoding="utf-8")
+            second = run("--user", "--no-man", "--shell", "bash", "--no-venv", env=env)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            self.assertTrue(kept.exists())                                # an upgrade keeps .venv
 
     def test_system_install_refuses_to_replace_a_foreign_directory(self):
         with tempfile.TemporaryDirectory() as directory:

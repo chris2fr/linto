@@ -43,6 +43,14 @@ overwrites either file. The system installation's own `config.yml` comes from
 the neutral template `etc/config.yml`, so personal settings of the checkout it
 was installed from are not shipped to other users.
 
+Installing also creates Linto's own Python environment (`.venv` in the installed
+copy, about 20 MB; `--no-venv` skips it) and keeps it when you upgrade. Larger
+optional packages are installed the first time a command needs them, after you
+confirm (for example the `opencv` backend of `linto utils qrdecode`, about 150 MB to
+download); install them in advance with `linto linto venv --extra qr-opencv` or
+`--all`. When a command has several backends, `groups.utils.configdata.qrdecode.backends`
+sets their order (`zbar` uses the `zbarimg` command and needs no Python package).
+
 `linto linto uninstall [--user | --system]` removes what the installer put there
 (including the start-up lines it added), asks for confirmation unless given
 `--yes`, and never deletes your configuration or your own groups.

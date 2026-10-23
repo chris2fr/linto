@@ -5,7 +5,7 @@
 # linto-complete: opt --prefix dir Installation prefix (default: ~/.local with --user, /usr/local with --system)
 # linto-complete: opt --sysconfdir dir Directory holding linto/linto.yml with --system (default: /etc)
 # linto-complete: flag --no-man Do not install the man page
-# linto-complete: flag --venv Also create the Python environment (linto linto venv)
+# linto-complete: flag --no-venv Do not create Linto's Python environment
 # linto-complete: flag --remove-user-install With --system, delete your user installation
 # linto-complete: flag --keep-user-install With --system, keep your user installation
 set -euo pipefail
@@ -13,13 +13,15 @@ set -euo pipefail
 usage() {
   _ "$(cat <<'EOF'
 Usage: linto linto install [--user | --system] [--shell SHELL]... [--prefix DIR]
-                           [--sysconfdir DIR] [--no-man] [--venv]
+                           [--sysconfdir DIR] [--no-man] [--no-venv]
                            [--remove-user-install | --keep-user-install] [-h|--help]
 
 Install Linto, for the current user (--user) or for all users (--system). When
 neither is given, ask which. Either way Linto is copied out of this checkout and
 the commands, completions and PATH entries point at the installed copy only;
-run the installer again from a checkout to upgrade.
+run the installer again from a checkout to upgrade. It also creates Linto's own
+Python environment (.venv in the installed copy, about 20 MB; larger optional
+packages are installed on first use) and keeps it when upgrading.
 
 --user installs to PREFIX/lib/linto (default ~/.local), builds the command
 wrappers, completions and man pages (linto linto build), and adds PREFIX/bin and
@@ -51,7 +53,7 @@ Options:
   --prefix DIR   Installation prefix (default: ~/.local with --user, /usr/local with --system).
   --sysconfdir DIR  Directory holding linto/linto.yml with --system (default: /etc).
   --no-man       Do not install the man page.
-  --venv         Also create the Python environment (linto linto venv).
+  --no-venv      Do not create Linto's Python environment (linto linto venv).
   --remove-user-install  With --system, delete your user installation without asking.
   --keep-user-install    With --system, keep your user installation without asking.
   -h, --help     Show this help and exit.
@@ -68,7 +70,7 @@ shells=()
 prefix=
 sysconfdir=/etc
 install_man=true
-make_venv=false
+make_venv=true
 user_install_policy=ask
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -78,6 +80,7 @@ while [[ $# -gt 0 ]]; do
     --no-man) install_man=false; shift ;;
     --man) install_man=true; shift ;;
     --venv) make_venv=true; shift ;;
+    --no-venv) make_venv=false; shift ;;
     --remove-user-install) user_install_policy=remove; shift ;;
     --keep-user-install) user_install_policy=keep; shift ;;
     --shell)
@@ -188,13 +191,24 @@ install_tree() {
   fi
   umask 022
   printf "$(_ 'Installing Linto in %s')\n" "$lib_dir"
-  priv rm -rf -- "$lib_dir"
+  # An upgrade keeps the Python environment (and the optional packages in it).
+  if [[ -d "$lib_dir" ]]; then
+    priv find "$lib_dir" -mindepth 1 -maxdepth 1 ! -name .venv -exec rm -rf -- {} +
+  fi
   priv mkdir -p -- "$lib_dir" "$bin_dir"
   copy_tree "$repo_dir" "$lib_dir"
   printf '%s\n' "$version" | priv tee "$marker" >/dev/null
   # The dispatcher must run from its own tree, so the command is a launcher.
   printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" | priv tee "$bin_dir/linto" >/dev/null
   priv chmod 0755 "$bin_dir/linto"
+}
+
+# make_environment LIBDIR: create or update Linto's own Python environment in the installed copy.
+make_environment() {
+  [[ "$make_venv" == true ]] || return 0
+  if ! priv env PATH="$PATH" "$1/groups/linto/venv.sh"; then
+    printf "$(_ 'Warning: could not create the Python environment (is the network available?). Linto needs PyYAML: run linto linto venv later.')\n" >&2
+  fi
 }
 
 checkout_version=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" version 2>/dev/null || echo unknown)
@@ -223,9 +237,7 @@ install_system() {
     printf "$(_ 'Created %s')\n" "$system_config"
   fi
 
-  if [[ "$make_venv" == true ]]; then
-    priv env PATH="$PATH" "$lib_dir/groups/linto/venv.sh"
-  fi
+  make_environment "$lib_dir"
 
   # Build the wrappers, completions and man pages for the whole system, ignoring
   # the configuration of whoever runs the installation.
@@ -366,9 +378,7 @@ install_user() {
 
   install_tree "$lib_dir" "$bin_dir" "$checkout_version"
 
-  if [[ "$make_venv" == true ]]; then
-    "$lib_dir/groups/linto/venv.sh"
-  fi
+  make_environment "$lib_dir"
 
   # Build from the installed copy, so the generated wrappers point at it.
   if [[ "$install_man" == true ]]; then
