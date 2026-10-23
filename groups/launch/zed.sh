@@ -3,6 +3,7 @@
 # linto-complete: opt -u,--userdatadir dir Root above .zed for the Zed user data
 # linto-complete: flag -r,--reuse Open in an existing window (default)
 # linto-complete: flag -n,--new Always open a new workspace
+# linto-complete: flag -w,--wait Wait until the files are closed in Zed
 # linto-complete: arg 1 file
 set -euo pipefail
 
@@ -10,6 +11,7 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 userdatadir=""
 projectdir=""
 mode="reuse"
+wait_flags=()
 
 usage() {
     _ "$(cat <<'EOF'
@@ -29,6 +31,8 @@ Options:
                            Projects using the same root share this Zed data.
   -r, --reuse              Open in an existing Zed window (default).
   -n, --new                Always open a new workspace.
+  -w, --wait               Wait until the files are closed in Zed before exiting
+                           (passed to zeditor), e.g. for $EDITOR.
   -h, --help               Show this help message and exit.
 
 Arguments:
@@ -83,6 +87,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -n|--new)
             mode="new"
+            shift
+            ;;
+        -w|--wait)
+            wait_flags=(--wait)
             shift
             ;;
         -?*)
@@ -243,11 +251,11 @@ fi
         target_abs="$file_parent_dir/$file_basename"
         if [[ "$target_abs" == "$project_dir/"* ]]; then
             rel_path="${target_abs#$project_dir/}"
-            zeditor --user-data-dir "$user_data_dir" "$open_flag" "$project_dir" "$rel_path"
+            zeditor --user-data-dir "$user_data_dir" "$open_flag" ${wait_flags[@]+"${wait_flags[@]}"} "$project_dir" "$rel_path"
         else
-            zeditor --user-data-dir "$user_data_dir" "$open_flag" "$project_dir" "$file_basename"
+            zeditor --user-data-dir "$user_data_dir" "$open_flag" ${wait_flags[@]+"${wait_flags[@]}"} "$project_dir" "$file_basename"
         fi
     else
-        zeditor --user-data-dir "$user_data_dir" "$open_flag" "$(pwd)"
+        zeditor --user-data-dir "$user_data_dir" "$open_flag" ${wait_flags[@]+"${wait_flags[@]}"} "$(pwd)"
     fi
 )
