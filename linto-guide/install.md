@@ -1,5 +1,25 @@
 # Installation and setup
 
+Install from GitHub with the bootstrap script, which downloads `chris2fr/linto` and runs
+the installer below with your arguments (it needs `curl` or `wget`, `tar`, `bash` and
+`python3`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
+wget -qO- https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --system
+```
+
+`LINTO_REF` picks the branch, tag or commit to install (default `main`), `LINTO_REPO` another
+repository, and `LINTO_GITHUB_TOKEN` a token for a private repository. Updates come from the
+same place: `linto linto update` compares the installed commit with the latest one of the
+branch it was installed from, and with your confirmation (`--yes`) downloads it and runs the
+installer again with the choices recorded at the first installation (user or system, prefix,
+shells, man page, Python environment). `linto linto update --check` only reports, with
+exit status 10 when an update is available.
+
+The rest of this page describes the installer itself, which you can also run from a
+checkout of the repository.
+
 Run the installer. It asks whether to install for the current user or for all
 users; give `--user` or `--system` to skip the question:
 

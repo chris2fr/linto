@@ -7,23 +7,30 @@ directory.
 
 ## Quick start
 
-Add this checkout's `bin/` directory to your `PATH`, then configure completion
-for your shell:
+Install Linto from GitHub, for yourself or for every user of the machine (it needs
+`curl` or `wget`, `tar`, `bash` and `python3`):
 
 ```sh
-export PATH="/path/to/linto/bin:$PATH"
+curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
+# or: wget -qO- https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --user
+curl -fsSL https://raw.githubusercontent.com/chris2fr/linto/main/install.sh | sh -s -- --system   # uses sudo
 ```
 
-Or let Linto install itself, for the current user or for all users, with support for Bash, Zsh, Fish, ksh, and sh:
+Without `--user` or `--system` it asks. The script downloads `chris2fr/linto`, installs a
+copy (`~/.local` or `/usr/local`) with its own Python environment, shell completion for
+Bash, Zsh, Fish, ksh and sh, and the man page, and records where it came from. Read it
+first if you prefer (`install.sh` at the top of this repository); `LINTO_REF` selects a
+branch, tag or commit.
+
+Update from the same place:
 
 ```sh
-linto linto install            # asks: user or system
-linto linto install --user     # PATH, completion and man page for your shells
-sudo linto linto install --system   # copies Linto to /usr/local for everyone
+linto linto update --check    # is a newer version of chris2fr/linto available?
+linto linto update            # download it and reinstall with the same choices
 ```
 
-See
-[`linto help install`](linto-guide/install.md) for details.
+To work on Linto itself, clone this repository and run `bin/linto linto install --user`
+from the checkout. See [`linto help install`](linto-guide/install.md) for details.
 
 ## Nix and NixOS
 
