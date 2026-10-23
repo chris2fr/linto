@@ -27,8 +27,13 @@ are stored under their home directory. The
 XDG variables are optional: without them, user configuration is stored in
 `~/.config/linto/config.yml`, and custom groups/generated data live in
 `~/.local/share/linto`. No Linto-specific home variable is required. An existing
-`~/.linto.yml` is still read as a lower-priority compatibility config and can be
-moved to `~/.config/linto/config.yml` when you migrate.
+`~/.linto.yml` is the per-user configuration file; `~/.config/linto/config.yml`,
+when it exists, is read above it. `--user` creates `~/.linto.yml` from the
+template `etc/linto.yml` if you have neither; `--system` creates
+`/etc/linto/linto.yml` the same way (`--sysconfdir` changes `/etc`) and never
+overwrites either file. The system installation's own `config.yml` comes from
+the neutral template `etc/config.yml`, so personal settings of the checkout it
+was installed from are not shipped to other users.
 
 On NixOS, `linto linto install` changes nothing and prints the equivalent
 `programs.linto` options instead (see the README's Nix section).

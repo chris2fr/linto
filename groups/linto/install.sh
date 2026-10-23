@@ -3,6 +3,7 @@
 # linto-complete: flag --system Install for all users
 # linto-complete: opt --shell choices:all,fish,bash,ksh,sh,zsh Shell to configure with --user (default: all)
 # linto-complete: opt --prefix dir Installation prefix with --system (default: /usr/local)
+# linto-complete: opt --sysconfdir dir Directory holding linto/linto.yml with --system (default: /etc)
 # linto-complete: flag --no-man Do not install the man page
 # linto-complete: flag --venv Also create the Python environment (linto linto venv)
 set -euo pipefail
@@ -10,7 +11,7 @@ set -euo pipefail
 usage() {
   _ "$(cat <<'EOF'
 Usage: linto linto install [--user | --system] [--shell SHELL]... [--prefix DIR]
-                           [--no-man] [--venv] [-h|--help]
+                           [--sysconfdir DIR] [--no-man] [--venv] [-h|--help]
 
 Install Linto, for the current user (--user) or for all users (--system). When
 neither is given, ask which.
@@ -18,12 +19,15 @@ neither is given, ask which.
 --user runs in place from this checkout: it builds the command wrappers,
 completions and man pages (linto linto build), then adds the checkout and
 user-generated command directories to PATH and installs shell completion for
-each selected shell. Configuration lines are not duplicated.
+each selected shell. Configuration lines are not duplicated. It also creates
+~/.linto.yml from the template etc/linto.yml when you have no user configuration.
 
 --system copies Linto to PREFIX/lib/linto, builds its wrappers into
 PREFIX/share/linto, links the commands into PREFIX/bin, and installs the
 completions and man pages under PREFIX/share. When PREFIX is not writable by you
-and you are not root, the steps that need it run through sudo.
+and you are not root, the steps that need it run through sudo. The installed
+config.yml comes from the neutral template etc/config.yml, not from this checkout,
+and /etc/linto/linto.yml is created from etc/linto.yml unless it already exists.
 
 On NixOS, no files are changed; the matching NixOS options are printed instead.
 
@@ -37,6 +41,7 @@ Options:
   --shell SHELL  Shell to configure with --user: fish, bash, ksh, sh, zsh or all;
                  repeat it or separate shells with commas (default: all).
   --prefix DIR   Installation prefix with --system (default: /usr/local).
+  --sysconfdir DIR  Directory holding linto/linto.yml with --system (default: /etc).
   --no-man       Do not install the man page.
   --venv         Also create the Python environment (linto linto venv).
   -h, --help     Show this help and exit.
@@ -52,6 +57,7 @@ ALL_SHELLS=(fish bash ksh sh zsh)
 mode=
 shells=()
 prefix=
+sysconfdir=/etc
 install_man=true
 make_venv=false
 while [[ $# -gt 0 ]]; do
@@ -74,6 +80,12 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --prefix=*) prefix=${1#*=}; shift ;;
+    --sysconfdir)
+      [[ $# -ge 2 ]] || die_usage "option %s needs an argument" "$1"
+      sysconfdir=$2
+      shift 2
+      ;;
+    --sysconfdir=*) sysconfdir=${1#*=}; shift ;;
     --) shift; [[ $# -eq 0 ]] || die_usage "unexpected argument: %s" "$1" ;;
     -?*) die_usage "unknown option: %s" "$1" ;;
     *) die_usage "unexpected argument: %s" "$1" ;;
@@ -96,6 +108,9 @@ if [[ -z "$mode" ]]; then
 fi
 if [[ "$mode" == user && -n "$prefix" ]]; then
   die_usage "%s only applies with %s" "--prefix" "--system"
+fi
+if [[ "$mode" == user && "$sysconfdir" != /etc ]]; then
+  die_usage "%s only applies with %s" "--sysconfdir" "--system"
 fi
 if [[ "$mode" == system && ${#shells[@]} -gt 0 ]]; then
   die_usage "%s only applies with %s" "--shell" "--user"
@@ -174,7 +189,7 @@ prefix_is_writable() {
 install_system() {
   local prefix=${prefix:-/usr/local}
   local lib_dir="$prefix/lib/linto" share_dir="$prefix/share" bin_dir="$prefix/bin"
-  local marker="$lib_dir/.linto-install" entry target
+  local marker="$lib_dir/.linto-install" entry target version
 
   case "$prefix" in /*) ;; *) die "the prefix must be an absolute path: %s" "$prefix" ;; esac
   if [[ -e "$lib_dir" && ! -f "$marker" ]]; then
@@ -200,8 +215,21 @@ install_system() {
   (cd "$repo_dir" && tar --exclude=./.git --exclude=./.venv --exclude=./tests \
       --exclude=__pycache__ --exclude='*.pyc' -cf - .) |
     priv tar --no-same-owner -xf - -C "$lib_dir"
-  printf '%s\n' "$(python3 "$lib_dir/lib/config.py" "$lib_dir/config.yml" version 2>/dev/null || echo unknown)" |
-    priv tee "$marker" >/dev/null
+  version=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" version 2>/dev/null || echo unknown)
+  printf '%s\n' "$version" | priv tee "$marker" >/dev/null
+
+  # The installed tree gets the neutral defaults, not this checkout's personal config.yml.
+  sed "s/^version:.*/version: $version/" "$repo_dir/etc/config.yml" | priv tee "$lib_dir/config.yml" >/dev/null
+
+  # System-wide local configuration: created from the template, never overwritten.
+  local system_config="$sysconfdir/linto/linto.yml"
+  if [[ -e "$system_config" ]]; then
+    printf "$(_ 'Kept the existing %s')\n" "$system_config"
+  else
+    priv mkdir -p -- "$sysconfdir/linto"
+    priv install -m 0644 -- "$repo_dir/etc/linto.yml" "$system_config"
+    printf "$(_ 'Created %s')\n" "$system_config"
+  fi
 
   if [[ "$make_venv" == true ]]; then
     priv env PATH="$PATH" "$lib_dir/groups/linto/venv.sh"
@@ -382,6 +410,11 @@ install_user() {
   for shell_name in "${selected[@]}"; do
     configure_shell "$shell_name"
   done
+  # A new user configuration, from the template, unless one already exists.
+  if [[ ! -e "$HOME/.linto.yml" && ! -e "$config_home/linto/config.yml" ]]; then
+    install -m 0644 -- "$repo_dir/etc/linto.yml" "$HOME/.linto.yml"
+    printf "$(_ 'Created %s')\n" "$HOME/.linto.yml"
+  fi
   if [[ "$make_venv" == true ]]; then
     "$repo_dir/groups/linto/venv.sh"
   fi

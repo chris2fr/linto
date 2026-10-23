@@ -45,13 +45,17 @@ specific settings under `groups.GROUP.commands.COMMAND.configdata`. Defaults
 are layered from `lib/default.yml` (root), `groups/GROUP/lib/default.yml` (group), and
 `groups/GROUP/lib/COMMAND.yml` (command). Each defaults file stores values under
 `configdata`, and matching entries in the installation's `config.yml` override
-them. At runtime, `/etc/linto/linto.yml` is merged next, then
-`${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`, so user settings have the
-highest precedence. A legacy `~/.linto.yml` is read below the XDG config file.
+them. At runtime, `/etc/linto/linto.yml` (system-wide) is merged next, then
+`~/.linto.yml` (per user), then `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml`,
+so the XDG file, when it exists, has the highest precedence. `linto linto install`
+creates `/etc/linto/linto.yml` (`--system`) and `~/.linto.yml` (`--user`) from the
+template `etc/linto.yml` when they do not exist, and never overwrites them;
+`linto linto config` shows which files are in use, and `addgroup`/`rmgroup`
+write to the XDG file if it exists, `~/.linto.yml` otherwise.
 These files may contain only the settings they override. The config command
 supports these inspection and editing modes:
 
-- `linto linto config` prints the user config directory and file path.
+- `linto linto config` prints the system and user config file paths.
 - `linto linto config --group quarto` shows effective configdata for a group;
   add `--command render` for command-level configdata.
 - `linto linto config --effective` prints the full configuration with defaults

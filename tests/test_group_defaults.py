@@ -190,19 +190,37 @@ class ConfigdataTests(unittest.TestCase):
             )
             self.assertEqual(config.enabled_groups(data, install, data_root), ["custom"])
 
-    def test_group_enablement_writes_only_to_xdg_user_config(self):
+    def test_group_enablement_writes_to_the_user_config(self):
         with tempfile.TemporaryDirectory() as directory:
-            config_home = Path(directory) / "config"
+            home = Path(directory)
+            config_home = home / "config"
             config_home.mkdir()
-            user_config = config_home / "linto" / "config.yml"
-            with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(config_home)}):
+            environment = {"HOME": str(home), "XDG_CONFIG_HOME": str(config_home)}
+            with patch.dict(os.environ, environment):
+                # No user configuration yet: ~/.linto.yml is created.
+                self.assertEqual(config.user_config_file(), home / ".linto.yml")
                 config.set_user_group_enabled("custom", False)
-                saved = config.read_yaml_mapping(user_config, "test user configuration")
+                saved = config.read_yaml_mapping(home / ".linto.yml", "test user configuration")
                 self.assertEqual(saved, {"groups": {"custom": {"enable": False}}})
+                self.assertFalse((config_home / "linto" / "config.yml").exists())
+                # An existing XDG file takes over, as it is read above ~/.linto.yml.
+                (config_home / "linto").mkdir()
+                (config_home / "linto" / "config.yml").write_text("{}\n", encoding="utf-8")
+                self.assertEqual(config.user_config_file(), config_home / "linto" / "config.yml")
                 config.set_user_group_enabled("custom", True)
-                saved = config.read_yaml_mapping(user_config, "test user configuration")
-                self.assertEqual(saved, {"groups": {"custom": {"enable": True}}})
+                saved = config.read_yaml_mapping(config_home / "linto" / "config.yml", "test user configuration")
+                self.assertEqual(saved, {"groups": {"custom": "default"}})
 
+    def test_shipped_templates_are_valid_configurations(self):
+        for name in ("config.yml", "linto.yml"):
+            data = config.read_yaml_mapping(ROOT / "etc" / name, name)
+            self.assertIsInstance(data, dict)
+        with tempfile.TemporaryDirectory() as directory:
+            data = config.load(
+                ROOT / "etc" / "config.yml", defaults_root=ROOT, data_root=Path(directory),
+                overlays=[ROOT / "etc" / "linto.yml"],
+            )
+            self.assertIn("web", config.enabled_groups(data, ROOT, Path(directory)))
 
     def test_legacy_configuration_locations_and_unaliases_are_rejected(self):
         for text in (

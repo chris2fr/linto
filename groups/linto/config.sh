@@ -11,7 +11,7 @@ usage() {
 Usage: linto linto config [-h|--help] [--group GROUP [--command COMMAND] | --effective]
                           [--edit] [--editor PROGRAM]
 
-Without options, print the user config directory and file. --group shows the
+Without options, print the system and user configuration files. --group shows the
 selected group's effective configdata; --command includes command-level
 configdata. --effective prints the full configuration with defaults merged.
 With --edit, open config.yml with `linto launch zed`; --editor selects another
@@ -91,12 +91,6 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-case "${XDG_CONFIG_HOME:-}" in
-  /*) config_home=$XDG_CONFIG_HOME ;;
-  *) config_home=$HOME/.config ;;
-esac
-config_dir="$config_home/linto"
-config_file="$config_dir/config.yml"
 repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 
 if [ "$edit" = true ] && { [ "$show_effective" = true ] || [ -n "$group" ] || [ -n "$command" ]; }; then
@@ -118,12 +112,14 @@ if [ -n "$group" ]; then
   fi
   exec python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" configdata "$group"
 fi
+config_file=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" user-config-file)
 if [ "$edit" != true ]; then
-  printf "$(_ 'User config directory: %s')\n$(_ 'User config file: %s')\n" "$config_dir" "$config_file"
+  system_file=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" system-config-file)
+  printf "$(_ 'System config file: %s')\n$(_ 'User config file: %s')\n" "$system_file" "$config_file"
   exit 0
 fi
 
-mkdir -p -- "$config_dir"
+mkdir -p -- "$(dirname -- "$config_file")"
 if [ ! -e "$config_file" ]; then
   : > "$config_file"
 fi

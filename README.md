@@ -143,7 +143,7 @@ shortcuts:
   under `configdata`; corresponding entries in `config.yml` override them. Runtime
   overrides are then merged from `/etc/linto/linto.yml` and
   `${XDG_CONFIG_HOME:-~/.config}/linto/config.yml` (user settings win). A legacy
-  `~/.linto.yml` is also read below the XDG config. The shipped Quarto extension
+  `~/.linto.yml` is read below the XDG config; `linto linto install` creates it from `etc/linto.yml`. The shipped Quarto extension
   default is in
   [`groups/quarto/lib/default.yml`](groups/quarto/lib/default.yml); shell-alias
   defaults are in [`groups/linto/lib/default.yml`](groups/linto/lib/default.yml).

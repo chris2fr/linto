@@ -26,6 +26,14 @@ dispatcher exports `LINTO_ROOT` and `VIRTUAL_ENV` and puts `.venv/bin` first on
 `LINTO_NO_VENV=1` skips it for one run. `.venv` is git-ignored. The Nix package
 provides its own Python with the same packages and does not ship `venv`.
 
+## Configuration templates
+
+`etc/config.yml` holds the neutral installation defaults (enabled groups and standard
+shortcuts) that `linto linto install --system` installs as the tree's `config.yml`;
+`etc/linto.yml` is the commented template for `/etc/linto/linto.yml` and
+`~/.linto.yml`. A checkout's own `config.yml` may hold personal settings and is
+never copied by `--system`.
+
 ## Build and man pages
 
 `linto linto build` regenerates command wrappers, Fish completions, the

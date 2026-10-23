@@ -62,8 +62,17 @@ def data_directory() -> Path:
     return xdg_directory("XDG_DATA_HOME", Path.home() / ".local" / "share") / "linto"
 
 
+SYSTEM_CONFIG_FILE = Path("/etc/linto/linto.yml")
+
+
 def user_config_file() -> Path:
-    return config_directory() / "config.yml"
+    """The per-user file Linto writes and documents.
+
+    ~/.config/linto/config.yml when it exists (it is read above ~/.linto.yml),
+    otherwise ~/.linto.yml, which is where a new user configuration goes.
+    """
+    xdg = config_directory() / "config.yml"
+    return xdg if xdg.exists() else Path.home() / ".linto.yml"
 
 
 def user_groups_directory() -> Path:
@@ -206,7 +215,7 @@ def config_overlays(home: Path | None = None) -> list[Path]:
     home = home or Path.home()
     config_home = xdg_directory("XDG_CONFIG_HOME", home / ".config")
     return [
-        Path("/etc/linto/linto.yml"),
+        SYSTEM_CONFIG_FILE,
         home / ".linto.yml",
         config_home / "linto" / "config.yml",
     ]
@@ -434,6 +443,8 @@ def main() -> int:
     sub.add_parser("quarto-extension")
     sub.add_parser("markdown-viewer")
     sub.add_parser("version")
+    sub.add_parser("user-config-file")
+    sub.add_parser("system-config-file")
     add_parser = sub.add_parser("add")
     add_parser.add_argument("group")
     rm_parser = sub.add_parser("remove")
@@ -491,6 +502,10 @@ def main() -> int:
         elif args.action == "markdown-viewer":
             for viewer in markdown_viewers(data):
                 print(viewer)
+        elif args.action == "user-config-file":
+            print(user_config_file())
+        elif args.action == "system-config-file":
+            print(SYSTEM_CONFIG_FILE)
         elif args.action == "version":
             version = data.get("version")
             if not isinstance(version, str) or not version.strip():
