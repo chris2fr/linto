@@ -24,6 +24,7 @@ class InstallTests(unittest.TestCase):
     def test_options_are_checked_against_the_mode(self):
         self.assertIn("--prefix only applies with --system", run("--user", "--prefix", "/x").stderr)
         self.assertIn("--shell only applies with --user", run("--system", "--shell", "fish").stderr)
+        self.assertIn("--sysconfdir only applies with --system", run("--user", "--sysconfdir", "/x").stderr)
         self.assertIn("unsupported shell 'csh'", run("--user", "--shell", "csh").stderr)
 
     def test_help_and_french_help(self):
@@ -35,9 +36,17 @@ class InstallTests(unittest.TestCase):
     def test_system_install_into_a_prefix(self):
         with tempfile.TemporaryDirectory() as directory:
             prefix = Path(directory) / "usr"
+            sysconf = Path(directory) / "etc"
             for _ in range(2):                                       # a second run upgrades in place
-                result = run("--system", "--prefix", str(prefix))
+                result = run("--system", "--prefix", str(prefix), "--sysconfdir", str(sysconf))
                 self.assertEqual(result.returncode, 0, result.stderr)
+            installed = (prefix / "lib" / "linto" / "config.yml").read_text(encoding="utf-8")
+            self.assertNotIn("memos.gv.je", installed)               # the personal config.yml is not shipped
+            self.assertIn("web: default", installed)
+            self.assertTrue((sysconf / "linto" / "linto.yml").exists())
+            (sysconf / "linto" / "linto.yml").write_text("# mine\n", encoding="utf-8")
+            self.assertEqual(run("--system", "--prefix", str(prefix), "--sysconfdir", str(sysconf)).returncode, 0)
+            self.assertEqual((sysconf / "linto" / "linto.yml").read_text(encoding="utf-8"), "# mine\n")
             env = {"PATH": f"{prefix / 'bin'}:{os.environ['PATH']}"}
             version = subprocess.run(["linto", "--version"], capture_output=True, text=True,
                                      env=dict(os.environ, **env))
@@ -59,7 +68,7 @@ class InstallTests(unittest.TestCase):
             (fake / "sudo").write_text(f'#!/bin/sh\n[ "$1" = -v ] && exit 0\necho "$@" >> "{log}"\nexec "$@"\n')
             (fake / "sudo").chmod(0o755)
             prefix = Path(directory) / "usr"
-            result = run("--system", "--prefix", str(prefix),
+            result = run("--system", "--prefix", str(prefix), "--sysconfdir", str(Path(directory) / "etc"),
                          env={"LINTO_INSTALL_SUDO": "always", "PATH": f"{fake}:{os.environ['PATH']}"})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("using sudo", result.stderr)
@@ -77,6 +86,17 @@ class InstallTests(unittest.TestCase):
         result = run("--system", "--prefix", "/tmp/linto-no-sudo", env={"LINTO_INSTALL_SUDO": "always"})
         self.assertEqual(result.returncode, 1)
         self.assertIn("run as root, or choose another --prefix", result.stderr)
+
+    def test_user_install_creates_the_user_config_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            env = {"HOME": str(home), "XDG_DATA_HOME": str(home / "data"), "XDG_CONFIG_HOME": str(home / "config")}
+            self.assertEqual(run("--user", "--no-man", "--shell", "bash", env=env).returncode, 0)
+            user_config = home / ".linto.yml"
+            self.assertIn("Linto local configuration", user_config.read_text(encoding="utf-8"))
+            user_config.write_text("# mine\n", encoding="utf-8")
+            self.assertEqual(run("--user", "--no-man", "--shell", "bash", env=env).returncode, 0)
+            self.assertEqual(user_config.read_text(encoding="utf-8"), "# mine\n")
 
     def test_system_install_refuses_to_replace_a_foreign_directory(self):
         with tempfile.TemporaryDirectory() as directory:

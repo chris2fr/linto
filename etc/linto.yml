@@ -1,0 +1,27 @@
+# Linto local configuration.
+#
+# This file is read on top of the installation's config.yml:
+#   /etc/linto/linto.yml                      system-wide
+#   ~/.linto.yml                              per user, above the system file
+#   ~/.config/linto/config.yml                per user (XDG), above everything else
+# Only the settings you change are needed. Run `linto linto config --effective`
+# to see the merged result and `linto help config` for the full reference.
+groups: {}
+shortcuts: {}
+# Examples:
+#
+# shortcuts:
+#   pp: "utils prettyprint"
+#   zz: "launch zed"
+#
+# groups:
+#   old: default                     # enable a group
+#   quarto:
+#     configdata:
+#       extension: chris2fr/quarto
+#   web:
+#     configdata:
+#       memos:
+#         url: "https://memos.example.org"
+#         token-file: "~/.config/memos-token"
+#       markdown: ["mdcat"]
