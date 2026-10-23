@@ -6,8 +6,14 @@ groups:
   linto:
     configdata:
       aliases:
-        zz: "linto launch zed"
-        cb: "flatpak run app.getclipboard.Clipboard"
+        l2: "linto"
+        l22: "linto launch"
+        l2b: "linto beta"
+        l2bb: "linto bib"
+        l2l: "linto linto"
+        l2q: "linto quarto"
+        l2u: "linto utils"
+        l2w: "linto web"
   quarto: default
   utils: default
   web:
@@ -19,5 +25,5 @@ groups:
 shortcuts:
   pp: "utils prettyprint"
   slug: "utils stripaccents"
-  guillemets2quotes: "quarto guillemets2quotes"
+  g2q: "quarto guillemets2quotes"
   zz: "launch zed"
