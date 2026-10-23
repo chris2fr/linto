@@ -2063,6 +2063,37 @@ msgstr ""
 "Options :\n"
 "  -h, --help  Affiche cette aide et quitte."
 
+msgid "unknown answer: %s"
+msgstr "réponse inconnue : %s"
+
+msgid "choose --user or --system"
+msgstr "choisir --user ou --system"
+
+msgid "%s only applies with %s"
+msgstr "%s ne s'applique qu'avec %s"
+
+msgid "the prefix must be an absolute path: %s"
+msgstr "le préfixe doit être un chemin absolu : %s"
+
+msgid "refusing to replace %s: not a Linto installation"
+msgstr "remplacement refusé de %s : ce n'est pas une installation de Linto"
+
+msgid "cannot write to %s (run as root, or choose another --prefix)"
+msgstr "écriture impossible dans %s (lancez en root, ou choisissez un autre --prefix)"
+
+msgid "Install Linto for the current user or for all users (system)? [user/system]"
+msgstr "Installer Linto pour l'utilisateur courant ou pour tous les utilisateurs (système) ? [user/system]"
+
+msgid "Installing Linto in %s"
+msgstr "Installation de Linto dans %s"
+
+msgid "Installed Linto for all users in %s"
+msgstr "Linto installé pour tous les utilisateurs dans %s"
+
+msgid "Add %s to the PATH of your users if it is not there already."
+msgstr "Ajoutez %s au PATH de vos utilisateurs s'il n'y est pas déjà."
+
+
 msgid ""
 "Usage: linto linto install [--user | --system] [--shell SHELL]... [--prefix DIR]\n"
 "                           [--no-man] [--venv] [-h|--help]\n"
@@ -2077,8 +2108,8 @@ msgid ""
 "\n"
 "--system copies Linto to PREFIX/lib/linto, builds its wrappers into\n"
 "PREFIX/share/linto, links the commands into PREFIX/bin, and installs the\n"
-"completions and man pages under PREFIX/share. It needs write access to PREFIX\n"
-"(normally root).\n"
+"completions and man pages under PREFIX/share. When PREFIX is not writable by you\n"
+"and you are not root, the steps that need it run through sudo.\n"
 "\n"
 "On NixOS, no files are changed; the matching NixOS options are printed instead.\n"
 "\n"
@@ -2110,8 +2141,9 @@ msgstr ""
 "\n"
 "--system copie Linto dans PRÉFIXE/lib/linto, construit ses wrappers dans\n"
 "PRÉFIXE/share/linto, relie les commandes dans PRÉFIXE/bin et installe les\n"
-"complétions et les pages de manuel sous PRÉFIXE/share. Il demande l'accès en\n"
-"écriture à PRÉFIXE (normalement root).\n"
+"complétions et les pages de manuel sous PRÉFIXE/share. Quand PRÉFIXE n'est pas\n"
+"modifiable par vous et que vous n'êtes pas root, les étapes qui l'exigent\n"
+"passent par sudo.\n"
 "\n"
 "Sous NixOS, aucun fichier n'est modifié ; les options NixOS correspondantes\n"
 "sont affichées à la place.\n"
@@ -2130,32 +2162,8 @@ msgstr ""
 "  --venv         Crée aussi l'environnement Python (linto linto venv).\n"
 "  -h, --help     Affiche cette aide et quitte."
 
-msgid "unknown answer: %s"
-msgstr "réponse inconnue : %s"
+msgid "Writing to %s needs root: using sudo."
+msgstr "Écrire dans %s demande root : utilisation de sudo."
 
-msgid "choose --user or --system"
-msgstr "choisir --user ou --system"
-
-msgid "%s only applies with %s"
-msgstr "%s ne s'applique qu'avec %s"
-
-msgid "the prefix must be an absolute path: %s"
-msgstr "le préfixe doit être un chemin absolu : %s"
-
-msgid "refusing to replace %s: not a Linto installation"
-msgstr "remplacement refusé de %s : ce n'est pas une installation de Linto"
-
-msgid "cannot write to %s (run as root, or choose another --prefix)"
-msgstr "écriture impossible dans %s (lancez en root, ou choisissez un autre --prefix)"
-
-msgid "Install Linto for the current user or for all users (system)? [user/system]"
-msgstr "Installer Linto pour l'utilisateur courant ou pour tous les utilisateurs (système) ? [user/system]"
-
-msgid "Installing Linto in %s"
-msgstr "Installation de Linto dans %s"
-
-msgid "Installed Linto for all users in %s"
-msgstr "Linto installé pour tous les utilisateurs dans %s"
-
-msgid "Add %s to the PATH of your users if it is not there already."
-msgstr "Ajoutez %s au PATH de vos utilisateurs s'il n'y est pas déjà."
+msgid "sudo failed"
+msgstr "échec de sudo"
