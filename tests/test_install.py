@@ -22,7 +22,6 @@ class InstallTests(unittest.TestCase):
         self.assertIn("install: choose --user or --system", result.stderr)
 
     def test_options_are_checked_against_the_mode(self):
-        self.assertIn("--prefix only applies with --system", run("--user", "--prefix", "/x").stderr)
         self.assertIn("--shell only applies with --user", run("--system", "--shell", "fish").stderr)
         self.assertIn("--sysconfdir only applies with --system", run("--user", "--sysconfdir", "/x").stderr)
         self.assertIn("unsupported shell 'csh'", run("--user", "--shell", "csh").stderr)
@@ -104,6 +103,122 @@ class InstallTests(unittest.TestCase):
             result = run("--system", "--prefix", directory)
             self.assertEqual(result.returncode, 1)
             self.assertIn("not a Linto installation", result.stderr)
+
+
+class UserInstallTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.home = Path(self.tmp.name)
+        self.env = {"HOME": str(self.home), "XDG_DATA_HOME": str(self.home / "data"),
+                    "XDG_CONFIG_HOME": str(self.home / "config"), "ZDOTDIR": str(self.home),
+                    "LINTO_SYSTEM_PREFIXES": "/nonexistent"}
+        self.lib = self.home / ".local" / "lib" / "linto"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def install(self, *args, env=None):
+        return run("--user", "--no-man", *args, env={**self.env, **(env or {})})
+
+    def test_shell_lines_point_at_the_installed_copy_not_the_checkout(self):
+        self.assertEqual(self.install().returncode, 0)
+        for startup in (self.home / ".bashrc", self.home / ".profile", self.home / ".kshrc", self.home / ".zshrc",
+                        self.home / "config" / "fish" / "config.fish"):
+            text = startup.read_text(encoding="utf-8")
+            self.assertNotIn(str(ROOT), text, startup)
+            self.assertIn(str(self.home / ".local"), text, startup)
+        self.assertFalse((self.lib / ".git").exists())
+        launched = subprocess.run([str(self.home / ".local" / "bin" / "linto"), "--version"],
+                                  capture_output=True, text=True)
+        self.assertRegex(launched.stdout, r"^linto \S+\n$")
+        wrapper = subprocess.run([str(self.home / "data" / "linto" / "bin" / "linto-utils-uuid")],
+                                 capture_output=True, text=True)
+        self.assertEqual(wrapper.returncode, 0, wrapper.stderr)
+
+    def test_lines_pointing_at_a_checkout_are_replaced(self):
+        fish = self.home / "config" / "fish" / "config.fish"
+        fish.parent.mkdir(parents=True)
+        fish.write_text(f'fish_add_path "{ROOT}/bin" "{self.home}/data/linto/bin"\nsource "{ROOT}/completions/linto.fish"\n'
+                        "function y\nend\n", encoding="utf-8")
+        bashrc = self.home / ".bashrc"
+        bashrc.write_text(f'source "{ROOT}/completions/linto.bash"\nexport PATH="{ROOT}/bin:{self.home}/data/linto/bin:$PATH"\n',
+                          encoding="utf-8")
+        self.assertEqual(self.install().returncode, 0)
+        self.assertEqual(self.install().returncode, 0)                      # and again: idempotent
+        for startup in (fish, bashrc):
+            self.assertNotIn(str(ROOT), startup.read_text(encoding="utf-8"), startup)
+        self.assertEqual(bashrc.read_text(encoding="utf-8").count("export PATH="), 1)
+        self.assertIn("function y", fish.read_text(encoding="utf-8"))
+
+    def test_installing_from_the_installed_copy_is_refused(self):
+        self.assertEqual(self.install().returncode, 0)
+        result = subprocess.run([str(self.lib / "bin" / "linto"), "linto", "install", "--user", "--no-man"],
+                                capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("run the installer from a checkout", result.stderr)
+        self.assertTrue((self.lib / "bin" / "linto").exists())
+
+    def test_warns_when_a_system_installation_exists(self):
+        system = self.home / "sys"
+        (system / "lib" / "linto").mkdir(parents=True)
+        (system / "lib" / "linto" / ".linto-install").write_text("v0\n", encoding="utf-8")
+        result = self.install(env={"LINTO_SYSTEM_PREFIXES": str(system)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("a system-wide Linto is installed", result.stderr)
+        self.assertIn(str(system / "lib" / "linto"), result.stderr)
+        self.assertNotIn("system-wide Linto", self.install().stderr)
+
+    def test_uninstall_user_removes_the_installation_and_keeps_the_configuration(self):
+        self.assertEqual(self.install().returncode, 0)
+        (self.home / ".bashrc").write_text("# mine\n" + (self.home / ".bashrc").read_text(encoding="utf-8"), encoding="utf-8")
+        refused = run("--user", env=self.env) and subprocess.run(
+            [*INSTALL[:-1], "uninstall", "--user"], capture_output=True, text=True,
+            env=dict(os.environ, LC_ALL="C", **self.env), stdin=subprocess.DEVNULL)
+        self.assertEqual(refused.returncode, 2)                              # no terminal, no --yes
+        self.assertTrue(self.lib.exists())
+        result = subprocess.run([*INSTALL[:-1], "uninstall", "--user", "--yes"], capture_output=True, text=True,
+                                env=dict(os.environ, LC_ALL="C", **self.env), stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.lib.exists())
+        self.assertFalse((self.home / ".local" / "bin" / "linto").exists())
+        self.assertFalse((self.home / "data" / "linto" / "bin").exists())
+        for startup in (self.home / ".bashrc", self.home / ".profile", self.home / ".zshrc",
+                        self.home / "config" / "fish" / "config.fish"):
+            self.assertNotIn("linto", startup.read_text(encoding="utf-8").replace("linto-", ""), startup)
+        self.assertIn("# mine", (self.home / ".bashrc").read_text(encoding="utf-8"))
+        self.assertTrue((self.home / ".linto.yml").exists())
+
+    def test_system_install_can_remove_the_user_installation(self):
+        self.assertEqual(self.install().returncode, 0)
+        prefix = self.home / "usr"
+        result = run("--system", "--prefix", str(prefix), "--sysconfdir", str(self.home / "etc"),
+                     "--remove-user-install", env=self.env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.lib.exists())
+        self.assertTrue((prefix / "lib" / "linto").exists())
+        self.assertEqual(self.install().returncode, 0)
+        kept = run("--system", "--prefix", str(prefix), "--sysconfdir", str(self.home / "etc"), env=self.env)
+        self.assertTrue(self.lib.exists())                                   # no terminal: it is kept
+        self.assertIn("linto linto uninstall --user", kept.stdout)
+
+    def test_uninstall_system(self):
+        prefix = self.home / "usr"
+        sysconf = self.home / "etc"
+        self.assertEqual(run("--system", "--prefix", str(prefix), "--sysconfdir", str(sysconf), env=self.env).returncode, 0)
+        result = subprocess.run([*INSTALL[:-1], "uninstall", "--system", "--prefix", str(prefix), "--yes"],
+                                capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env),
+                                stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((prefix / "lib" / "linto").exists())
+        self.assertEqual([p.name for p in (prefix / "bin").glob("linto*")], [])
+        for path in ("share/bash-completion/completions/linto", "share/zsh/site-functions/_linto",
+                     "share/fish/vendor_completions.d/linto.fish", "share/linto"):
+            self.assertFalse((prefix / path).exists(), path)
+        self.assertTrue((sysconf / "linto" / "linto.yml").exists())
+        again = subprocess.run([*INSTALL[:-1], "uninstall", "--system", "--prefix", str(prefix), "--yes"],
+                               capture_output=True, text=True, env=dict(os.environ, LC_ALL="C", **self.env))
+        self.assertEqual(again.returncode, 1)
+        self.assertIn("not a Linto installation", again.stderr)
 
 
 if __name__ == "__main__":

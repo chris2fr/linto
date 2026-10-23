@@ -46,7 +46,7 @@ stdenvNoCC.mkDerivation {
     cp ${configFile} "$out/lib/linto/config.yml"
     install -Dm444 ${configFile} "$out/etc/linto/config.yml"
     # addgroup, rmgroup, build and addman are development scripts, and
-    # install, mdsetup and venv prepare non-Nix systems; Nix provides PATH and completions and
+    # install, uninstall, mdsetup and venv prepare non-Nix systems; Nix provides PATH and completions and
     # the store tree is read-only, so none of them are shipped.
     rm -f \
       "$out/lib/linto/groups/linto/addgroup.sh" \
@@ -54,6 +54,8 @@ stdenvNoCC.mkDerivation {
       "$out/lib/linto/groups/linto/build.sh" \
       "$out/lib/linto/groups/linto/addman.sh" \
       "$out/lib/linto/groups/linto/install.sh" \
+      "$out/lib/linto/groups/linto/uninstall.sh" \
+      "$out/lib/linto/groups/linto/lib/installer.sh" \
       "$out/lib/linto/groups/linto/mdsetup.sh" \
       "$out/lib/linto/groups/linto/venv.sh" \
       "$out/lib/linto/bin/linto-linto-addgroup" \
@@ -61,6 +63,7 @@ stdenvNoCC.mkDerivation {
       "$out/lib/linto/bin/linto-linto-build" \
       "$out/lib/linto/bin/linto-linto-addman" \
       "$out/lib/linto/bin/linto-linto-install" \
+      "$out/lib/linto/bin/linto-linto-uninstall" \
       "$out/lib/linto/bin/linto-linto-mdsetup" \
       "$out/lib/linto/bin/linto-linto-venv" \
       "$out/lib/linto/bin/linto-beta-addman"
