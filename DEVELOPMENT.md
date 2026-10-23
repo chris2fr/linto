@@ -43,8 +43,10 @@ never into the checkout. It requires `mandown` and `groff`
 (`linto linto mdsetup`); without them the guide man pages are skipped with a
 warning. `linto linto addman` runs build and links the generated man page into
 the user's man path. `addgroup` and `rmgroup` also run build. `linto linto install`
-runs build (or addman) and then configures the shells (`--user`), or copies the
-tree and builds into a prefix (`--system`).
+copies the tree to a prefix and builds from the copy (so the generated wrappers
+point at the installed tree), then configures the shells (`--user`, prefix
+`~/.local`) or links commands and completions under the prefix (`--system`).
+`linto linto uninstall` reverses it; both share `groups/linto/lib/installer.sh`.
 
 Run build after changing configuration or adding or removing executable
 scripts. Like `addgroup` and `rmgroup`, `build`, `install` and `addman` are

@@ -22,6 +22,7 @@ linto-linto-github
 linto-linto-install
 linto-linto-mdsetup
 linto-linto-path
+linto-linto-uninstall
 linto-linto-venv
 linto-prettyprint
 linto-quarto

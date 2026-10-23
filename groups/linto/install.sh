@@ -2,32 +2,40 @@
 # linto-complete: flag --user Install for the current user
 # linto-complete: flag --system Install for all users
 # linto-complete: opt --shell choices:all,fish,bash,ksh,sh,zsh Shell to configure with --user (default: all)
-# linto-complete: opt --prefix dir Installation prefix with --system (default: /usr/local)
+# linto-complete: opt --prefix dir Installation prefix (default: ~/.local with --user, /usr/local with --system)
 # linto-complete: opt --sysconfdir dir Directory holding linto/linto.yml with --system (default: /etc)
 # linto-complete: flag --no-man Do not install the man page
 # linto-complete: flag --venv Also create the Python environment (linto linto venv)
+# linto-complete: flag --remove-user-install With --system, delete your user installation
+# linto-complete: flag --keep-user-install With --system, keep your user installation
 set -euo pipefail
 
 usage() {
   _ "$(cat <<'EOF'
 Usage: linto linto install [--user | --system] [--shell SHELL]... [--prefix DIR]
-                           [--sysconfdir DIR] [--no-man] [--venv] [-h|--help]
+                           [--sysconfdir DIR] [--no-man] [--venv]
+                           [--remove-user-install | --keep-user-install] [-h|--help]
 
 Install Linto, for the current user (--user) or for all users (--system). When
-neither is given, ask which.
+neither is given, ask which. Either way Linto is copied out of this checkout and
+the commands, completions and PATH entries point at the installed copy only;
+run the installer again from a checkout to upgrade.
 
---user runs in place from this checkout: it builds the command wrappers,
-completions and man pages (linto linto build), then adds the checkout and
-user-generated command directories to PATH and installs shell completion for
-each selected shell. Configuration lines are not duplicated. It also creates
-~/.linto.yml from the template etc/linto.yml when you have no user configuration.
+--user installs to PREFIX/lib/linto (default ~/.local), builds the command
+wrappers, completions and man pages (linto linto build), and adds PREFIX/bin and
+the per-user wrapper directory to PATH and installs shell completion for each
+selected shell. Configuration lines are not duplicated, and lines that pointed at
+a checkout are replaced. It also creates ~/.linto.yml from the template
+etc/linto.yml when you have no user configuration, and warns if a system-wide
+installation exists.
 
---system copies Linto to PREFIX/lib/linto, builds its wrappers into
-PREFIX/share/linto, links the commands into PREFIX/bin, and installs the
+--system installs to PREFIX/lib/linto (default /usr/local), builds its wrappers
+into PREFIX/share/linto, links the commands into PREFIX/bin, and installs the
 completions and man pages under PREFIX/share. When PREFIX is not writable by you
 and you are not root, the steps that need it run through sudo. The installed
 config.yml comes from the neutral template etc/config.yml, not from this checkout,
 and /etc/linto/linto.yml is created from etc/linto.yml unless it already exists.
+If you also have a user installation, it asks whether to delete it.
 
 On NixOS, no files are changed; the matching NixOS options are printed instead.
 
@@ -40,10 +48,12 @@ Options:
   --system       Install for all users.
   --shell SHELL  Shell to configure with --user: fish, bash, ksh, sh, zsh or all;
                  repeat it or separate shells with commas (default: all).
-  --prefix DIR   Installation prefix with --system (default: /usr/local).
+  --prefix DIR   Installation prefix (default: ~/.local with --user, /usr/local with --system).
   --sysconfdir DIR  Directory holding linto/linto.yml with --system (default: /etc).
   --no-man       Do not install the man page.
   --venv         Also create the Python environment (linto linto venv).
+  --remove-user-install  With --system, delete your user installation without asking.
+  --keep-user-install    With --system, keep your user installation without asking.
   -h, --help     Show this help and exit.
 EOF
 )"
@@ -51,8 +61,7 @@ EOF
 }
 
 . "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
-
-ALL_SHELLS=(fish bash ksh sh zsh)
+. "$script_dir/lib/installer.sh"
 
 mode=
 shells=()
@@ -60,6 +69,7 @@ prefix=
 sysconfdir=/etc
 install_man=true
 make_venv=false
+user_install_policy=ask
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
@@ -68,6 +78,8 @@ while [[ $# -gt 0 ]]; do
     --no-man) install_man=false; shift ;;
     --man) install_man=true; shift ;;
     --venv) make_venv=true; shift ;;
+    --remove-user-install) user_install_policy=remove; shift ;;
+    --keep-user-install) user_install_policy=keep; shift ;;
     --shell)
       [[ $# -ge 2 ]] || die_usage "option %s needs an argument" "$1"
       shells+=("$2")
@@ -106,14 +118,14 @@ if [[ -z "$mode" ]]; then
     die_usage "choose --user or --system"
   fi
 fi
-if [[ "$mode" == user && -n "$prefix" ]]; then
-  die_usage "%s only applies with %s" "--prefix" "--system"
-fi
 if [[ "$mode" == user && "$sysconfdir" != /etc ]]; then
   die_usage "%s only applies with %s" "--sysconfdir" "--system"
 fi
 if [[ "$mode" == system && ${#shells[@]} -gt 0 ]]; then
   die_usage "%s only applies with %s" "--shell" "--user"
+fi
+if [[ "$mode" == user && "$user_install_policy" != ask ]]; then
+  die_usage "%s only applies with %s" "--remove-user-install and --keep-user-install" "--system"
 fi
 
 # --- shells -----------------------------------------------------------------
@@ -161,68 +173,48 @@ fi
 
 repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 [[ -x "$repo_dir/bin/linto" ]] || die "dispatcher not found or not executable: %s" "$repo_dir/bin/linto"
+init_user_paths
 
-# ============================================================================
-# --system
-# ============================================================================
-# Run a command as root when the installation needs it: directly when already
-# root or when the prefix is writable, through sudo otherwise.
-use_sudo=false
-priv() {
-  if [[ "$use_sudo" == true ]]; then
-    sudo "$@"
-  else
-    "$@"
+# install_tree LIBDIR BINDIR VERSION: copy this checkout to LIBDIR and add the dispatcher launcher.
+install_tree() {
+  local lib_dir=$1 bin_dir=$2 version=$3 marker
+  marker="$lib_dir/.linto-install"
+  case "$lib_dir" in /*) ;; *) die "the prefix must be an absolute path: %s" "$lib_dir" ;; esac
+  if [[ -d "$lib_dir" && "$(CDPATH= cd -- "$lib_dir" && pwd -P)" == "$repo_dir" ]]; then
+    die "run the installer from a checkout, not from the installed copy: %s" "$lib_dir"
   fi
-}
-
-# True when the current user can create PREFIX and everything below it.
-prefix_is_writable() {
-  local path=$1 entry
-  while [[ ! -e "$path" ]]; do path=$(dirname -- "$path"); done
-  [[ -d "$path" && -w "$path" ]] || return 1
-  for entry in "$1/bin" "$1/lib" "$1/lib/linto" "$1/share"; do
-    [[ ! -e "$entry" || -w "$entry" ]] || return 1
-  done
-}
-
-install_system() {
-  local prefix=${prefix:-/usr/local}
-  local lib_dir="$prefix/lib/linto" share_dir="$prefix/share" bin_dir="$prefix/bin"
-  local marker="$lib_dir/.linto-install" entry target version
-
-  case "$prefix" in /*) ;; *) die "the prefix must be an absolute path: %s" "$prefix" ;; esac
   if [[ -e "$lib_dir" && ! -f "$marker" ]]; then
     die "refusing to replace %s: not a Linto installation" "$lib_dir"
   fi
-
-  if [[ "${LINTO_INSTALL_SUDO:-}" == always ]]; then
-    use_sudo=true
-  elif [[ "$(id -u)" -ne 0 ]] && ! prefix_is_writable "$prefix"; then
-    use_sudo=true
-  fi
-  if [[ "$use_sudo" == true ]]; then
-    command -v sudo >/dev/null 2>&1 ||
-      die "cannot write to %s (run as root, or choose another --prefix)" "$prefix"
-    printf "$(_ 'Writing to %s needs root: using sudo.')\n" "$prefix" >&2
-    sudo -v || die "sudo failed"
-  fi
-
   umask 022
   printf "$(_ 'Installing Linto in %s')\n" "$lib_dir"
   priv rm -rf -- "$lib_dir"
   priv mkdir -p -- "$lib_dir" "$bin_dir"
-  (cd "$repo_dir" && tar --exclude=./.git --exclude=./.venv --exclude=./tests \
-      --exclude=__pycache__ --exclude='*.pyc' -cf - .) |
-    priv tar --no-same-owner -xf - -C "$lib_dir"
-  version=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" version 2>/dev/null || echo unknown)
+  copy_tree "$repo_dir" "$lib_dir"
   printf '%s\n' "$version" | priv tee "$marker" >/dev/null
+  # The dispatcher must run from its own tree, so the command is a launcher.
+  printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" | priv tee "$bin_dir/linto" >/dev/null
+  priv chmod 0755 "$bin_dir/linto"
+}
+
+checkout_version=$(python3 "$repo_dir/lib/config.py" "$repo_dir/config.yml" version 2>/dev/null || echo unknown)
+
+# ============================================================================
+# --system
+# ============================================================================
+install_system() {
+  local prefix=${prefix:-/usr/local}
+  local lib_dir="$prefix/lib/linto" share_dir="$prefix/share" bin_dir="$prefix/bin" entry target
+  local system_config="$sysconfdir/linto/linto.yml" user_lib answer
+
+  setup_privileges "$prefix"
+  install_tree "$lib_dir" "$bin_dir" "$checkout_version"
 
   # The installed tree gets the neutral defaults, not this checkout's personal config.yml.
-  sed "s/^version:.*/version: $version/" "$repo_dir/etc/config.yml" | priv tee "$lib_dir/config.yml" >/dev/null
+  sed "s/^version:.*/version: $checkout_version/" "$repo_dir/etc/config.yml" |
+    priv tee "$lib_dir/config.yml" >/dev/null
 
   # System-wide local configuration: created from the template, never overwritten.
-  local system_config="$sysconfdir/linto/linto.yml"
   if [[ -e "$system_config" ]]; then
     printf "$(_ 'Kept the existing %s')\n" "$system_config"
   else
@@ -240,10 +232,7 @@ install_system() {
   priv env PATH="$PATH" HOME=/var/empty XDG_CONFIG_HOME=/var/empty XDG_DATA_HOME="$share_dir" \
     "$lib_dir/groups/linto/build.sh" >/dev/null
 
-  # Commands: a launcher for the dispatcher (it must run from its own tree), and
-  # links to the generated wrappers, which already hold absolute paths.
-  printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" | priv tee "$bin_dir/linto" >/dev/null
-  priv chmod 0755 "$bin_dir/linto"
+  # Links to the generated wrappers, which already hold absolute paths.
   for entry in "$share_dir/linto/bin"/*; do
     [[ -f "$entry" ]] || continue
     priv ln -sfn -- "$entry" "$bin_dir/${entry##*/}"
@@ -276,23 +265,70 @@ install_system() {
     *":$bin_dir:"*) ;;
     *) printf "$(_ 'Add %s to the PATH of your users if it is not there already.')\n" "$bin_dir" ;;
   esac
+
+  # The system installation makes the user's own copy redundant: offer to delete it.
+  user_lib="$default_user_prefix/lib/linto"
+  if [[ -f "$user_lib/.linto-install" ]]; then
+    case "$user_install_policy" in
+      remove) answer=y ;;
+      keep) answer=n ;;
+      *)
+        if [[ -t 0 && -t 1 ]]; then
+          printf "$(_ 'You also have a user installation in %s. Delete it? [y/N]') " "$user_lib"
+          read -r answer || answer=n
+        else
+          answer=n
+          printf "$(_ 'You also have a user installation in %s; remove it with: linto linto uninstall --user')\n" "$user_lib"
+        fi
+        ;;
+    esac
+    case "$(printf '%s' "$answer" | tr '[:upper:]' '[:lower:]')" in
+      y|yes|o|oui) "$repo_dir/groups/linto/uninstall.sh" --user --yes ;;
+    esac
+  fi
 }
 
 # ============================================================================
 # --user
 # ============================================================================
-bin_dir="$repo_dir/bin"
-completion_dir="$repo_dir/completions"
-case "${XDG_DATA_HOME:-}" in
-  /*) data_home=$XDG_DATA_HOME ;;
-  *) data_home=$HOME/.local/share ;;
-esac
-case "${XDG_CONFIG_HOME:-}" in
-  /*) config_home=$XDG_CONFIG_HOME ;;
-  *) config_home=$HOME/.config ;;
-esac
-user_data_dir="$data_home/linto"
-user_bin_dir="$user_data_dir/bin"
+configure_shell() {
+  local shell_name=$1 lib_dir=$2 bin_dir=$3 temporary profile env_line
+
+  # Replace lines that point at this checkout with lines for the installed copy.
+  if [[ "$repo_dir" != "$lib_dir" ]]; then
+    remove_shell_lines "$shell_name" "$repo_dir/bin" "$repo_dir/completions"
+  fi
+
+  shell_lines "$shell_name" "$bin_dir" "$lib_dir/completions"
+  mkdir -p -- "$(dirname -- "$config_file")"
+  [[ -f "$config_file" ]] || : > "$config_file"
+
+  # The generated fish completion supersedes the static file of the installed tree.
+  [[ -z "$static_fish_line" || "$completion_line" == "$static_fish_line" ]] ||
+    remove_line "$config_file" "$static_fish_line"
+
+  # Zsh must have the completion directory on fpath before compinit runs.
+  if [[ "$shell_name" == zsh ]]; then
+    ensure_zsh_completion_order
+  else
+    append_once "$completion_line"
+  fi
+  append_once "$path_line"
+
+  # ksh only reads ~/.kshrc when ENV points at it, which login shells set in ~/.profile.
+  if [[ "$shell_name" == ksh ]]; then
+    profile="$HOME/.profile"
+    env_line='export ENV="${ENV:-$HOME/.kshrc}"'
+    [[ -f "$profile" ]] || : > "$profile"
+    grep -Fqx -- "$env_line" "$profile" || printf '\n%s\n' "$env_line" >> "$profile"
+  fi
+
+  printf "$(_ 'Configured Linto for %s in %s')\n" "$shell_name" "$config_file"
+  case "$shell_name" in
+    ksh|sh) printf "$(_ 'Reload with: . %q')\n" "$config_file" ;;
+    *) printf "$(_ 'Reload with: source %q')\n" "$config_file" ;;
+  esac
+}
 
 append_once() {
   local line=$1
@@ -324,99 +360,41 @@ ensure_zsh_completion_order() {
   fi
 }
 
-configure_shell() {
-  local shell_name=$1 fish_completion stale_line temporary profile env_line
-  fish_completion="$user_data_dir/completions/linto.fish"
-  case "$shell_name" in
-    zsh)
-      config_file="${ZDOTDIR:-$HOME}/.zshrc"
-      completion_line="fpath=(\"$completion_dir\" \$fpath)"
-      init_line='autoload -Uz compinit && compinit'
-      path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
-      ;;
-    bash)
-      config_file="$HOME/.bashrc"
-      completion_line="source \"$completion_dir/linto.bash\""
-      init_line=''
-      path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
-      ;;
-    fish)
-      config_file="$config_home/fish/config.fish"
-      [[ -f "$fish_completion" ]] || fish_completion="$completion_dir/linto.fish"
-      completion_line="source \"$fish_completion\""
-      init_line=''
-      path_line="fish_add_path \"$bin_dir\" \"$user_bin_dir\""
-      ;;
-    ksh)
-      config_file="$HOME/.kshrc"
-      completion_line=''
-      init_line=''
-      path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
-      ;;
-    sh)
-      config_file="$HOME/.profile"
-      completion_line=''
-      init_line=''
-      path_line="export PATH=\"$bin_dir:$user_bin_dir:\$PATH\""
-      ;;
-  esac
-
-  mkdir -p -- "$(dirname -- "$config_file")"
-  [[ -f "$config_file" ]] || : > "$config_file"
-
-  # The generated fish completion (written by build) supersedes the static one in
-  # the checkout; drop an earlier line sourcing the static file so rules are not defined twice.
-  if [[ "$shell_name" == fish && "$fish_completion" == "$user_data_dir/completions/linto.fish" ]]; then
-    stale_line="source \"$completion_dir/linto.fish\""
-    if grep -Fqx -- "$stale_line" "$config_file"; then
-      temporary=$(mktemp "${config_file}.linto.XXXXXX")
-      grep -Fvx -- "$stale_line" "$config_file" > "$temporary" || true
-      chmod --reference="$config_file" "$temporary" 2>/dev/null || true
-      mv -- "$temporary" "$config_file"
-    fi
-  fi
-
-  # Zsh must have the completion directory on fpath before compinit runs.
-  if [[ "$shell_name" == zsh ]]; then
-    ensure_zsh_completion_order
-  else
-    append_once "$completion_line"
-  fi
-  append_once "$path_line"
-
-  # ksh only reads ~/.kshrc when ENV points at it, which login shells set in ~/.profile.
-  if [[ "$shell_name" == ksh ]]; then
-    profile="$HOME/.profile"
-    env_line='export ENV="${ENV:-$HOME/.kshrc}"'
-    [[ -f "$profile" ]] || : > "$profile"
-    grep -Fqx -- "$env_line" "$profile" || printf '\n%s\n' "$env_line" >> "$profile"
-  fi
-
-  printf "$(_ 'Configured Linto for %s in %s')\n" "$shell_name" "$config_file"
-  case "$shell_name" in
-    ksh|sh) printf "$(_ 'Reload with: . %q')\n" "$config_file" ;;
-    *) printf "$(_ 'Reload with: source %q')\n" "$config_file" ;;
-  esac
-}
-
 install_user() {
-  # Build first: the generated wrappers and fish completion are what the shells point at.
-  if [[ "$install_man" == true ]]; then
-    "$repo_dir/groups/linto/addman.sh"
-  else
-    "$repo_dir/groups/linto/build.sh"
+  local prefix=${prefix:-$default_user_prefix}
+  local lib_dir="$prefix/lib/linto" bin_dir="$prefix/bin" shell_name system_prefixes
+
+  install_tree "$lib_dir" "$bin_dir" "$checkout_version"
+
+  if [[ "$make_venv" == true ]]; then
+    "$lib_dir/groups/linto/venv.sh"
   fi
-  local shell_name
+
+  # Build from the installed copy, so the generated wrappers point at it.
+  if [[ "$install_man" == true ]]; then
+    XDG_DATA_HOME="$data_home" "$lib_dir/groups/linto/addman.sh"
+  else
+    XDG_DATA_HOME="$data_home" "$lib_dir/groups/linto/build.sh"
+  fi
+
   for shell_name in "${selected[@]}"; do
-    configure_shell "$shell_name"
+    configure_shell "$shell_name" "$lib_dir" "$bin_dir"
   done
+
   # A new user configuration, from the template, unless one already exists.
   if [[ ! -e "$HOME/.linto.yml" && ! -e "$config_home/linto/config.yml" ]]; then
     install -m 0644 -- "$repo_dir/etc/linto.yml" "$HOME/.linto.yml"
     printf "$(_ 'Created %s')\n" "$HOME/.linto.yml"
   fi
-  if [[ "$make_venv" == true ]]; then
-    "$repo_dir/groups/linto/venv.sh"
+
+  system_prefixes=$(find_system_installs)
+  if [[ -n "$system_prefixes" ]]; then
+    while IFS= read -r prefix_found; do
+      printf "$(_ 'Warning: a system-wide Linto is installed in %s. Your user installation in %s takes precedence for you; to use the system one, run: linto linto uninstall --user')\n" \
+        "$prefix_found/lib/linto" "$lib_dir" >&2
+    done <<<"$system_prefixes"
+  elif packaged=$(find_packaged_install); then
+    printf "$(_ 'Warning: Linto is also installed system-wide (%s). Your user installation takes precedence for you.')\n" "$packaged" >&2
   fi
 }
 

@@ -8,20 +8,28 @@ linto linto install --user
 sudo linto linto install --system
 ```
 
-`--user` runs Linto in place from this checkout. It builds the command
-wrappers, completions and man pages (`linto linto build`) into
-`${XDG_DATA_HOME:-~/.local/share}/linto`, adds this installation's `bin/` and
-that per-user `bin/` directory to your `PATH`, and installs completion, for
-every supported shell by default: Fish, Bash, ksh, sh and Zsh. Choose some with
-`--shell` (repeat it or separate shells with commas). The installer can be run
+Either way Linto is copied out of the checkout, and the `PATH` entries,
+completions and wrappers point only at the installed copy; run the installer
+again from a checkout to upgrade (it refuses to run from the installed copy).
+
+`--user` installs to `PREFIX/lib/linto` (`--prefix`, default `~/.local`) with a
+`linto` launcher in `PREFIX/bin`. It builds the command wrappers, completions
+and man pages (`linto linto build`) into
+`${XDG_DATA_HOME:-~/.local/share}/linto`, adds `PREFIX/bin` and that per-user
+wrapper directory to your `PATH`, and installs completion, for every supported
+shell by default: Fish, Bash, ksh, sh and Zsh. Choose some with `--shell`
+(repeat it or separate shells with commas). Start-up lines left by an older
+installation that pointed at a checkout are replaced. The installer can be run
 more than once; ksh and sh get the PATH entries but no completion. Use
 `--no-man` to skip the man page and `--venv` to create the Python environment
-too (`linto linto venv`).
+too (`linto linto venv`). If a system-wide installation exists, it warns that
+your copy takes precedence for you.
 
-`--system` copies Linto to `PREFIX/lib/linto`, builds its wrappers into
-`PREFIX/share/linto`, links the commands into `PREFIX/bin`, and installs the
-completions and man pages under `PREFIX/share` (`--prefix`, default
-`/usr/local`). It needs write access to the prefix, normally root. Run it again
+`--system` installs to `PREFIX/lib/linto` (default `/usr/local`), builds its
+wrappers into `PREFIX/share/linto`, links the commands into `PREFIX/bin`, and
+installs the completions and man pages under `PREFIX/share`. If you also have a
+user installation, it asks whether to delete it (`--remove-user-install` or
+`--keep-user-install` answer in advance). It needs write access to the prefix, normally root. Run it again
 to upgrade. Each user can still add their own configuration and groups, which
 are stored under their home directory. The
 XDG variables are optional: without them, user configuration is stored in
@@ -34,6 +42,10 @@ template `etc/linto.yml` if you have neither; `--system` creates
 overwrites either file. The system installation's own `config.yml` comes from
 the neutral template `etc/config.yml`, so personal settings of the checkout it
 was installed from are not shipped to other users.
+
+`linto linto uninstall [--user | --system]` removes what the installer put there
+(including the start-up lines it added), asks for confirmation unless given
+`--yes`, and never deletes your configuration or your own groups.
 
 On NixOS, `linto linto install` changes nothing and prints the equivalent
 `programs.linto` options instead (see the README's Nix section).
