@@ -181,6 +181,13 @@ case "$index_help" in
     *"  linto help bib"*) ;;
     *) fail "linto help does not list groups" ;;
 esac
+for group in bib utils linto; do
+    [ "$(LINTO_MDVIEWER=cat "$root/bin/linto" "$group" -h)" = "$(LINTO_MDVIEWER=cat "$root/bin/linto" "$group" --help)" ] ||
+        fail "linto $group -h differs from linto $group --help"
+done
+[ "$(LINTO_MDVIEWER=cat "$root/bin/linto-utils" -h)" = "$(LINTO_MDVIEWER=cat "$root/bin/linto-utils" --help)" ] ||
+    fail "linto-utils -h differs from --help"
+
 group_help=$(LINTO_MDVIEWER=cat "$root/bin/linto" help bib)
 case "$group_help" in
     *"  linto help bib bib2json"*) ;;

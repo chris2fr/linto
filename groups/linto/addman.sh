@@ -34,7 +34,7 @@ source_man="$linto_data/man/man1/linto.1"
 man_dir="$data_home/man/man1"
 link_path="$man_dir/linto.1"
 
-"$repo_root/groups/linto/refresh.sh"
+"$repo_root/groups/linto/build.sh"
 if [ ! -f "$source_man" ]; then
   die "generated man page not found: %s" "$source_man"
 fi

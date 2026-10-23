@@ -72,5 +72,5 @@ python3 "$repo_dir/lib/config.py" "$config_file" add "$name" || die "could not u
 
 
 printf "$(_ 'Registered group %s with %d executable script(s).')\n" "$name" "${#executables[@]}"
-"$repo_dir/groups/linto/refresh.sh"
+"$repo_dir/groups/linto/build.sh"
 printf "$(_ 'Available via: linto %s')\n" "$name"

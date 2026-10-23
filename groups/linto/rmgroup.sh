@@ -8,7 +8,7 @@ Usage: linto linto rmgroup [-h|--help] GROUP
 
 Disable a command group in the user's Linto configuration without deleting its
 installed or user data directory. Generated wrappers and completions are
-reconciled by refresh.
+reconciled by build.
 
 Options:
   -h, --help  Show this help and exit.
@@ -46,7 +46,7 @@ config_file="$repo_dir/config.yml"
 [[ -f "$config_file" ]] || die "installation configuration file not found: %s" "$config_file"
 python3 "$repo_dir/lib/config.py" "$config_file" remove "$name" || die "could not update user group configuration"
 
-"$repo_dir/groups/linto/refresh.sh"
+"$repo_dir/groups/linto/build.sh"
 printf "$(_ 'Unregistered group %s.')\n" "$name"
 for group_path in "$package_group" "$user_group"; do
   [[ -d "$group_path" ]] && printf "$(_ 'Group files left untouched: %s')\n" "$group_path"

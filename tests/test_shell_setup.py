@@ -103,7 +103,7 @@ class ShellSetupTests(unittest.TestCase):
 
             for target in ("zsh", "bash"):
                 result = subprocess.run(
-                    [bash, ROOT / "groups" / "linto" / "setup.sh", "--shell", target],
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", target],
                     capture_output=True,
                     text=True,
                     env=environment,
@@ -134,7 +134,7 @@ class ShellSetupTests(unittest.TestCase):
             self.assertEqual(zsh_result.returncode, 0, zsh_result.stderr)
             self.assertIn("_linto", zsh_result.stdout)
 
-    def test_fish_setup_replaces_the_static_completion_with_the_generated_one(self):
+    def test_fish_install_replaces_the_static_completion_with_the_generated_one(self):
         bash = shutil.which("bash")
         if not bash:
             self.skipTest("bash is required for this integration test")
@@ -144,55 +144,44 @@ class ShellSetupTests(unittest.TestCase):
             environment = dict(os.environ, HOME=str(home), SHELL="/usr/bin/fish",
                                XDG_CONFIG_HOME=str(home / "config"), XDG_DATA_HOME=str(data))
             config = home / "config" / "fish" / "config.fish"
+            config.parent.mkdir(parents=True)
+            static = f'source "{ROOT}/completions/linto.fish"'
+            config.write_text(static + "\nfunction y\nend\n", encoding="utf-8")   # left by an older setup
 
-            def setup():
-                result = subprocess.run([bash, ROOT / "groups" / "linto" / "setup.sh", "--shell", "fish"],
-                                        capture_output=True, text=True, env=environment)
+            def install():
+                result = subprocess.run(
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", "fish"],
+                    capture_output=True, text=True, env=environment)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
-            setup()                                          # before refresh: the static file in the checkout
-            static = f'source "{ROOT}/completions/linto.fish"'
-            self.assertIn(static, config.read_text(encoding="utf-8").splitlines())
-            (data / "linto" / "completions").mkdir(parents=True)
-            (data / "linto" / "completions" / "linto.fish").write_text("# generated\n", encoding="utf-8")
-            config.write_text(config.read_text(encoding="utf-8") + "function y\nend\n", encoding="utf-8")
-            setup()                                          # after refresh: the generated file
-            setup()                                          # idempotent
+            install()
+            install()                                        # idempotent
             lines = config.read_text(encoding="utf-8").splitlines()
             generated = f'source "{data}/linto/completions/linto.fish"'
             self.assertNotIn(static, lines)
             self.assertEqual(lines.count(generated), 1)
             self.assertIn("function y", lines)
 
-    def test_setup_detects_invoking_shell_before_shell_environment(self):
-        startup_files = {"bash": ".bashrc", "zsh": ".zshrc", "ksh": ".kshrc", "sh": ".profile"}
-        for shell in startup_files:
-            if shutil.which(shell) is None:
-                continue
-            with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
-                home = Path(directory)
-                environment = os.environ.copy()
-                environment.update(
-                    HOME=str(home),
-                    SHELL="/usr/bin/fish",
-                    XDG_CONFIG_HOME=str(home / "config"),
-                    XDG_DATA_HOME=str(home / "data"),
-                )
-                result = subprocess.run(
-                    [shell, "-c", f"{ROOT / 'groups' / 'linto' / 'setup.sh'}; true"],
-                    capture_output=True,
-                    text=True,
-                    env=environment,
-                )
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn(f"Configured Linto for {shell} ", result.stdout)
-                startup_file = home / startup_files[shell]
-                self.assertIn("linto", startup_file.read_text(encoding="utf-8"))
+    def test_install_configures_every_shell_by_default(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("bash is required for this integration test")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            environment = dict(os.environ, HOME=str(home), SHELL="/usr/bin/fish", ZDOTDIR=str(home),
+                               XDG_CONFIG_HOME=str(home / "config"), XDG_DATA_HOME=str(home / "data"))
+            result = subprocess.run(
+                [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man"],
+                capture_output=True, text=True, env=environment)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for startup in (home / "config" / "fish" / "config.fish", home / ".bashrc", home / ".kshrc",
+                            home / ".profile", home / ".zshrc"):
+                self.assertIn("linto", startup.read_text(encoding="utf-8"), startup)
 
     def test_ksh_and_sh_setup_add_path_without_completion(self):
         bash = shutil.which("bash")
         if not bash:
-            self.skipTest("bash is required to run setup.sh")
+            self.skipTest("bash is required to run install.sh")
 
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -205,7 +194,7 @@ class ShellSetupTests(unittest.TestCase):
             )
             for target in ("ksh", "sh", "ksh"):
                 result = subprocess.run(
-                    [bash, ROOT / "groups" / "linto" / "setup.sh", "--shell", target],
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", target],
                     capture_output=True,
                     text=True,
                     env=environment,

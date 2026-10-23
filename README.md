@@ -14,13 +14,15 @@ for your shell:
 export PATH="/path/to/linto/bin:$PATH"
 ```
 
-Or use Linto's setup helper for Bash, Zsh, Fish, ksh, or sh:
+Or let Linto install itself, for the current user or for all users, with support for Bash, Zsh, Fish, ksh, and sh:
 
 ```sh
-linto linto setup
+linto linto install            # asks: user or system
+linto linto install --user     # PATH, completion and man page for your shells
+sudo linto linto install --system   # copies Linto to /usr/local for everyone
 ```
 
-Install the `linto(1)` man page too with `linto linto setup --man`. See
+See
 [`linto help install`](linto-guide/install.md) for details.
 
 ## Nix and NixOS
@@ -69,7 +71,7 @@ The module installs the package and optionally writes `settings` to
 utilities used by Linto and installs Bash, Fish, and Zsh completions. Quarto,
 Zed, `xdg-open`, and optional Markdown viewers remain separate packages; add the
 ones needed by your workflow to your system configuration. The package does
-not ship the shell-setup helper (`linto linto setup`), which is for other
+not ship the installer (`linto linto install`), which is for other
 systems, or the development scripts listed in [DEVELOPMENT.md](DEVELOPMENT.md). User configuration
 and generated data stay in the XDG locations noted below, outside the immutable
 Nix store.

@@ -4,11 +4,12 @@ set -euo pipefail
 
 usage() {
   _ "$(cat <<'EOF'
-Usage: linto linto refresh [-h|--help]
+Usage: linto linto build [-h|--help]
 
-Refresh user-level group/command and shortcut wrappers, Fish completion, and
-man pages. Mutable generated files are written under the user's Linto data
-directory; the installation tree is read-only.
+Build the user-level group/command and shortcut wrappers, the Fish completion,
+and the man pages from the current configuration. Generated files are written
+under the user's Linto data directory (XDG_DATA_HOME); the installation tree is
+read-only.
 
 Options:
   -h, --help  Show this help and exit.
@@ -46,12 +47,14 @@ owned="$wrapper_dir/owned"
 
 [[ -x "$linto" ]] || die "dispatcher not executable: %s" "$linto"
 [[ -f "$config" && -f "$config_tool" ]] || die "config or config helper is missing"
-if ! command -v mandown >/dev/null 2>&1; then
-  die "mandown is required to generate topic man pages (run linto linto mdsetup)"
-fi
-if ! command -v groff >/dev/null 2>&1; then
-  die "groff is required to validate topic man pages"
-fi
+have_topic_tools=true
+for tool in mandown groff; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    have_topic_tools=false
+    printf "%s: $(_ '%s not found: guide man pages are skipped (run linto linto mdsetup)')\n" "$prog" "$tool" >&2
+    break
+  fi
+done
 [[ -d "$root/linto-guide" ]] || die "guide directory not found: %s" "$root/linto-guide"
 
 mapfile -t groups < <("$linto" --list-groups)
@@ -188,10 +191,11 @@ sys.stdout.write(text[:a] + '\n' + '\n'.join(lines) + '\n' + text[b:])
 PY
 mkdir -p -- "$man_topics_dir"
 
+declare -A desired_topics=()
+if [[ "$have_topic_tools" == true ]]; then
 topic_tmp=$(mktemp -d "$man_topics_dir/.topics.XXXXXX")
 trap 'rm -rf -- "$topic_tmp"' EXIT
 
-declare -A desired_topics=()
 for source in "$guide_dir"/*.md; do
   [[ -f "$source" ]] || continue
   topic=${source##*/}
@@ -243,7 +247,8 @@ for existing in "$man_topics_dir"/linto-*.1; do
   name=${existing##*/}
   [[ -n "${desired_topics[$name]+yes}" ]] || rm -f -- "$existing"
 done
+fi
 mv -- "$man_tmp" "$man_page"
 
-printf "$(_ 'Refreshed %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s).')\n" \
+printf "$(_ 'Built %d active group(s), wrappers, completions, dispatcher man page, and %d guide topic man page(s).')\n" \
   "${#groups[@]}" "${#desired_topics[@]}"
