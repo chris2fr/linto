@@ -70,6 +70,11 @@ standard input. Set the server in `groups.web.configdata.memos.url` (or
 `LINTO_MEMOS_URL`) and a personal access token in
 `groups.web.configdata.memos.token-file` (or `LINTO_MEMOS_TOKEN`).
 
+`linto utils qrdecode [--backend zbar|opencv] FILE...` reads QR codes with the first
+available backend of `groups.utils.configdata.qrdecode.backends` (`zbar`, then `opencv`
+by default); when neither is present it offers to install the optional `opencv`
+packages.
+
 `linto web memos get REF` accepts a number from 0 to 100 (the N-th memo from
 the top of `list`; 0 is the first), `YYYY-MM-DD-NN` (the NN-th memo created on
 that day in local time, from `00`, oldest first), or a memo id such as `123`

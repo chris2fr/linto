@@ -1,0 +1,3 @@
+# download: about 150 MB (about 220 MB installed)
+# Backend "opencv" of `linto utils qrdecode`: reads QR codes in Python.
+opencv-python-headless

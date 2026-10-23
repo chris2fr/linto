@@ -5,10 +5,13 @@ set -eu
 
 usage() {
   _ "$(cat <<'EOF'
-Usage: linto linto venv [-h|--help] [--recreate] [--python PYTHON]
+Usage: linto linto venv [-h|--help] [--recreate] [--python PYTHON] [--extra NAME]... [--all]
 
 Create the Python environment Linto runs with, $LINTO_ROOT/.venv, and install
-the packages listed in requirements.txt into it. Once it exists, the linto
+the packages listed in requirements.txt into it. Larger optional packages are
+extras (requirements/NAME.txt, for example qr-opencv for the opencv backend of
+linto utils qrdecode); they are installed on first use after confirmation, or
+in advance with --extra NAME (repeatable) or --all. Once it exists, the linto
 dispatcher puts it first on PATH, so every command uses it. Run the command
 again to install new requirements.
 
@@ -17,6 +20,8 @@ Set LINTO_NO_VENV=1 to ignore the environment for one run.
 Options:
   --recreate       Delete the environment and build it again.
   --python PYTHON  Interpreter to create it with (default: python3).
+  --extra NAME     Also install the optional packages of requirements/NAME.txt.
+  --all            Also install every extra.
   -h, --help       Show this help and exit.
 EOF
 )"
@@ -27,10 +32,19 @@ EOF
 
 python=python3
 recreate=0
+extras_list=
+all_extras=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --recreate) recreate=1; shift ;;
+    --all) all_extras=1; shift ;;
+    --extra)
+      [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
+      extras_list="$extras_list $2"
+      shift 2
+      ;;
+    --extra=*) extras_list="$extras_list ${1#*=}"; shift ;;
     --python)
       [ "$#" -ge 2 ] || die_usage "option %s needs an argument" "$1"
       python=$2
@@ -65,4 +79,18 @@ fi
 printf '%s\n' "$(_ 'Installing the requirements...')"
 "$venv/bin/python3" -m pip install --quiet --disable-pip-version-check -r "$requirements" ||
   die "could not install the requirements from %s" "$requirements"
+
+if [ "$all_extras" -eq 1 ]; then
+  extras_list=
+  for file in "$root"/requirements/*.txt; do
+    [ -f "$file" ] && extras_list="$extras_list $(basename -- "$file" .txt)"
+  done
+fi
+for extra in $extras_list; do
+  extra_file=$root/requirements/$extra.txt
+  [ -f "$extra_file" ] || die "unknown extra: %s" "$extra"
+  printf "$(_ 'Installing the extra %s...')\n" "$extra"
+  "$venv/bin/python3" -m pip install --quiet --disable-pip-version-check -r "$extra_file" ||
+    die "could not install the requirements from %s" "$extra_file"
+done
 printf "$(_ 'Linto will now run with %s')\n" "$venv/bin/python3"

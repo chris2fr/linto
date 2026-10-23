@@ -103,7 +103,7 @@ class ShellSetupTests(unittest.TestCase):
 
             for target in ("zsh", "bash"):
                 result = subprocess.run(
-                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", target],
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--no-venv", "--shell", target],
                     capture_output=True,
                     text=True,
                     env=environment,
@@ -150,7 +150,7 @@ class ShellSetupTests(unittest.TestCase):
 
             def install():
                 result = subprocess.run(
-                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", "fish"],
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--no-venv", "--shell", "fish"],
                     capture_output=True, text=True, env=environment)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -171,7 +171,7 @@ class ShellSetupTests(unittest.TestCase):
             environment = dict(os.environ, HOME=str(home), SHELL="/usr/bin/fish", ZDOTDIR=str(home),
                                XDG_CONFIG_HOME=str(home / "config"), XDG_DATA_HOME=str(home / "data"))
             result = subprocess.run(
-                [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man"],
+                [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--no-venv"],
                 capture_output=True, text=True, env=environment)
             self.assertEqual(result.returncode, 0, result.stderr)
             for startup in (home / "config" / "fish" / "config.fish", home / ".bashrc", home / ".kshrc",
@@ -194,7 +194,7 @@ class ShellSetupTests(unittest.TestCase):
             )
             for target in ("ksh", "sh", "ksh"):
                 result = subprocess.run(
-                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--shell", target],
+                    [bash, ROOT / "groups" / "linto" / "install.sh", "--user", "--no-man", "--no-venv", "--shell", target],
                     capture_output=True,
                     text=True,
                     env=environment,

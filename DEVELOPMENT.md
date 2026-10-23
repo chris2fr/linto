@@ -26,6 +26,28 @@ dispatcher exports `LINTO_ROOT` and `VIRTUAL_ENV` and puts `.venv/bin` first on
 `LINTO_NO_VENV=1` skips it for one run. `.venv` is git-ignored. The Nix package
 provides its own Python with the same packages and does not ship `venv`.
 
+## Python environment and optional packages
+
+`requirements.txt` lists the packages every command may need (PyYAML,
+bibtexparser, segno): about 18 MB, or 5 MB without pip. `linto linto install` creates
+`$LINTO_ROOT/.venv` from it in the installed copy (`--no-venv` skips it) and keeps
+it across upgrades. Larger optional packages are *extras*: one file
+`requirements/NAME.txt` each, whose first lines say `# download: about N MB`.
+`lib/extras.py` installs one on first use: `extras.ensure("cv2", "qr-opencv", "What
+needs it", "prog")` returns true when the module imports, otherwise explains how to
+install it (`linto linto venv --extra NAME`), or, on a terminal and with a writable
+environment, asks and runs pip. `linto linto venv --all` installs every extra in
+advance. The Nix package provides its own Python with the same packages.
+
+## Backends
+
+A command that can use several tools offers them as backends, tried in the order of
+a list in `groups/GROUP/lib/default.yml` that users can reorder in
+`groups.GROUP.configdata`. `linto utils qrdecode` has `zbar` (the `zbarimg` command,
+package `zbar-tools`: small, no Python packages) and `opencv` (Python, extra
+`qr-opencv`): `groups.utils.configdata.qrdecode.backends: [zbar, opencv]`, or
+`--backend NAME`. When none is available it offers to install the `opencv` extra.
+
 ## Configuration templates
 
 `etc/config.yml` holds the neutral installation defaults (enabled groups and standard

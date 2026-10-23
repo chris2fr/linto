@@ -89,3 +89,79 @@ class QrTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QrBackendTests(unittest.TestCase):
+    """qrdecode backends, with a stand-in zbarimg."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.fake = Path(self.tmp.name) / "bin"
+        self.fake.mkdir()
+        zbar = self.fake / "zbarimg"
+        zbar.write_text('#!/bin/sh\n[ "$1" = --quiet ] || exit 1\necho "decoded by zbar"\n')
+        zbar.chmod(0o755)
+        self.image = Path(self.tmp.name) / "q.png"
+        self.image.write_bytes(b"not really an image")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def decode(self, *args, path=None, config=None):
+        env = dict(os.environ, LC_ALL="C", PATH=path if path is not None else f"{self.fake}:{os.environ['PATH']}")
+        if config is not None:
+            home = Path(self.tmp.name) / "home"
+            (home / ".config" / "linto").mkdir(parents=True, exist_ok=True)
+            (home / ".config" / "linto" / "config.yml").write_text(config, encoding="utf-8")
+            env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"))
+        return subprocess.run([LINTO, "utils", "qrdecode", *args, str(self.image)], capture_output=True, text=True,
+                              env=env, stdin=subprocess.DEVNULL)
+
+    def test_zbar_backend_is_used_when_present(self):
+        result = self.decode()
+        self.assertEqual((result.returncode, result.stdout), (0, "decoded by zbar\n"), result.stderr)
+
+    def test_backend_can_be_forced_and_a_missing_one_is_reported(self):
+        self.assertIn("zbar", self.decode("--backend", "zbar").stdout)
+        import shutil
+        if shutil.which("zbarimg"):
+            self.skipTest("a real zbarimg is installed")
+        without = self.decode("--backend", "zbar", path=os.environ["PATH"])
+        self.assertEqual(without.returncode, 1)
+        self.assertIn("zbarimg is not installed", without.stderr)
+
+    def test_configured_order_decides_the_backend(self):
+        config = "groups:\n  utils:\n    configdata:\n      qrdecode:\n        backends: [opencv, zbar]\n"
+        result = self.decode(config=config)
+        # opencv, first in the order, is tried before zbar when it is available.
+        if importlib.util.find_spec("cv2"):
+            self.assertNotIn("decoded by zbar", result.stdout)
+        else:
+            self.assertIn("decoded by zbar", result.stdout)
+
+
+class ExtrasTests(unittest.TestCase):
+    def setUp(self):
+        sys_path = str(ROOT / "lib")
+        import sys
+        if sys_path not in sys.path:
+            sys.path.insert(0, sys_path)
+        import extras
+        self.extras = extras
+
+    def test_extras_are_listed_with_their_download_note(self):
+        self.assertIn("qr-opencv", self.extras.available_extras())
+        self.assertIn("150 MB", self.extras.download_note("qr-opencv"))
+        self.assertEqual(self.extras.download_note("no-such-extra"), "")
+
+    def test_ensure_reports_how_to_install_without_a_terminal(self):
+        import contextlib
+        import io
+        error = io.StringIO()
+        with contextlib.redirect_stderr(error):
+            ok = self.extras.ensure("module_that_does_not_exist_xyz", "qr-opencv", "Something", "prog")
+        self.assertFalse(ok)
+        self.assertIn("linto linto venv --extra qr-opencv", error.getvalue())
+
+    def test_ensure_is_quiet_when_the_module_is_there(self):
+        self.assertTrue(self.extras.ensure("json", "qr-opencv", "Something", "prog"))
