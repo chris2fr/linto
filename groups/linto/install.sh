@@ -22,8 +22,8 @@ each selected shell. Configuration lines are not duplicated.
 
 --system copies Linto to PREFIX/lib/linto, builds its wrappers into
 PREFIX/share/linto, links the commands into PREFIX/bin, and installs the
-completions and man pages under PREFIX/share. It needs write access to PREFIX
-(normally root).
+completions and man pages under PREFIX/share. When PREFIX is not writable by you
+and you are not root, the steps that need it run through sudo.
 
 On NixOS, no files are changed; the matching NixOS options are printed instead.
 
@@ -150,61 +150,97 @@ repo_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 # ============================================================================
 # --system
 # ============================================================================
+# Run a command as root when the installation needs it: directly when already
+# root or when the prefix is writable, through sudo otherwise.
+use_sudo=false
+priv() {
+  if [[ "$use_sudo" == true ]]; then
+    sudo "$@"
+  else
+    "$@"
+  fi
+}
+
+# True when the current user can create PREFIX and everything below it.
+prefix_is_writable() {
+  local path=$1 entry
+  while [[ ! -e "$path" ]]; do path=$(dirname -- "$path"); done
+  [[ -d "$path" && -w "$path" ]] || return 1
+  for entry in "$1/bin" "$1/lib" "$1/lib/linto" "$1/share"; do
+    [[ ! -e "$entry" || -w "$entry" ]] || return 1
+  done
+}
+
 install_system() {
   local prefix=${prefix:-/usr/local}
   local lib_dir="$prefix/lib/linto" share_dir="$prefix/share" bin_dir="$prefix/bin"
-  local marker="$lib_dir/.linto-install" entry name target
+  local marker="$lib_dir/.linto-install" entry target
 
   case "$prefix" in /*) ;; *) die "the prefix must be an absolute path: %s" "$prefix" ;; esac
   if [[ -e "$lib_dir" && ! -f "$marker" ]]; then
     die "refusing to replace %s: not a Linto installation" "$lib_dir"
   fi
-  mkdir -p -- "$bin_dir" "$prefix/lib" 2>/dev/null && [[ -w "$bin_dir" && -w "$prefix/lib" ]] ||
-    die "cannot write to %s (run as root, or choose another --prefix)" "$prefix"
 
+  if [[ "${LINTO_INSTALL_SUDO:-}" == always ]]; then
+    use_sudo=true
+  elif [[ "$(id -u)" -ne 0 ]] && ! prefix_is_writable "$prefix"; then
+    use_sudo=true
+  fi
+  if [[ "$use_sudo" == true ]]; then
+    command -v sudo >/dev/null 2>&1 ||
+      die "cannot write to %s (run as root, or choose another --prefix)" "$prefix"
+    printf "$(_ 'Writing to %s needs root: using sudo.')\n" "$prefix" >&2
+    sudo -v || die "sudo failed"
+  fi
+
+  umask 022
   printf "$(_ 'Installing Linto in %s')\n" "$lib_dir"
-  rm -rf -- "$lib_dir"
-  mkdir -p -- "$lib_dir"
+  priv rm -rf -- "$lib_dir"
+  priv mkdir -p -- "$lib_dir" "$bin_dir"
   (cd "$repo_dir" && tar --exclude=./.git --exclude=./.venv --exclude=./tests \
-      --exclude=__pycache__ --exclude='*.pyc' -cf - .) | (cd "$lib_dir" && tar -xf -)
-  printf '%s\n' "$(python3 "$lib_dir/lib/config.py" "$lib_dir/config.yml" version 2>/dev/null || echo unknown)" > "$marker"
+      --exclude=__pycache__ --exclude='*.pyc' -cf - .) |
+    priv tar --no-same-owner -xf - -C "$lib_dir"
+  printf '%s\n' "$(python3 "$lib_dir/lib/config.py" "$lib_dir/config.yml" version 2>/dev/null || echo unknown)" |
+    priv tee "$marker" >/dev/null
+
+  if [[ "$make_venv" == true ]]; then
+    priv env PATH="$PATH" "$lib_dir/groups/linto/venv.sh"
+  fi
 
   # Build the wrappers, completions and man pages for the whole system, ignoring
   # the configuration of whoever runs the installation.
-  env HOME=/var/empty XDG_CONFIG_HOME=/var/empty XDG_DATA_HOME="$share_dir" \
+  priv env PATH="$PATH" HOME=/var/empty XDG_CONFIG_HOME=/var/empty XDG_DATA_HOME="$share_dir" \
     "$lib_dir/groups/linto/build.sh" >/dev/null
 
   # Commands: a launcher for the dispatcher (it must run from its own tree), and
   # links to the generated wrappers, which already hold absolute paths.
-  printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" > "$bin_dir/linto"
-  chmod 0755 "$bin_dir/linto"
+  printf '#!/bin/sh\nexec %q "$@"\n' "$lib_dir/bin/linto" | priv tee "$bin_dir/linto" >/dev/null
+  priv chmod 0755 "$bin_dir/linto"
   for entry in "$share_dir/linto/bin"/*; do
     [[ -f "$entry" ]] || continue
-    ln -sfn -- "$entry" "$bin_dir/${entry##*/}"
+    priv ln -sfn -- "$entry" "$bin_dir/${entry##*/}"
   done
   for entry in "$bin_dir"/linto-*; do                # wrappers of groups that no longer exist
     [[ -L "$entry" && ! -e "$entry" ]] || continue
     target=$(readlink -- "$entry")
-    [[ "$target" == "$share_dir/linto/bin/"* ]] && rm -f -- "$entry"
+    [[ "$target" == "$share_dir/linto/bin/"* ]] && priv rm -f -- "$entry"
   done
 
   # Completions.
-  mkdir -p -- "$share_dir/bash-completion/completions" "$share_dir/zsh/site-functions" \
+  priv mkdir -p -- "$share_dir/bash-completion/completions" "$share_dir/zsh/site-functions" \
     "$share_dir/fish/vendor_completions.d"
-  printf 'source %q\n' "$lib_dir/completions/linto.bash" > "$share_dir/bash-completion/completions/linto"
-  ln -sfn -- "$lib_dir/completions/_linto" "$share_dir/zsh/site-functions/_linto"
-  printf 'source %q\n' "$share_dir/linto/completions/linto.fish" > "$share_dir/fish/vendor_completions.d/linto.fish"
+  printf 'source %q\n' "$lib_dir/completions/linto.bash" |
+    priv tee "$share_dir/bash-completion/completions/linto" >/dev/null
+  priv ln -sfn -- "$lib_dir/completions/_linto" "$share_dir/zsh/site-functions/_linto"
+  printf 'source %q\n' "$share_dir/linto/completions/linto.fish" |
+    priv tee "$share_dir/fish/vendor_completions.d/linto.fish" >/dev/null
 
   # Man pages.
   if [[ "$install_man" == true ]]; then
-    mkdir -p -- "$share_dir/man/man1"
+    priv mkdir -p -- "$share_dir/man/man1"
     for entry in "$share_dir/linto/man/man1"/linto*.1; do
-      [[ -f "$entry" ]] && install -m 0644 -- "$entry" "$share_dir/man/man1/${entry##*/}"
+      [[ -f "$entry" ]] && priv install -m 0644 -- "$entry" "$share_dir/man/man1/${entry##*/}"
     done
-  fi
-
-  if [[ "$make_venv" == true ]]; then
-    "$lib_dir/groups/linto/venv.sh"
   fi
 
   printf "$(_ 'Installed Linto for all users in %s')\n" "$prefix"
