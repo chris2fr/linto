@@ -158,6 +158,10 @@ fi
 shared_zed_dir="$HOME/.zed"
 marker_file="$user_data_dir/.linto-version"
 
+#chris2fr patch because sometimes the node and prettier folders are not yet initialized.
+mkdir -p "$shared_zed_dir/node/"
+mkdir -p "$shared_zed_dir/prettier/"
+
 if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
     linto_config="$repo_dir/config.yml"
     shared_version=$(python3 "$repo_dir/lib/config.py" "$linto_config" version 2>/dev/null || true)
@@ -174,7 +178,7 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
         if [[ -e "$marker_file" && ! -f "$marker_file" ]]; then
             die "refusing to replace invalid marker path: %s" "$marker_file"
         fi
-        for shared_item in languages extensions; do
+        for shared_item in languages extensions node prettier; do
             local_path="$user_data_dir/$shared_item"
             shared_path="$shared_zed_dir/$shared_item"
             if [[ -e "$local_path" && ! -L "$local_path" && ! -d "$local_path" ]]; then
@@ -196,7 +200,7 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
         # Copy base configuration and state files from ~/.zed, excluding heavy/shared items
         for item in "$shared_zed_dir"/*; do
             item_name="$(basename "$item")"
-            if [[ "$item_name" == "languages" || "$item_name" == "extensions" ]]; then
+            if [[ "$item_name" == "node" || "$item_name" == "prettier" || "$item_name" == "languages" || "$item_name" == "extensions" ]]; then
                 continue
             fi
             target_item="$user_data_dir/$item_name"
@@ -206,7 +210,7 @@ if [[ "$user_data_dir" != "$shared_zed_dir" ]]; then
         done
 
         # Symlink shared items
-        for shared_item in languages extensions; do
+        for shared_item in node languages extensions prettier; do
             local_path="$user_data_dir/$shared_item"
             shared_path="$shared_zed_dir/$shared_item"
 

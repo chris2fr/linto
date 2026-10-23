@@ -14,7 +14,6 @@ groups:
   old:
     enable: false
 shortcuts:
-  prettyprint: "utils prettyprint"
-  stripaccents: "utils stripaccents"
+  pp: "utils prettyprint"
   slug: "utils stripaccents"
-  guillemets2quotes: "quarto guillemets2quotes"
+  g2q: "quarto guillemets2quotes"
