@@ -287,7 +287,7 @@ complete_target() {
 
 usage() {
   cat <<EOF
-Usage: linto [--help] [COMMAND [arguments...]]
+Usage: linto [--help|--version] [COMMAND [arguments...]]
        linto [--help] GROUP COMMAND [arguments...]
        linto-GROUP [COMMAND [arguments...]]
        linto-GROUP-COMMAND [arguments...]
@@ -298,6 +298,7 @@ Commands:
   help [PAGE|GROUP [COMMAND]]  Show a guide page or command help.
   help page PAGE               Show a guide page, even if its name is a group.
   completion SHELL        Print shell completion setup instructions.
+  --version, -V           Print the Linto version.
   --list-groups           Print group names, one per line.
   --list-commands GROUP   Print commands in GROUP, one per line.
   --list-shortcuts        Print configured shortcut names.
@@ -339,6 +340,15 @@ EOF
 #   linto-utils-stripaccents
 #   linto-quarto-render
 #   linto quarto citations --order-by key --format csv report.qmd
+
+case "${1-}" in
+  -V|--version)
+    [ "$#" -eq 1 ] || { echo "Usage: linto --version" >&2; exit 2; }
+    version=$(python3 "$script_dir/lib/config.py" "$script_dir/config.yml" version 2>/dev/null) || version=unknown
+    echo "linto $version"
+    exit 0
+    ;;
+esac
 
 if [ "${1-}" != completion ]; then
   load_config_state

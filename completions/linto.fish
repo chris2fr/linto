@@ -19,3 +19,4 @@ complete -c linto -f -n '__fish_seen_subcommand_from utils linto-utils; and __li
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-groups 2>/dev/null)'
 complete -c linto -f -n '__fish_seen_subcommand_from help' -a '($linto_bin --list-shortcuts 2>/dev/null)'
 complete -c linto -l help -s h -d 'Show help'
+complete -c linto -l version -s V -d 'Show the version'

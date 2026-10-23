@@ -167,6 +167,15 @@ Options:
   -h, --help  Show this help and exit.' \
     env LC_ALL=C "$root/bin/linto" quarto render --help
 
+case "$("$root/bin/linto" --version)" in
+    'linto '[v0-9]*) ;;
+    *) fail "linto --version output" ;;
+esac
+[ "$("$root/bin/linto" -V)" = "$("$root/bin/linto" --version)" ] || fail "linto -V differs from --version"
+if "$root/bin/linto" --version extra >/dev/null 2>&1; then
+    fail "linto --version accepted an argument"
+fi
+
 index_help=$(LINTO_MDVIEWER=cat "$root/bin/linto" help)
 case "$index_help" in
     *"  linto help bib"*) ;;
