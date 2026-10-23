@@ -2,5 +2,6 @@ configdata:
   qrdecode:
     # Decoders tried in order; the first one available is used.
     #   zbar    the zbarimg command (package zbar-tools): small, no Python packages
-    #   opencv  the Python module cv2 (extra qr-opencv, installed on first use)
-    backends: [zbar, opencv]
+    #   opencv  the Python module cv2 (extra qr-opencv, about 150 MB, installed on first use)
+    # Only zbar by default; add opencv ([zbar, opencv]) or use --backend opencv for the Python decoder.
+    backends: [zbar]

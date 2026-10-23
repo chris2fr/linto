@@ -45,8 +45,9 @@ A command that can use several tools offers them as backends, tried in the order
 a list in `groups/GROUP/lib/default.yml` that users can reorder in
 `groups.GROUP.configdata`. `linto utils qrdecode` has `zbar` (the `zbarimg` command,
 package `zbar-tools`: small, no Python packages) and `opencv` (Python, extra
-`qr-opencv`): `groups.utils.configdata.qrdecode.backends: [zbar, opencv]`, or
-`--backend NAME`. When none is available it offers to install the `opencv` extra.
+`qr-opencv`): `groups.utils.configdata.qrdecode.backends: [zbar]` by default (add `opencv` to the
+list for a fallback), or `--backend NAME`. `--backend opencv`, or `opencv` in the list
+when no backend is present, offers to install the `opencv` extra.
 
 ## Configuration templates
 

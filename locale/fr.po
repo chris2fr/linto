@@ -2333,8 +2333,8 @@ msgstr "Le moteur {} de qrdecode"
 msgid "decoder to use: zbar (the zbarimg command) or opencv (Python); default: the first available of groups.utils.configdata.qrdecode.backends"
 msgstr "décodeur à utiliser : zbar (la commande zbarimg) ou opencv (Python) ; défaut : le premier disponible de groups.utils.configdata.qrdecode.backends"
 
-msgid "no QR decoder is available: install zbar-tools or run {}"
-msgstr "aucun décodeur de QR n'est disponible : installez zbar-tools ou lancez {}"
+msgid "no QR decoder is available: install zbar-tools (the zbarimg command), or use --backend opencv"
+msgstr "aucun décodeur de QR n'est disponible : installez zbar-tools (la commande zbarimg), ou utilisez --backend opencv"
 
 msgid "unknown extra: {}"
 msgstr "extra inconnu : {}"

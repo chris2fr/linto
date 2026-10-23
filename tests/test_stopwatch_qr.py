@@ -76,12 +76,12 @@ class QrTests(unittest.TestCase):
                                      capture_output=True, text=True)
             self.assertEqual(encoded.returncode, 0, encoded.stderr)
             self.assertIn("█", encoded.stdout)
-            decoded = subprocess.run([LINTO, "utils", "qrdecode", image], capture_output=True, text=True)
+            decoded = subprocess.run([LINTO, "utils", "qrdecode", "--backend", "opencv", image], capture_output=True, text=True)
             self.assertEqual(decoded.stdout.strip(), "https://example.org/é?x=1")
             short = os.path.join(tmp, "short.png")      # short text must not become a Micro QR code
             subprocess.run([LINTO, "utils", "qrencode", "--no-ascii", "-o", short, "hello"], check=True,
                            capture_output=True)
-            decoded = subprocess.run([LINTO, "utils", "qrdecode", short], capture_output=True, text=True)
+            decoded = subprocess.run([LINTO, "utils", "qrdecode", "--backend", "opencv", short], capture_output=True, text=True)
             self.assertEqual(decoded.stdout.strip(), "hello")
             again = subprocess.run([LINTO, "utils", "qrencode", "-o", image, "x"], capture_output=True, text=True)
             self.assertEqual(again.returncode, 1)
@@ -116,6 +116,15 @@ class QrBackendTests(unittest.TestCase):
             env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"))
         return subprocess.run([LINTO, "utils", "qrdecode", *args, str(self.image)], capture_output=True, text=True,
                               env=env, stdin=subprocess.DEVNULL)
+
+    def test_zbar_is_the_default_backend_and_opencv_is_not_a_silent_fallback(self):
+        import shutil
+        if shutil.which("zbarimg"):
+            self.skipTest("a real zbarimg is installed")
+        result = self.decode(path=os.environ["PATH"])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("install zbar-tools", result.stderr)
+        self.assertIn("--backend opencv", result.stderr)
 
     def test_zbar_backend_is_used_when_present(self):
         result = self.decode()

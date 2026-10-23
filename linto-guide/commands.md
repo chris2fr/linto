@@ -71,9 +71,10 @@ standard input. Set the server in `groups.web.configdata.memos.url` (or
 `groups.web.configdata.memos.token-file` (or `LINTO_MEMOS_TOKEN`).
 
 `linto utils qrdecode [--backend zbar|opencv] FILE...` reads QR codes with the first
-available backend of `groups.utils.configdata.qrdecode.backends` (`zbar`, then `opencv`
-by default); when neither is present it offers to install the optional `opencv`
-packages.
+available backend of `groups.utils.configdata.qrdecode.backends`. The default is
+`[zbar]`: the `zbarimg` command (package `zbar-tools`), which is small and needs no
+Python package. Add `opencv` to the list, or pass `--backend opencv`, for the Python
+decoder, which offers to install its optional packages (about 150 MB) on first use.
 
 `linto web memos get REF` accepts a number from 0 to 100 (the N-th memo from
 the top of `list`; 0 is the first), `YYYY-MM-DD-NN` (the NN-th memo created on

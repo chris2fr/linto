@@ -49,7 +49,7 @@ optional packages are installed the first time a command needs them, after you
 confirm (for example the `opencv` backend of `linto utils qrdecode`, about 150 MB to
 download); install them in advance with `linto linto venv --extra qr-opencv` or
 `--all`. When a command has several backends, `groups.utils.configdata.qrdecode.backends`
-sets their order (`zbar` uses the `zbarimg` command and needs no Python package).
+sets their order (`zbar`, the default, uses the `zbarimg` command from the `zbar-tools` package and needs no Python package; `opencv` is opt-in).
 
 `linto linto uninstall [--user | --system]` removes what the installer put there
 (including the start-up lines it added), asks for confirmation unless given

@@ -85,7 +85,7 @@ def main_encode() -> int:
 
 # ------------------------------------------------------------------ qrdecode backends
 # Each backend returns the texts of the QR codes of an image, or raises BackendError.
-# "zbar" calls the zbarimg command (package zbar-tools): small, no Python packages.
+# "zbar" (the default) calls the zbarimg command (package zbar-tools): small, no Python packages.
 # "opencv" uses the Python module cv2 (extra qr-opencv: about 150 MB to download).
 class BackendError(Exception):
     pass
@@ -142,7 +142,7 @@ def configured_backends():
     if isinstance(value, str):
         value = [value]
     names = [n for n in value or [] if n in BACKENDS]
-    return names or ["zbar", "opencv"]
+    return names or ["zbar"]
 
 
 def pick_backend(requested, prog):
@@ -175,8 +175,8 @@ def main_decode() -> int:
     args = parser.parse_args()
     backend = pick_backend(args.backend, "qrdecode")
     if backend is None:
-        return fail("qrdecode", _("no QR decoder is available: install zbar-tools or run {}").format(
-            extras.command_for("qr-opencv")))
+        return fail("qrdecode", _("no QR decoder is available: install zbar-tools (the zbarimg command), "
+                                  "or use --backend opencv"))
     decode = BACKENDS[backend][0]
     status = 0
     for path in args.files:
