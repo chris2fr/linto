@@ -121,8 +121,9 @@ def main() -> int:
                 zdotdir = Path(os.environ.get("ZDOTDIR", str(home)))
                 if not zdotdir.is_absolute():
                     zdotdir = home
-                update_sh_aliases(zdotdir / ".zshrc", aliases)
-                destination = str(zdotdir / ".zshrc")
+                aliases_file = home / ".config" / "zsh" / "aliases.zsh"
+                update_zsh_aliases(zdotdir / ".zshrc", aliases_file, aliases)
+                destination = f"{aliases_file} ({_('sourced from')} {zdotdir / '.zshrc'})"
             elif target_shell == "bash":
                 update_sh_aliases(home / ".bashrc", aliases)
                 destination = str(home / ".bashrc")
@@ -179,6 +180,36 @@ def update_sh_aliases(rc_path: Path, aliases: dict[str, str]) -> None:
         "# >>> linto aliases end >>>",
         block,
     )
+
+
+ZSH_ALIASES_BLOCK = [
+    'mkdir -p -m 0700 "$HOME/.config/zsh/"',
+    'touch "$HOME/.config/zsh/aliases.zsh"',
+    'chmod 0600 "$HOME/.config/zsh/aliases.zsh"',
+    'source "$HOME/.config/zsh/aliases.zsh"',
+]
+
+
+def update_zsh_aliases(zshrc: Path, aliases_file: Path, aliases: dict[str, str]) -> None:
+    """Keep the aliases in a file of their own, sourced from .zshrc.
+
+    .zshrc gets a four-line managed block (create the directory 0700 and the file 0600 if
+    needed, then source it); the same steps are done here, and the file itself is
+    written entirely by Linto.
+    """
+    _replace_managed_block(
+        zshrc, "# >>> linto aliases begin >>>", "# >>> linto aliases end >>>", ZSH_ALIASES_BLOCK
+    )
+    directory = aliases_file.parent
+    if not directory.exists():
+        directory.mkdir(parents=True)
+        directory.chmod(0o700)
+    lines = ["# Managed by `linto linto aliases`: changes made here are overwritten."]
+    lines += [f"alias {name}={_shell_quote(command)}" for name, command in aliases.items()]
+    temporary = aliases_file.with_name(aliases_file.name + ".tmp")
+    temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    temporary.chmod(0o600)
+    temporary.replace(aliases_file)
 
 
 def update_ksh_profile(profile: Path) -> None:

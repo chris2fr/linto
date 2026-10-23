@@ -148,10 +148,11 @@ uuid' "$root/bin/linto" --list-commands utils
 launch_output=$("$root/bin/linto-launch")
 [ "$launch_output" = "$(printf 'Commands in group launch:\n  zed')" ] || fail "launch group wrapper output: $launch_output"
 
-assert_output 'guillemets2quotes
-pp
-slug
-zz' "$root/bin/linto" --list-shortcuts
+# The shortcut names are whatever config.yml defines (it holds personal ones too).
+expected_shortcuts=$(python3 "$root/lib/config.py" "$root/config.yml" aliases | cut -f1 | LC_ALL=C sort)
+actual_shortcuts=$("$root/bin/linto" --list-shortcuts | LC_ALL=C sort)
+[ -n "$expected_shortcuts" ] && [ "$actual_shortcuts" = "$expected_shortcuts" ] ||
+    fail "linto --list-shortcuts differs from the shortcuts of config.yml"
 if "$root/bin/linto" render --help >"$tmpdir/unqualified.out" 2>&1; then
     fail "command from a shortcuts-disabled group ran unqualified"
 fi

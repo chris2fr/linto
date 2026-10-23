@@ -45,6 +45,12 @@ groups:
         zz: "linto launch zed"
 ```
 
+For Zsh the aliases are kept in `~/.config/zsh/aliases.zsh`, a file that Linto owns
+and rewrites completely (directory mode 0700, file mode 0600). `~/.zshrc` only gets a
+four-line managed block that creates the directory and file if needed and sources it
+(`# >>> linto aliases begin >>>` to `end >>>`); an older block that listed the aliases
+inline is replaced by it. Do not put your own aliases in that file.
+
 By default, the command detects the shell from `$SHELL`, then tries the parent
 process, and falls back to `sh` if it cannot identify one. Select a shell
 explicitly with `-s` or `--shell`:

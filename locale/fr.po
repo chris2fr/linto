@@ -2334,3 +2334,6 @@ msgstr "Mise à jour disponible : %s -> %s (%s)"
 
 msgid "Update now? [y/N]"
 msgstr "Mettre à jour maintenant ? [o/N]"
+
+msgid "sourced from"
+msgstr "chargé depuis"

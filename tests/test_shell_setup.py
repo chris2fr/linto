@@ -43,6 +43,7 @@ class AliasShellTests(unittest.TestCase):
                  patch.object(sys, "argv", [str(ALIASES_PATH), "--shell", "all"]), \
                  patch.object(aliases, "update_fish_aliases") as fish_update, \
                  patch.object(aliases, "update_sh_aliases") as sh_update, \
+                 patch.object(aliases, "update_zsh_aliases") as zsh_update, \
                  patch.object(aliases, "update_ksh_profile") as ksh_profile, \
                  redirect_stdout(StringIO()):
                 self.assertEqual(aliases.main(), 0)
@@ -54,10 +55,54 @@ class AliasShellTests(unittest.TestCase):
                     call(home / ".bashrc", ANY),
                     call(home / ".profile", ANY),
                     call(home / ".kshrc", ANY),
-                    call(home / ".zshrc", ANY),
                 ],
             )
+            zsh_update.assert_called_once_with(home / ".zshrc", home / ".config" / "zsh" / "aliases.zsh", ANY)
             ksh_profile.assert_called_once_with(home / ".profile")
+
+    def test_zsh_aliases_live_in_a_file_that_linto_controls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            zshrc = home / ".zshrc"
+            zshrc.write_text(
+                "# keep this line\n"
+                "# >>> linto aliases begin >>>\n"
+                "alias old='stale'\n"
+                "# >>> linto aliases end >>>\n"
+                "export AFTER=1\n",
+                encoding="utf-8",
+            )
+            aliases_file = home / ".config" / "zsh" / "aliases.zsh"
+            wanted = {"quoted": "say 'hello'", "zz": "linto launch zed"}
+            aliases.update_zsh_aliases(zshrc, aliases_file, wanted)
+            aliases.update_zsh_aliases(zshrc, aliases_file, wanted)
+            rc = zshrc.read_text(encoding="utf-8")
+            self.assertIn("# keep this line", rc)
+            self.assertIn("export AFTER=1", rc)
+            self.assertNotIn("alias old", rc)                         # the old inline aliases are replaced
+            self.assertEqual(rc.count("# >>> linto aliases begin >>>"), 1)
+            for line in aliases.ZSH_ALIASES_BLOCK:
+                self.assertIn(line, rc.splitlines())
+            self.assertEqual(oct(aliases_file.stat().st_mode & 0o777), "0o600")
+            self.assertEqual(oct(aliases_file.parent.stat().st_mode & 0o777), "0o700")
+            content = aliases_file.read_text(encoding="utf-8")
+            self.assertIn("alias zz='linto launch zed'", content)
+            self.assertIn("alias quoted='say '\\''hello'\\'''", content)
+            aliases_file.write_text(content + "alias mine='x'\n", encoding="utf-8")   # hand edits do not survive
+            aliases.update_zsh_aliases(zshrc, aliases_file, {"zz": "linto launch zed"})
+            self.assertNotIn("mine", aliases_file.read_text(encoding="utf-8"))
+            self.assertNotIn("quoted", aliases_file.read_text(encoding="utf-8"))
+
+    def test_zsh_block_works_in_a_real_zsh(self):
+        zsh = shutil.which("zsh")
+        if not zsh:
+            self.skipTest("zsh is required")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            aliases.update_zsh_aliases(home / ".zshrc", home / ".config" / "zsh" / "aliases.zsh", {"hello": "echo hi"})
+            result = subprocess.run([zsh, "-ic", "hello"], capture_output=True, text=True,
+                                    env=dict(os.environ, HOME=str(home), ZDOTDIR=str(home)))
+            self.assertEqual(result.stdout.strip().splitlines()[-1], "hi", result.stderr)
 
     def test_sh_aliases_replace_the_managed_block_and_quote_values(self):
         with tempfile.TemporaryDirectory() as directory:
